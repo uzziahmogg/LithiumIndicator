@@ -3,7 +3,8 @@
 --==========================================================================
 --todo convert RoundScale(..., 4) to RoundScale(..., values_after_point)
 --todo func AddLabel use Labels array
--- todo create func CheckElementarySignal
+--todo create func CheckElementarySignal
+
 ----------------------------------------------------------------------------
 --#region	Settings
 ----------------------------------------------------------------------------
@@ -29,7 +30,7 @@ function Init()
 	Directions = { Up = "L", Down = "S" }
 
 	-- tags for charts to show labels
-	ChartTags = { 	Stoch = Settings.Name .. Stochs.Name ,  	-- FEK_LITHIUMStoch
+	ChartTags = { 	Stoch = Settings.Name .. Stochs.Name ,  -- FEK_LITHIUMStoch
 					Price = Settings.Name .. Prices.Name, 	-- FEK_LITHIUMPrice
 					RSI = Settings.Name .. RSIs.Name }		-- FEK_LITHIUMRSI
 
@@ -135,6 +136,7 @@ function OnCalculate(index_candle)
 		--#endregion
 	end
 
+	--#region	get prices and indicators for current candle
 	-- calculate current prices
 	Prices.Open[index_candle] = O(index_candle)
 	Prices.Close[index_candle] = C(index_candle)
@@ -169,6 +171,7 @@ function OnCalculate(index_candle)
 	BBs.Delta[index_candle] =  ((BBs.Top[index_candle] ~= nil) and (BBs.Bottom[index_candle] ~= nil)) and RoundScale(GetDelta(BBs.Top[index_candle], BBs.Bottom[index_candle]), 4)
 	MAs.Delta[index_candle] = ((Prices.Close[index_candle]~= nil) and (MAs[index_candle] ~= nil)) and RoundScale(GetDelta(Prices.Close[index_candle], MAs[index_candle]), 4)
 	RSIs.Delta[index_candle] = ((RSIs.Fast[index_candle]~= nil) and (RSIs.Slow[index_candle] ~= nil)) and RoundScale(GetDelta(RSIs.Fast[index_candle], RSIs.Slow[index_candle]), 4)
+	--#endregion
 
 	----------------------------------------------------------------------------
 	--	I. Elementary Price Signals
