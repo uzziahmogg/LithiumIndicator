@@ -21,22 +21,17 @@ Settings = { Name = "FEK_LITHIUM",
 function Init()
 	-- indicators data arrays and params
 	Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, Center = 50, Bottom = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
-	BBs = { Name = "BB", Top = {}, Bottom = {}, Delta = {}, Params = { Period = 20,  Shift = 2 }}
-	MAs = { Name = "MA", Delta = {}}
 	Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
 	RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, TopTrend = 60, Center = 50, BottomTrend = 40, Bottom = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
-	PCs = { Name = "PC", High = {}, Low = {}, Params = { Period =  BBs.Params.Period / 2 }}
+	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Params = { Period =  20 }}
 
 	-- directions for signals, labels and deals
 	Directions = { Up = "L", Down = "S" }
 
-	-- tags for charts to show labels
-	ChartTags = { 	Stoch = Settings.Name .. Stochs.Name ,  -- FEK_LITHIUMStoch
-					Price = Settings.Name .. Prices.Name, 	-- FEK_LITHIUMPrice
-					RSI = Settings.Name .. RSIs.Name }		-- FEK_LITHIUMRSI
-
-	-- steps for text labels on charts
-	ChartSteps = { Price = 15, Stoch = 10, RSI = 5 }
+	-- tags for charts to show labels and steps for text labels on charts
+	ChartParams = { Stoch = { Name = Settings.Name .. Stochs.Name, Step = 10 }, -- FEK_LITHIUMStoch					
+					Price = { Name = Settings.Name .. Prices.Name, Step = 15 },	-- FEK_LITHIUMPrice
+					RSI = { Name = Settings.Name .. RSIs.Name, Step = 5 } }		-- FEK_LITHIUMRSI
 
 	-- chart labels ids
 	Labels = { [Prices.Name] = {}, [Stochs.Name] = {}, [RSIs.Name] = {}}
@@ -65,7 +60,6 @@ function Init()
 	end
 
 	-- indicators function
-	FuncBB = BolBands()
 	FuncStochSlow = Stoch("SLOW")
 	FuncStochFast = Stoch("FAST")
 	FuncRSISlow = RSI("SLOW")
@@ -73,13 +67,13 @@ function Init()
 	FuncPC = PriceChannel()
 
 	-- signals start candles and counts
-	Signals = {	[Directions.Up] = { Prices = { CrossMA = { Count = 0, Candle = 0 }}, 
-	Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }}, 
-	RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}}, 
-	[Directions.Down] = { Prices = { CrossMA = { Count = 0, Candle = 0 }}, 
-	Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }},
-	RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
-	Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
+	Signals = {	[Directions.Up] = { Prices = { CrossMiddlePC= { Count = 0, Candle = 0 }}, 
+				Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }}, 
+				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}}, 
+				[Directions.Down] = { Prices = { CrossMiddlePC = { Count = 0, Candle = 0 }}, 
+				Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }},
+				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
+				Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
 
 	-- levels to show labels on charts
 	SignalLevels = { Elementary = 1, Impulse = 2, Trend = 4, Enter = 8 }
@@ -102,7 +96,7 @@ function OnCalculate(index_candle)
 
 		-- up signals
 		Signals[Directions.Up].Prices.CrossMA.Count = 0
-		Signals[Directions.Up].Prices.CrossMA.Candle = 0
+		Signals[Directions.Up].Prices.CrossMiddlePC.Candle = 0
 
 		Signals[Directions.Up].Stochs.Cross.Count = 0
 		Signals[Directions.Up].Stochs.Cross.Candle = 0
@@ -121,8 +115,8 @@ function OnCalculate(index_candle)
 		Signals[Directions.Up].RSIs.TrendOn.Candle = 0
 
 		-- down signals
-		Signals[Directions.Down].Prices.CrossMA.Count = 0
-		Signals[Directions.Down].Prices.CrossMA.Candle = 0
+		Signals[Directions.Down].Prices.CrossMiddlePC.Count = 0
+		Signals[Directions.Down].Prices.CrossMiddlePC.Candle = 0
 
 		Signals[Directions.Down].Stochs.Cross.Count = 0
 		Signals[Directions.Down].Stochs.Cross.Candle = 0
@@ -149,12 +143,6 @@ function OnCalculate(index_candle)
 	Prices.High[index_candle] = H(index_candle)
 	Prices.Low[index_candle] = L(index_candle)
 
-	-- calculate current bb
-	MAs[index_candle], BBs.Top[index_candle], BBs.Bottom[index_candle] = FuncBB(index_candle)
-	MAs[index_candle] = RoundScale(MAs[index_candle], 4)
-	BBs.Top[index_candle] = RoundScale(BBs.Top[index_candle], 4)
-	BBs.Bottom[index_candle] = RoundScale(BBs.Bottom[index_candle], 4)
-
 	-- calculate current stoch
 	Stochs.Slow[index_candle], _ = FuncStochSlow(index_candle)
 	Stochs.Fast[index_candle], _ = FuncStochFast(index_candle)
@@ -168,14 +156,13 @@ function OnCalculate(index_candle)
 	RSIs.Slow[index_candle] = RoundScale(RSIs.Slow[index_candle], 4)
 
 	-- calculate current price channel
-	PCs.High[index_candle], PCs.Low[index_candle] = FuncPC(index_candle)
-	PCs.High[index_candle] = RoundScale(PCs.High[index_candle], 4) 
-	PCs.Low[index_candle] = RoundScale(PCs.Low[index_candle], 4)
+	PriceChannels.High[index_candle], PriceChannels.Low[index_candle] = FuncPC(index_candle)
+	PriceChannels.High[index_candle] = RoundScale(PriceChannels.High[index_candle], 4) 
+	PriceChannels.Low[index_candle] = RoundScale(PriceChannels.Low[index_candle], 4)
+	PriceChannels.Middle[index_candle] =  ((PriceChannels.High[index_candle] ~= nil) and (PriceChannels.Low[index_candle] ~= nil)) and RoundScale((PriceChannels.Low[index_candle] + (PriceChannels.High[index_candle] + PriceChannels.Low[index_candle]) / 2), 4)
 
 	-- calculate current deltas
 	Stochs.Delta[index_candle] = ((Stochs.Slow[index_candle] ~= nil) and (Stochs.Fast[index_candle] ~= nil)) and RoundScale(GetDelta(Stochs.Fast[index_candle], Stochs.Slow[index_candle]), 4)
-	BBs.Delta[index_candle] =  ((BBs.Top[index_candle] ~= nil) and (BBs.Bottom[index_candle] ~= nil)) and RoundScale(GetDelta(BBs.Top[index_candle], BBs.Bottom[index_candle]), 4)
-	MAs.Delta[index_candle] = ((Prices.Close[index_candle]~= nil) and (MAs[index_candle] ~= nil)) and RoundScale(GetDelta(Prices.Close[index_candle], MAs[index_candle]), 4)
 	RSIs.Delta[index_candle] = ((RSIs.Fast[index_candle]~= nil) and (RSIs.Slow[index_candle] ~= nil)) and RoundScale(GetDelta(RSIs.Fast[index_candle], RSIs.Slow[index_candle]), 4)
 	--#endregion
 
@@ -678,147 +665,6 @@ end
 --#endregion
 
 --==========================================================================
---#region	INDICATOR BB
---==========================================================================
-----------------------------------------------------------------------------
---	function BolBands
-----------------------------------------------------------------------------
-function BolBands()
-	local BB_ma = VMA()
-	local BB_sd = SD()
-
-	local Itterations = { processed = 0, count = 0 }
-
-	return function (index_candle)
-		if (BBs.Params.Period > 0) then
-			if (index_candle == 1) then
-				Itterations = { processed = 0, count = 0 }
-			end
-
-			local b_ma = BB_ma(index_candle)
-			local b_sd = BB_sd(index_candle)
-
-			if (CandleExist(index_candle)) then
-				if (index_candle ~= Itterations.processed) then
-					Itterations = { processed = index_candle, count = Itterations.count + 1 }
-				end
-
-				if ((Itterations.count >= BBs.Params.Period) and (b_ma and b_sd)) then
-					return b_ma, (b_ma + BBs.Params.Shift * b_sd), (b_ma - BBs.Params.Shift * b_sd)
-				end
-			end
-		end
-		return nil, nil, nil
-	end
-end
-
-----------------------------------------------------------------------------
--- function SD
-----------------------------------------------------------------------------
-function SD()
-	local SD_ma = SMAQueued()
-
-	local Sums = {}
-	local Sums2 = {}
-	local Itterations = { processed = 0, count = 0 }
-
-	return function (index_candle)
-		if (BBs.Params.Period > 0) then
-			if (index_candle == 1) then
-				Sums = {}
-				Sums2 = {}
-				Itterations = { processed = 0, count = 0 }
-			end
-
-			local t_ma = SD_ma(index_candle)
-
-			if CandleExist(index_candle) then
-				if (index_candle ~= Itterations.processed) then
-					Itterations = { processed = index_candle, count = Itterations.count + 1 }
-				end
-
-				local index1 = Squeeze(Itterations.count, BBs.Params.Period)
-				local index2 = Squeeze(Itterations.count - 1, BBs.Params.Period)
-				local index3 = Squeeze(Itterations.count - BBs.Params.Period, BBs.Params.Period)
-
-				Sums[index1] = (Sums[index2] or 0) + C(Itterations.processed)
-				Sums2[index1] = (Sums2[index2] or 0) + C(Itterations.processed) ^ 2
-
-				if ((Itterations.count >= BBs.Params.Period) and t_ma) then
-
-					return math.sqrt((Sums2[index1] - (Sums2[index3] or 0) - 2 * t_ma * (Sums[index1] - (Sums[index3] or 0)) + BBs.Params.Period * (t_ma ^ 2)) / BBs.Params.Period)
-				end
-			end
-		end
-		return nil
-	end
-end
-
-----------------------------------------------------------------------------
---	functin VMA = sums(Pi*Vi) / sums(Vi)
-----------------------------------------------------------------------------
-function VMA()
-	local Sums_price_volume = {}
-	local Sums_volume = {}
-	local Itterations = { processed = 0, count = 0 }
-
-	return function(index_candle)
-		if (index_candle == 1) then
-			Sums_price_volume = {}
-			Sums_volume = {}
-			Itterations = { processed = 0, count = 0 }
-		end
-
-		if CandleExist(index_candle) then
-			if (index_candle ~= Itterations.processed) then
-				Itterations = { processed = index_candle, count = Itterations.count + 1 }
-			end
-
-			local index1 = Squeeze(Itterations.count, BBs.Params.Period)
-			local index2 = Squeeze(Itterations.count - 1, BBs.Params.Period)
-			local index3 = Squeeze(Itterations.count - BBs.Params.Period, BBs.Params.Period)
-
-			Sums_price_volume[index1] = (Sums_price_volume[index2] or 0) + C(Itterations.processed) * V(Itterations.processed)
-			Sums_volume[index1] = (Sums_volume[index2] or 0) + V(Itterations.processed)
-
-			if (Itterations.count >= BBs.Params.Period) then
-				return (Sums_price_volume[index1] - (Sums_price_volume[index3] or 0)) / (Sums_volume[index1] - (Sums_volume[index3] or 0))
-			end
-		end
-		return nil
-	end
-end
-
-----------------------------------------------------------------------------
---	function SMA = sums(Pi) / n !QUEUED!
-----------------------------------------------------------------------------
-function SMAQueued()
-	local Sum = 0
-	local Queue = {}
-
-	return function (index_candle)
-		if (index_candle == 1) then
-			Queue = {}
-			Sum = 0
-		end
-
-		if CandleExist(index_candle) then
-			table.insert(Queue, C(index_candle))
-			Sum = Sum + Queue[#Queue]
-
-			if (#Queue == BBs.Params.Period) then
-				local sma = Sum / BBs.Params.Period
-				Sum = Sum - Queue[1]
-				table.remove(Queue, 1)
-				return sma
-			end
-		end
-		return nil
-	end
-end
---#endregion
-
---==========================================================================
 --#region	INDICATOR STOCH
 --==========================================================================
 ----------------------------------------------------------------------------
@@ -1171,6 +1017,36 @@ function SignalOscTrendOff(osc, index, direction)
 
 	return  SignalOscCrossLevel(osc.Slow, level, index, direction, dev)
 end
+
+--
+-- Signal Osc Uturn with 3 candles
+--
+function SignalOscUturn3(osc, index, direction)
+	-- deltas uturn
+	return (SignalUturn(osc.Delta, index, Directions.Up) and
+		-- fastosc slowosc uturn
+		SignalUturn(osc.Fast, index, direction) and SignalMove(osc.Slow, index, direction) and
+		-- fastosc over slowosc on all
+		(IsRelate(osc.Fast[index-3], osc.Slow[index-3], direction) and
+		IsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and
+		IsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)))
+end
+
+--
+-- Signal Osc Uturn with 4 candles
+--
+function SignalOscUturn4(osc, index, direction)
+	-- deltas uturn
+	return ((SignalMove(osc.Delta, index-2, Directions.Down) and SignalMove(osc.Delta, index, Directions.Up)) and
+		-- fastosc slowosc uturn
+		(SignalMove(osc.Fast, index-2, Reverse(direction)) and SignalMove(osc.Fast, index, direction) and SignalMove(osc.Slow, index, direction)) and
+		-- fasrosc over slowosc on border
+		(IsRelate(osc.Fast[index-4], osc.Slow[index-4], direction) and
+		IsRelate(osc.Fast[index-3], osc.Slow[index-3], direction) and
+		IsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and
+		IsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)))
+end
+
 --#endregion
 
 ----------------------------------------------------------------------------
@@ -1186,6 +1062,74 @@ function SignalPriceCrossMA(price, ma, index, direction, dev)
 	return (-- IsRelate(price.Close[index-1], price.Open[index-1], direction) and
 			-- candle cross ma up
 			SignalCross(price.Close, ma, index, direction, dev))
+end
+
+--
+-- Signal Price Uturn3
+--
+function SignalPriceUturn3(price, ma, index, direction)
+	direction = string.upper(string.sub(direction, 1, 1))
+
+	if (direction == Directions.Up) then
+		-- one or two of 2 first candles are down, last 1 candle is up
+		return ((((price.Open[index-3] > price.Close[index-3]) or (price.Open[index-2] >= price.Close[index-2])) and
+			(price.Close[index-1] > price.Open[index-1])) and
+			-- price.close uturn and delta min at top uturn			
+			SignalUturn(price.Close, index, direction) and SignalUturn(ma.Delta, index, Directions.Up) and
+			-- ma move up
+			(SignalMove(ma, (index-1), direction) and SignalMove(ma, index, direction)) and
+			-- strength condition
+			((price.Close[index-1] > (price.Low[index-3] + 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3]))) or
+			(price.Close[index-1] > (price.Low[index-2] + 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])))))
+
+	elseif (direction == Directions.Down) then
+		-- one or two of 2 first candles are down, last 1 candle is up
+		return ((((price.Close[index-3] > price.Open[index-3]) or (price.Close[index-2] >= price.Open[index-2])) and
+			(price.Open[index-1] > price.Close[index-1])) and
+			-- price.close uturn and delta min at top uturn
+			SignalUturn(price.Close, index, direction) and SignalUturn(ma.Delta, index, Directions.Up) and
+			-- ma move down
+			(SignalMove(ma, (index-1), direction) and SignalMove(ma, index, direction)) and
+			-- strength condition
+			(((price.High[index-3] - 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3])) > price.Close[index-1]) or
+			((price.High[index-2] - 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])) > price.Close[index-1])))
+	end
+end
+
+--
+-- Signal Price Uturn4
+--
+function SignalPriceUturn4(price, ma, index, direction)
+	direction = string.upper(string.sub(direction, 1, 1))
+
+	if (direction == Directions.Up) then
+		-- first 2 candles down, last candle up
+		return ((((price.Open[index-4] > price.Close[index-4]) or (price.Open[index-3] > price.Close[index-3])) and
+			(price.Close[index-1] > price.Open[index-1])) and
+			-- price.close uturn
+			(SignalMove(price.Close, index-2, Reverse(direction)) and SignalMove(price.Close, index, direction)) and
+			-- delta min at top uturn
+			(SignalMove(ma.Delta, index-2, Directions.Down) and SignalMove(ma.Delta, index, Directions.Up)) and
+			-- ma move up
+			(SignalMove(ma, (index-2), direction) and SignalMove(ma, index, direction))  and
+			-- strength condition
+			((price.Close[index-1] > (price.Low[index-3] + 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3]))) or
+			(price.Close[index-1] > (price.Low[index-2] + 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])))))
+
+	elseif (direction == Directions.Down) then
+		-- one or two of 2 first candles are down, last 1 candle is up
+		return ((((price.Close[index-4] > price.Open[index-4]) or (price.Close[index-3] > price.Open[index-3])) and
+			(price.Open[index-1] > price.Close[index-1])) and
+			-- price.close uturn
+			(SignalMove(price.Close, index-2, Reverse(direction)) and SignalMove(price.Close, index, direction)) and
+			-- delta min at top uturn
+			(SignalMove(ma.Delta, index-2, Directions.Down) and SignalMove(ma.Delta, index, Directions.Up)) and
+			-- ma move down
+			(SignalMove(ma, (index-2), direction) and SignalMove(ma, index, direction)) and
+			-- strength condition
+			(((price.High[index-3] - 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3])) > price.Close[index-1]) or
+			((price.High[index-2] - 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])) > price.Close[index-1])))
+	end
 end
 --#endregion
 
