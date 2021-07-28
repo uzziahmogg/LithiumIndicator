@@ -10,9 +10,10 @@
 --#region	Settings
 ----------------------------------------------------------------------------
 Settings = { Name = "FEK_LITHIUM",
-			line = {{ Name = "BB", Type = TYPE_LINE, Color = RGB(221, 44, 44) },
-					{ Name = "BBTop", Type = TYPE_LINE,	Color = RGB(0, 206, 0) },
-					{ Name = "BBBottom", Type = TYPE_LINE, Color = RGB(0, 162, 232) }}}
+			-- lines on main chart
+			line = {{ Name = "PCHigh", Type = TYPE_LINE, Color = RGB(221, 44, 44) },
+					{ Name = "PCMiddle", Type = TYPE_LINE,	Color = RGB(0, 206, 0) },
+					{ Name = "PCLow", Type = TYPE_LINE, Color = RGB(0, 162, 232) }}}
 --#endregion
 
 --==========================================================================
@@ -29,9 +30,9 @@ function Init()
 	Directions = { Up = "L", Down = "S" }
 
 	-- tags for charts to show labels and steps for text labels on charts
-	ChartParams = { Stoch = { Name = Settings.Name .. Stochs.Name, Step = 10 }, -- FEK_LITHIUMStoch					
-					Price = { Name = Settings.Name .. Prices.Name, Step = 15 },	-- FEK_LITHIUMPrice
-					RSI = { Name = Settings.Name .. RSIs.Name, Step = 5 } }		-- FEK_LITHIUMRSI
+	Charts = { [Prices.Name]  = { Tag = GetChartTag(Prices.Name), Step = 15, Level = SignalLevels.Level1 + SignalLevels.Level2 },	-- FEK_LITHIUMPrice
+				[Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Level = SignalLevels.Level4 }, -- FEK_LITHIUMStoch
+				[RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Level = SignalLevels.Level3 }}		-- FEK_LITHIUMRSI
 
 	-- chart labels ids
 	Labels = { [Prices.Name] = {}, [Stochs.Name] = {}, [RSIs.Name] = {}}
@@ -67,7 +68,7 @@ function Init()
 	FuncPC = PriceChannel()
 
 	-- signals start candles and counts
-	Signals = {	[Directions.Up] = { Prices = { CrossMiddlePC= { Count = 0, Candle = 0 }}, 
+	Signals = {	[Directions.Up] = { Prices = { CrossMA= { Count = 0, Candle = 0 }}, 
 				Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }}, 
 				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}}, 
 				[Directions.Down] = { Prices = { CrossMiddlePC = { Count = 0, Candle = 0 }}, 
@@ -75,10 +76,8 @@ function Init()
 				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
 				Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
 
-	CheckSignals = { Price = { CrossMA = {}}}
-
 	-- levels to show labels on charts
-	SignalLevels = { Elementary = 1, Impulse = 2, Trend = 4, Enter = 8 }
+	SignalLevels = { Level1 = 1, Level2 = 2, Level3 = 4, Level4 = 8 }
 
 	return #Settings.line
 end
@@ -97,7 +96,7 @@ function OnCalculate(index_candle)
 		--#region	init Signals Candles and Counts
 		-- up signals
 		Signals[Directions.Up].Prices.CrossMA.Count = 0
-		Signals[Directions.Up].Prices.CrossMiddlePC.Candle = 0
+		Signals[Directions.Up].Prices.CrossMA.Candle = 0
 
 		Signals[Directions.Up].Stochs.Cross.Count = 0
 		Signals[Directions.Up].Stochs.Cross.Candle = 0
@@ -1275,28 +1274,35 @@ function RoundScale(value, scale)
 	end
 end
 
+function GetChartTag(indicator_name)
+	return Settings.Name .. indicator_name
+end
+
+function GetLevel(flag)
+	local result = {}
+
+	result.level4 = flag & 8
+	result.level3 = flag & 4
+	result.level2 = flag & 2
+	result.level1 = flag & 1
+
+	return result
+end
+
 ----------------------------------------------------------------------------
 --	function SetChartLabel
 ----------------------------------------------------------------------------
-function SetChartLabel(x_value, y_value, chart_tag, text, icon, signal_level)
-	if (Labels[Prices.Name][index_candle-1] ~= nil) then
-		DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
+function SetChartLabel(x_value, y_value, indicator_name, text, icon, signal_level)
+	-- delete label duplicates
+	if (Labels[indicator_name][index_candle-1] ~= nil) then
+		DelLabel(GetChartTag(indicator_name), Labels[indicator_name][index_candle-1])
 	end 
 	
-	local chart_level
-
-	if (chart_tag == ChartTags.Price) then
-		chart_level, _, _ = GetParams(ChartsParam)
-	elseif (chart_tag == ChartTags.Stoch) then
-		_, chart_level, _ = GetParams(ChartsParam)
-	elseif (chart_tag == ChartTags.RSI) then
-		_, _, chart_level = GetParams(ChartsParam)
-	end
-
-	if (((GetLevelParams(signal_level).Elementary > 0) and (GetLevelParams(chart_level).Elementary > 0)) or
-	((GetLevelParams(signal_level).Impulse > 0) and (GetLevelParams(chart_level).Impulse > 0)) or
-	((GetLevelParams(signal_level).Trend > 0) and (GetLevelParams(chart_level).Trend > 0)) or
-	((GetLevelParams(signal_level).Enter > 0) and (GetLevelParams(chart_level).Enter > 0))) then
+	local chart_levels = GetLevel(Charts[indicator_name].Level)
+	if (((signal_level == SignalLevels.Level1) and (chart_levels.level1 > 0)) or 
+		((signal_level == SignalLevels.Level2) and (chart_levels.level2 > 0)) or 
+		((signal_level == SignalLevels.Level3) and (chart_levels.level3 > 0))  or 
+		((signal_level == SignalLevels.Level4) and (chart_levels.level4 > 0))) then
 
 		local direction = string.upper(string.sub(text, 1, 1))
 		if (direction == Directions.Up) then
@@ -1408,32 +1414,6 @@ function SetChartLabel(x_value, y_value, chart_tag, text, icon, signal_level)
 	else
 		return 0
 	end
-end
-
-----------------------------------------------------------------------------
---	function Set and Get flags
-----------------------------------------------------------------------------
-function SetParam(price, stoch, rsi)
-	return (256 * price + 16 * stoch + rsi)
-end
-
-function GetParams(flag)
-	local price = math.floor(flag / 256)
-	local stoch = math.floor((flag - price * 256) / 16)
-	local rsi = flag - price * 256 - stoch * 16
-
-	return price, stoch, rsi
-end
-
-function GetLevelParams(flag)
-	local result = {}
-
-	result.Enter = flag & 8
-	result.Trend = flag & 4
-	result.Impulse = flag & 2
-	result.Elementary = flag & 1
-
-	return result
 end
 
 ----------------------------------------------------------------------------
