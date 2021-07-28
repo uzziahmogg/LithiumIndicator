@@ -23,7 +23,7 @@ function Init()
 	Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, Center = 50, Bottom = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
 	Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
 	RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, TopTrend = 60, Center = 50, BottomTrend = 40, Bottom = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
-	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Params = { Period =  20 }}
+	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Delta = {}, Params = { Period =  20 }}
 
 	-- directions for signals, labels and deals
 	Directions = { Up = "L", Down = "S" }
@@ -75,6 +75,8 @@ function Init()
 				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
 				Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
 
+	CheckSignals = { Price = { CrossMA = {}}}
+
 	-- levels to show labels on charts
 	SignalLevels = { Elementary = 1, Impulse = 2, Trend = 4, Enter = 8 }
 
@@ -93,7 +95,6 @@ function OnCalculate(index_candle)
 		SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
 
 		--#region	init Signals Candles and Counts
-
 		-- up signals
 		Signals[Directions.Up].Prices.CrossMA.Count = 0
 		Signals[Directions.Up].Prices.CrossMiddlePC.Candle = 0
@@ -159,7 +160,8 @@ function OnCalculate(index_candle)
 	PriceChannels.High[index_candle], PriceChannels.Low[index_candle] = FuncPC(index_candle)
 	PriceChannels.High[index_candle] = RoundScale(PriceChannels.High[index_candle], 4) 
 	PriceChannels.Low[index_candle] = RoundScale(PriceChannels.Low[index_candle], 4)
-	PriceChannels.Middle[index_candle] =  ((PriceChannels.High[index_candle] ~= nil) and (PriceChannels.Low[index_candle] ~= nil)) and RoundScale((PriceChannels.Low[index_candle] + (PriceChannels.High[index_candle] + PriceChannels.Low[index_candle]) / 2), 4)
+	PriceChannels.Middle[index_candle] = ((PriceChannels.High[index_candle] ~= nil) and (PriceChannels.Low[index_candle] ~= nil)) and RoundScale((PriceChannels.Low[index_candle] + (PriceChannels.High[index_candle] + PriceChannels.Low[index_candle]) / 2), 4)
+	PriceChannels.Delta[index_candle] = ((Prices.Close[index_candle] ~= nil) and (PriceChannels.Middle[index_candle] ~= nil)) and RoundScale(GetDelta(Prices.Close[index_candle], PriceChannels.Middle[index_candle]), 4)
 
 	-- calculate current deltas
 	Stochs.Delta[index_candle] = ((Stochs.Slow[index_candle] ~= nil) and (Stochs.Fast[index_candle] ~= nil)) and RoundScale(GetDelta(Stochs.Fast[index_candle], Stochs.Slow[index_candle]), 4)
@@ -169,47 +171,40 @@ function OnCalculate(index_candle)
 	----------------------------------------------------------------------------
 	--	I. Elementary Price Signals
 	----------------------------------------------------------------------------
-	--
 	--#region	I.1. Elementary Price Signal: Signals[Directions.Down/Up].Prices.CrossMA
 	--				Trend Signal: Signals[Directions.Down/Up].Trend
 	--				Depends on signal: -
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
-	--
-	if (CheckDataSufficiency(index_candle, 2, Prices.Open) and CheckDataSufficiency(index_candle, 2, Prices.Close) and CheckDataSufficiency(index_candle, 2, MAs)) then
-		--
-		-- check start elementary price cross ma up signal
-		--
-		if (SignalPriceCrossMA(Prices, MAs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].Prices.CrossMA.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].Prices.CrossMA.Count = Signals[Directions.Up].Prices.CrossMA.Count + 1
-			Signals[Directions.Up].Prices.CrossMA.Candle = index_candle - 1
+	-- check start elementary signal price cross ma up 
+	if (SignalPriceCrossMA(Prices, PriceChannels.Middle, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down].Prices.CrossMA.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up].Prices.CrossMA.Count = Signals[Directions.Up].Prices.CrossMA.Count + 1
+		Signals[Directions.Up].Prices.CrossMA.Candle = index_candle - 1
 
-			-- set chart label
-			if (Labels[Prices.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
-			end 
-			Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1]-ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "LPriceCrossMA|Start|"..tostring(Signals[Directions.Up].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Up].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
+		-- set chart label
+		-- if (Labels[Prices.Name][index_candle-1] ~= nil) then
+		-- 	DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
+		-- end 
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1]-ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "LPriceCrossMA|Start|"..tostring(Signals[Directions.Up].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Up].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
+	end
+
+
+	-- check start elementary signal price cross ma down 
+	if (SignalPriceCrossMA(Prices, MAs, index_candle, Directions.Down)) then
+		-- set elementary up signal off
+		Signals[Directions.Up].Prices.CrossMA.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down].Prices.CrossMA.Count = Signals[Directions.Down].Prices.CrossMA.Count + 1
+		Signals[Directions.Down].Prices.CrossMA.Candle = index_candle - 1
+
+		-- set debug chart label
+		if (Labels[Prices.Name][index_candle-1] ~= nil) then
+			DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
 		end
-
-		--
-		-- check start elementary price cross ma down signal
-		--
-		if (SignalPriceCrossMA(Prices, MAs, index_candle, Directions.Down)) then
-			-- set elementary up signal off
-			Signals[Directions.Up].Prices.CrossMA.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].Prices.CrossMA.Count = Signals[Directions.Down].Prices.CrossMA.Count + 1
-			Signals[Directions.Down].Prices.CrossMA.Candle = index_candle - 1
-
-			-- set debug chart label
-			if (Labels[Prices.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
-			end
-			Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1]+ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "SPriceCrossMA|Start|"..tostring(Signals[Directions.Down].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Down].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
-		end
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1]+ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "SPriceCrossMA|Start|"..tostring(Signals[Directions.Down].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Down].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
 	end
 	--#endregion
 
@@ -627,33 +622,33 @@ end
 -- Price Channel
 ----------------------------------------------------------------------------
 function PriceChannel()
-    local highs = {}
-    local lows = {}
-    local candles = { processed = 0, count = 0 }
+    local Highs = {}
+    local Lows = {}
+    local Candles = { processed = 0, count = 0 }
 
     return function (index_candle)
-        if (PCs.Params.Period > 0) then
-            -- first candle - reinit vars
+        if (PriceChannels.Params.Period > 0) then
+            -- first candle - reinit for start
             if (index_candle == 1) then
-                highs = {}
-                lows = {}
-                candles = { processed = 0, count = 0 }
+                Highs = {}
+                Lows = {}
+                Candles = { processed = 0, count = 0 }
             end
 
             if CandleExist(index_candle) then
-                -- new candle - new processed candle and increased count processed candle
-                if (index_candle ~= candles.processed) then
-                    candles = { processed = index_candle, count = candles.count + 1 }
+                -- new candle new processed candle and increased count processed candles
+                if (Candles.processed ~= index_candle) then
+                    Candles = { processed = index_candle, count = Candles.count + 1 }
                 end
 
-                -- insert high and low to circle buffer
-                highs[Squeeze(candles.count, PCs.Params.Period - 1) + 1] = H(candles.processed)
-                lows[Squeeze(candles.count, PCs.Params.Period - 1) + 1] = L(candles.processed)
+                -- insert high and low to circle buffers Highs and Lows
+                Highs[Squeeze(Candles.count, PriceChannels.Params.Period - 1) + 1] = H(Candles.processed)
+                Lows[Squeeze(Candles.count, PriceChannels.Params.Period - 1) + 1] = L(Candles.processed)
 
                 -- calc and return max results
-                if (candles.count >= PCs.Params.Period) then
-                    local max_high = math.max(table.unpack(highs))
-                    local max_low = math.min(table.unpack(lows))
+                if (Candles.count >= PriceChannels.Params.Period) then
+                    local max_high = math.max(table.unpack(Highs))
+                    local max_low = math.min(table.unpack(Lows))
 
                     return max_high, max_low
                 end
@@ -1046,7 +1041,6 @@ function SignalOscUturn4(osc, index, direction)
 		IsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and
 		IsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)))
 end
-
 --#endregion
 
 ----------------------------------------------------------------------------
@@ -1055,13 +1049,18 @@ end
 --
 -- Signal Price Cross MA
 --
-function SignalPriceCrossMA(price, ma, index, direction, dev)
-	local dev = dev or 0
-
+function SignalPriceCrossMA(prices, mas, index, direction, dev)
+	if (CheckDataSufficiency(index, 2, prices.Open) and CheckDataSufficiency(index, 2, prices.Close) and CheckDataSufficiency(index_candle, 2, mas)) then
+		-- return true or false
+		return (
 			-- candle up
-	return (-- IsRelate(price.Close[index-1], price.Open[index-1], direction) and
+			SignalIsRelate(prices.Close[index-1], prices.Open[index-1], direction) and
 			-- candle cross ma up
-			SignalCross(price.Close, ma, index, direction, dev))
+			SignalCross(prices.Close, ma, index, direction, dev))
+	else
+		-- return error
+		return -1
+	end
 end
 
 --
@@ -1188,7 +1187,7 @@ end
 --
 -- Condition is over or under Value2
 --
-function IsRelate(value1, value2, direction, dev)
+function SignalIsRelate(value1, value2, direction, dev)
 	local dev = dev or 0
 	direction = string.upper(string.sub(direction, 1, 1))
 
@@ -1241,7 +1240,6 @@ function PrintDebugMessage(...)
 		end
 
 		local smessage = table.concat(tmessage, "|")
-
 		message(smessage)
 		PrintDbgStr("QUIK|" .. smessage)
 		return args.n
@@ -1252,6 +1250,8 @@ end
 
 ----------------------------------------------------------------------------
 -- function Squeeze
+-- return number from 0 (if index start from 1) to period and then again from 0 (index == period)
+-- pointer in cycylic buffer 
 ----------------------------------------------------------------------------
 function Squeeze(index, period)
 	return math.fmod(index - 1, period + 1)
@@ -1279,6 +1279,10 @@ end
 --	function SetChartLabel
 ----------------------------------------------------------------------------
 function SetChartLabel(x_value, y_value, chart_tag, text, icon, signal_level)
+	if (Labels[Prices.Name][index_candle-1] ~= nil) then
+		DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
+	end 
+	
 	local chart_level
 
 	if (chart_tag == ChartTags.Price) then
