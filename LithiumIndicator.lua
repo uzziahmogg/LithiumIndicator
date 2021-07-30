@@ -21,9 +21,9 @@ Settings = { Name = "FEK_LITHIUM",
 --==========================================================================
 function Init()
 	-- indicators data arrays and params
-	Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, Center = 50, Bottom = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
+	Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { HLines = { Top = 80, Center = 50, Bottom = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
 	Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
-	RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, TopTrend = 60, Center = 50, BottomTrend = 40, Bottom = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
+	RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { HLines = { Top = 80, TopTrend = 60, Center = 50, BottomTrend = 40, Bottom = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
 	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Delta = {}, Params = { Period = 20 }}
 
 	-- directions for signals, labels and deals
@@ -213,7 +213,7 @@ function OnCalculate(index_candle)
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
 	--
-	if (CheckDataSufficiency(index_candle, 2, Stochs.Slow) and CheckDataSufficiency(index_candle, 2, Stochs.Fast)) then
+
 	--
 	-- check fast stoch cross slow stoch up
 	--
@@ -899,7 +899,8 @@ end
 --	Signal	Osc Vertical Steamer
 --
 function SignalOscVSteamer(osc, index, direction, dev)
-	local dev = dev or Signals.Params.Steamer.Dev
+	dev = dev or Signals.Params.Steamer.Dev
+	direction = direction and string.upper(string.sub(direction, 1, 1))
 
 	return ((SignalMove(osc.Fast, index, direction) and SignalMove(osc.Slow, index, direction)) and
 			(IsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and IsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)) and
@@ -931,9 +932,23 @@ end
 --	Signal	Osc Fast Cross Osc Slow
 --
 function SignalOscCross(osc, index, direction, dev)
-	local dev = dev or 0
-
-	return SignalCross(osc.Fast, osc.Slow, index, direction, dev)
+	if (CheckDataSufficiency(index, 2, osc.Slow) and CheckDataSufficiency(index, 2, osc.Fast)) then	
+		dev = dev or 0
+		direction = direction and string.upper(string.sub(direction, 1, 1))
+		
+		local key, value
+		for key, value in pairs(Directions) do
+			if (direction == value) then
+				-- return true or false
+				return SignalCross(osc.Fast, osc.Slow, index, direction, dev)
+			end
+		end
+		-- return error
+		return false
+	else
+		-- return error
+		return false
+	end
 end
 
 --
@@ -1042,19 +1057,25 @@ end
 -- Signal Price Cross MA
 --
 function SignalPriceCrossMA(prices, mas, index, direction, dev)
-	dev = dev or 0
-	direction = direction and string.upper(string.sub(direction, 1, 1))
-
 	if (CheckDataSufficiency(index, 1, prices.Open) and CheckDataSufficiency(index, 2, prices.Close) and CheckDataSufficiency(index_candle, 2, mas)) then
-		-- return true or false
-		return (
-			-- candle up
-			SignalIsRelate(prices.Close[index-1], prices.Open[index-1], direction) and
-			-- candle cross ma up
-			SignalCross(prices.Close, mas, index, direction, dev))
+		dev = dev or 0
+		direction = direction and string.upper(string.sub(direction, 1, 1))
+	
+		local key, value
+		for key, value in pairs(Directions) do
+			if (direction == value) then
+				-- return true or false
+				return (-- candle up/down
+						SignalIsRelate(prices.Close[index-1], prices.Open[index-1], direction) and
+						-- candle cross ma up/down
+						SignalCross(prices.Close, mas, index, direction, dev))
+			end
+		end
+		-- return error
+		return false
 	else
 		-- return error
-		return -1
+		return false
 	end
 end
 
@@ -1129,14 +1150,14 @@ end
 
 ----------------------------------------------------------------------------
 --#region	Elementary Signals
+--todo	code 5 candles
 ----------------------------------------------------------------------------
 --
--- Signal Value1 cross Value2 up and down
+--	Signal	Value1 cross Value2 up and down
 --
 function SignalCross(value1, value2, index, direction, dev)
 	if (direction == Directions.Up) then
 		return (((value2[index-2] + dev) >= value1[index-2]) and (value1[index-1] >= (value2[index-1] - dev)))
-
 	elseif (direction == Directions.Down) then
 		return ((value1[index-2] >= (value2[index-2] - dev)) and ((value2[index-1] + dev) >= value1[index-1]))
 	end
@@ -1145,14 +1166,11 @@ function SignalCross(value1, value2, index, direction, dev)
 end
 
 --
--- Signal 2 last candles Value move up or down
+--	Signal	2 last candles Value move up or down
 --
 function SignalMove(value, index, direction)
-	direction = string.upper(string.sub(direction, 1, 1))
-
 	if (direction == Directions.Up) then
 		return (value[index-1] > value[index-2])
-
 	elseif (direction == Directions.Down) then
 		return (value[index-2] > value[index-1])
 	end
@@ -1161,14 +1179,11 @@ function SignalMove(value, index, direction)
 end
 
 --
--- Signal 3 last candles Value uturn up or down FIXME: code 5 candles
+--	Signal	3 last candles Value uturn up or down 
 --
 function SignalUturn(value, index, direction)
-	direction = string.upper(string.sub(direction, 1, 1))
-
 	if (direction == Directions.Up) then
 		return ((value[index-3] > value[index-2]) and (value[index-1] > value[index-2]))
-
 	elseif (direction == Directions.Down) then
 		return ((value[index-2] > value[index-3]) and (value[index-2] > value[index-1]))
 	end
@@ -1177,15 +1192,11 @@ function SignalUturn(value, index, direction)
 end
 
 --
--- Condition is over or under Value2
+--	Condition	Is over or under Value2
 --
 function SignalIsRelate(value1, value2, direction, dev)
-	local dev = dev or 0
-	direction = string.upper(string.sub(direction, 1, 1))
-
 	if (direction == Directions.Up) then
 		return ((value1 + dev) > value2)
-
 	elseif (direction == Directions.Down) then
 		return (value2 > (value1 - dev))
 	end
