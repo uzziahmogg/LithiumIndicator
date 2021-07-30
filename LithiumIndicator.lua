@@ -24,22 +24,25 @@ function Init()
 	Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, Center = 50, Bottom = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
 	Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
 	RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { Levels = { Top = 80, TopTrend = 60, Center = 50, BottomTrend = 40, Bottom = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
-	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Delta = {}, Params = { Period =  20 }}
+	PriceChannels = { Name = "PC", High = {}, Low = {}, Middle = {}, Delta = {}, Params = { Period = 20 }}
 
 	-- directions for signals, labels and deals
 	Directions = { Up = "L", Down = "S" }
 
+	-- levels to show labels on charts
+	Levels = { 1, 2, 4, 8 }
+
 	-- tags for charts to show labels and steps for text labels on charts
-	Charts = { [Prices.Name]  = { Tag = GetChartTag(Prices.Name), Step = 15, Level = SignalLevels.Level1 + SignalLevels.Level2 },	-- FEK_LITHIUMPrice
-				[Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Level = SignalLevels.Level4 }, -- FEK_LITHIUMStoch
-				[RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Level = SignalLevels.Level3 }}		-- FEK_LITHIUMRSI
+	Charts = { [Prices.Name]  = { Tag = GetChartTag(Prices.Name), Step = 15, Level = Levels[1] + Levels[3] },	-- FEK_LITHIUMPrice
+				[Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Level = Levels[4] }, -- FEK_LITHIUMStoch
+				[RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Level = Levels[2] }}		-- FEK_LITHIUMRSI
 
 	-- chart labels ids
 	Labels = { [Prices.Name] = {}, [Stochs.Name] = {}, [RSIs.Name] = {}}
 
 	-- chart label icons
-	ChartLabelIcons = { Arrow = "A", Point = "P", Triangle = "T", Cross = "C", Romb = "R", Plus = "L", Flash = "F", Asterix = "X",
-						BigArrow = "W", BigPoint = "N", BigTriangle = "E", BigCross = "S", BigRomb = "B", BigPlus = "U" }
+	Icons = { Arrow = "A", Point = "P", Triangle = "T", Cross = "C", Romb = "R", Plus = "L", Flash = "F", Asterix = "X",
+				BigArrow = "W", BigPoint = "N", BigTriangle = "E", BigCross = "S", BigRomb = "B", BigPlus = "U" }
 
 	-- chart labels default params
 	LabelParams = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }
@@ -76,9 +79,6 @@ function Init()
 				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
 				Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
 
-	-- levels to show labels on charts
-	SignalLevels = { Level1 = 1, Level2 = 2, Level3 = 4, Level4 = 8 }
-
 	return #Settings.line
 end
 --#endregion
@@ -86,9 +86,12 @@ end
 --==========================================================================
 --	OnCalculate
 --==========================================================================
-function OnCalculate(index_candle)
+function OnCalculate(index_candle)	
+    --	if (index_candle> 3000) then
+	-- 	PrintDebugMessage("canle", index_candle, T(index_candle).day, T(index_candle).hour, T(index_candle).min)
+
 	if (index_candle == 1) then
-		ChartsParam = SetParam(0, SignalLevels.Impulse, 0)
+		ChartsParam = SetParam(0, Levels.Impulse, 0)
 		
 		DataSource = getDataSourceInfo()
 		SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
@@ -184,31 +187,21 @@ function OnCalculate(index_candle)
 		Signals[Directions.Up].Prices.CrossMA.Candle = index_candle - 1
 
 		-- set chart label
-		-- if (Labels[Prices.Name][index_candle-1] ~= nil) then
-		-- 	DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
-		-- end 
-		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1]-ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "LPriceCrossMA|Start|"..tostring(Signals[Directions.Up].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Up].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1] - ChartSteps.Price * SecInfo.min_price_step), Chart.Prices.Tag, "LPriceCrossMA|Start|" .. tostring(Signals[Directions.Up].Prices.CrossMA.Count).."|" .. (index_candle-1) .. "|" ..Signals[Directions.Up].Trend.Candle, Icons.Arrow, Levels[1])
 	end
 
-
 	-- check start elementary signal price cross ma down 
-	if (SignalPriceCrossMA(Prices, MAs, index_candle, Directions.Down)) then
+	if (SignalPriceCrossMA(Prices, PriceChannels.Middle, index_candle, Directions.Down)) then
 		-- set elementary up signal off
 		Signals[Directions.Up].Prices.CrossMA.Candle = 0
 		-- set elementary down signal on
 		Signals[Directions.Down].Prices.CrossMA.Count = Signals[Directions.Down].Prices.CrossMA.Count + 1
 		Signals[Directions.Down].Prices.CrossMA.Candle = index_candle - 1
 
-		-- set debug chart label
-		if (Labels[Prices.Name][index_candle-1] ~= nil) then
-			DelLabel(ChartTags.Price, Labels[Prices.Name][index_candle-1])
-		end
-		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1]+ChartSteps.Price*SecInfo.min_price_step), ChartTags.Price, "SPriceCrossMA|Start|"..tostring(Signals[Directions.Down].Prices.CrossMA.Count).."|"..(index_candle-1).."|"..Signals[Directions.Down].Trend.Candle, ChartLabelIcons.Arrow, SignalLevels.Elementary)
+		-- set chart label
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1] + ChartSteps.Price * SecInfo.min_price_step), Chart.Prices.Tag, "SPriceCrossMA|Start|" .. tostring(Signals[Directions.Down].Prices.CrossMA.Count) .. "|" .. (index_candle-1) .. "|" .. Signals[Directions.Down].Trend.Candle, Icons.Arrow, Levels[1])
 	end
 	--#endregion
-
-    --	if (index_candle> 3000) then
-	-- 	PrintDebugMessage("canle", index_candle, T(index_candle).day, T(index_candle).hour, T(index_candle).min)
 
 	----------------------------------------------------------------------------
 	--	II. Elementary Stoch Signals
@@ -221,39 +214,39 @@ function OnCalculate(index_candle)
 	--				Terminates by duration: -
 	--
 	if (CheckDataSufficiency(index_candle, 2, Stochs.Slow) and CheckDataSufficiency(index_candle, 2, Stochs.Fast)) then
-		--
-		-- check fast stoch cross slow stoch up
-		--
-		if (SignalOscCross(Stochs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].Stochs.Cross.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].Stochs.Cross.Candle = index_candle - 1
-			Signals[Directions.Up].Stochs.Cross.Count = Signals[Directions.Up].Stochs.Cross.Count + 1
+	--
+	-- check fast stoch cross slow stoch up
+	--
+	if (SignalOscCross(Stochs, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down].Stochs.Cross.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up].Stochs.Cross.Candle = index_candle - 1
+		Signals[Directions.Up].Stochs.Cross.Count = Signals[Directions.Up].Stochs.Cross.Count + 1
 
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross|Start|"..tostring(Signals[Directions.Up].Stochs.Cross.Count).."|"..(index_candle-1), ChartLabelIcons.Triangle, SignalLevels.Elementary)
+		-- set chart label
+		if (Labels[Stochs.Name][index_candle-1] ~= nil) then
+			DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 		end
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross|Start|"..tostring(Signals[Directions.Up].Stochs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
+	end
 
-		--
-		-- check fast stoch cross slow stoch down
-		--
-		if (SignalOscCross(Stochs, index_candle, Directions.Down)) then
-			-- set elementary down signal off
-			Signals[Directions.Up].Stochs.Cross.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Down].Stochs.Cross.Candle = index_candle - 1
-			Signals[Directions.Down].Stochs.Cross.Count = Signals[Directions.Down].Stochs.Cross.Count + 1
+	--
+	-- check fast stoch cross slow stoch down
+	--
+	if (SignalOscCross(Stochs, index_candle, Directions.Down)) then
+		-- set elementary down signal off
+		Signals[Directions.Up].Stochs.Cross.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Down].Stochs.Cross.Candle = index_candle - 1
+		Signals[Directions.Down].Stochs.Cross.Count = Signals[Directions.Down].Stochs.Cross.Count + 1
 
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochCross|Start|"..tostring(Signals[Directions.Down].Stochs.Cross.Count).."|"..(index_candle-1), ChartLabelIcons.Triangle, SignalLevels.Elementary)
+		-- set chart label
+		if (Labels[Stochs.Name][index_candle-1] ~= nil) then
+			DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 		end
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochCross|Start|"..tostring(Signals[Directions.Down].Stochs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
+	end
 	end
 	--#endregion
 
@@ -279,7 +272,7 @@ function OnCalculate(index_candle)
 			-- if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 			-- 	DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			-- end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross50|Start|"..tostring(Signals[Directions.Up].Stochs.Cross50.Count).."|"..(index_candle-1), ChartLabelIcons.Arrow, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross50|Start|"..tostring(Signals[Directions.Up].Stochs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Impulse)
 		end
 
 		--
@@ -296,7 +289,7 @@ function OnCalculate(index_candle)
 			-- if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 			-- 	DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			-- end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch,  "SStochCross50|Start|"..tostring(Signals[Directions.Down].Stochs.Cross50.Count).."|"..(index_candle-1), ChartLabelIcons.Arrow, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch,  "SStochCross50|Start|"..tostring(Signals[Directions.Down].Stochs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Impulse)
 		end
 	end
 	--#endregion
@@ -320,7 +313,7 @@ function OnCalculate(index_candle)
 			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochVSteamer|"..tostring(Signals[Directions.Up].Stochs.VSteamer.Count), ChartLabelIcons.Triangle, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochVSteamer|"..tostring(Signals[Directions.Up].Stochs.VSteamer.Count), Icons.Triangle, Levels.Impulse)
 		end
 
 		-- check stoch steamer down
@@ -334,7 +327,7 @@ function OnCalculate(index_candle)
 			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochVSteamer|"..tostring(Signals[Directions.Down].Stochs.VSteamer.Count), ChartLabelIcons.Triangle, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochVSteamer|"..tostring(Signals[Directions.Down].Stochs.VSteamer.Count), Icons.Triangle, Levels.Impulse)
 		end
 
 		-- check stoch steamer up
@@ -348,7 +341,7 @@ function OnCalculate(index_candle)
 			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-6*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochHSteamer|"..tostring(Signals[Directions.Up].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), ChartLabelIcons.Romb, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-6*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochHSteamer|"..tostring(Signals[Directions.Up].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), Icons.Romb, Levels.Impulse)
 		end
 		
 		-- check stoch steamer down
@@ -362,7 +355,7 @@ function OnCalculate(index_candle)
 			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
 			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+6*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochHSteamer|"..tostring(Signals[Directions.Down].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), ChartLabelIcons.Romb, SignalLevels.Impulse)
+			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+6*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochHSteamer|"..tostring(Signals[Directions.Down].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), Icons.Romb, Levels.Impulse)
 		end 
 	end
 	--#endregion 
@@ -392,7 +385,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross|Start|"..tostring(Signals[Directions.Up].RSIs.Cross.Count).."|"..(index_candle-1), ChartLabelIcons.Triangle, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross|Start|"..tostring(Signals[Directions.Up].RSIs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
 		end
 
 		--
@@ -409,7 +402,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+ChartSteps.RSI)/100), ChartTags.RSI,  "SRSICross|Start|"..tostring(Signals[Directions.Down].RSIs.Cross.Count).."|"..(index_candle-1), ChartLabelIcons.Triangle, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+ChartSteps.RSI)/100), ChartTags.RSI,  "SRSICross|Start|"..tostring(Signals[Directions.Down].RSIs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
 		end
 	end
 	--#endregion
@@ -436,7 +429,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-2*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross50|Start|"..tostring(Signals[Directions.Up].RSIs.Cross50.Count).."|"..(index_candle-1), ChartLabelIcons.Arrow, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-2*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross50|Start|"..tostring(Signals[Directions.Up].RSIs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Elementary)
 		end
 
 		--
@@ -453,7 +446,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+2*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICross50|Start|"..tostring(Signals[Directions.Down].RSIs.Cross50.Count).."|"..(index_candle-1), ChartLabelIcons.Arrow, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+2*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICross50|Start|"..tostring(Signals[Directions.Down].RSIs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Elementary)
 		end
 	end
 	--#endregion
@@ -480,7 +473,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Start|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(index_candle-1), ChartLabelIcons.Point, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Start|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(index_candle-1), Icons.Point, Levels.Elementary)
 		end
 
 		-- check presence elementary up signal
@@ -498,7 +491,7 @@ function OnCalculate(index_candle)
 					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOff|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), ChartLabelIcons.Cross, SignalLevels.Elementary)
+					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOff|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
 				-- check termination by fast rsi cross slow rsi down
 				elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
 						-- set elementary up signal off
@@ -508,14 +501,14 @@ function OnCalculate(index_candle)
 						if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 							DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 						end
-						Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICrossDown|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), ChartLabelIcons.Cross, SignalLevels.Elementary)
+						Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICrossDown|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
 				-- process continuation elementary up signal
 				else
 					-- set chart label
 						-- if (Labels[RSIs.Name][index_candle] ~= nil) then
 						-- 	DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
 						-- end
-						--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Continue|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, ChartLabelIcons.Point, SignalLevels.Elementary)
+						--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Continue|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Point, Levels.Elementary)
 				end
 			-- check termination by duration elementary up signal
 			elseif (duration > Signals.Params.Durations.Elementary) then
@@ -526,7 +519,7 @@ function OnCalculate(index_candle)
 				if (Labels[RSIs.Name][index_candle] ~= nil) then
 					DelLabel(ChartTags.Stoch, Labels[RSIs.Name][index_candle])
 				end
-				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, ChartLabelIcons.Cross, SignalLevels.Elementary)
+				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Cross, Levels.Elementary)
 			end
 		end
 
@@ -544,7 +537,7 @@ function OnCalculate(index_candle)
 			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI,  "SRSITrendOn|Start|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(index_candle-1), ChartLabelIcons.Point, SignalLevels.Elementary)
+			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI,  "SRSITrendOn|Start|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(index_candle-1), Icons.Point, Levels.Elementary)
 		end
 
 		-- check presence elementary down signal
@@ -562,7 +555,7 @@ function OnCalculate(index_candle)
 					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOff|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), ChartLabelIcons.Cross, SignalLevels.Elementary)
+					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOff|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
 				-- check termination by fast rsi cross slow rsi down
 				elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
 					Signals[Directions.Up].RSIs.TrendOn.Candle = 0
@@ -571,14 +564,14 @@ function OnCalculate(index_candle)
 					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
 						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
 					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICrossUp|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), ChartLabelIcons.Cross, SignalLevels.Elementary)
+					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICrossUp|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
 				-- process continuation elementary down signal
 				else
 					-- set chart label
 					-- if (Labels[RSIs.Name][index_candle] ~= nil) then
 					-- 	DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
 					-- end
-					--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|Continue|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, ChartLabelIcons.Point, SignalLevels.Elementary)
+					--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|Continue|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Point, Levels.Elementary)
 				end
 			-- check termination by duration elementary down signal
 			elseif (duration > Signals.Params.Durations.Elementary) then
@@ -589,7 +582,7 @@ function OnCalculate(index_candle)
 				if (Labels[RSIs.Name][index_candle] ~= nil) then
 					DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
 				end
-				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, ChartLabelIcons.Cross, SignalLevels.Elementary)
+				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Cross, Levels.Elementary)
 			end
 		end
 	end
@@ -903,7 +896,7 @@ end
 --#region	Oscilator Signals
 ----------------------------------------------------------------------------
 --
--- Signal Osc Vertical Steamer
+--	Signal	Osc Vertical Steamer
 --
 function SignalOscVSteamer(osc, index, direction, dev)
 	local dev = dev or Signals.Params.Steamer.Dev
@@ -914,7 +907,7 @@ function SignalOscVSteamer(osc, index, direction, dev)
 end
 
 --
--- Signal Osc Horisontal Steamer
+--	Signal	Osc Horisontal Steamer
 --
 function SignalOscHSteamer(osc, index, direction)
 	if (SignalOscCrossLevel(osc.Slow, Stochs.Params.Levels.Center, index, direction)) then
@@ -924,7 +917,7 @@ function SignalOscHSteamer(osc, index, direction)
 			-- 	if (Labels[Stochs.Name][index-count] ~= nil) then
 			-- 		DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index-count])
 			-- 	end
-			-- 	Labels[Stochs.Name][index-count] = SetChartLabel(T(index-count), Stochs.Slow[index-count], ChartTags.Stoch, direction.."|"..tostring(index-count), ChartLabelIcons.Asterix, SignalLevels.Impulse)
+			-- 	Labels[Stochs.Name][index-count] = SetChartLabel(T(index-count), Stochs.Slow[index-count], ChartTags.Stoch, direction.."|"..tostring(index-count), Icons.Asterix, Levels.Impulse)
 
 				return ((SignalMove(osc.Fast, index, direction) and SignalMove(osc.Slow, index, direction)) and
 						(IsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and IsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)))
@@ -935,7 +928,7 @@ function SignalOscHSteamer(osc, index, direction)
 end
 
 --
--- Signal Oscs Fast Cross Slow
+--	Signal	Osc Fast Cross Osc Slow
 --
 function SignalOscCross(osc, index, direction, dev)
 	local dev = dev or 0
@@ -1049,13 +1042,16 @@ end
 -- Signal Price Cross MA
 --
 function SignalPriceCrossMA(prices, mas, index, direction, dev)
-	if (CheckDataSufficiency(index, 2, prices.Open) and CheckDataSufficiency(index, 2, prices.Close) and CheckDataSufficiency(index_candle, 2, mas)) then
+	dev = dev or 0
+	direction = direction and string.upper(string.sub(direction, 1, 1))
+
+	if (CheckDataSufficiency(index, 1, prices.Open) and CheckDataSufficiency(index, 2, prices.Close) and CheckDataSufficiency(index_candle, 2, mas)) then
 		-- return true or false
 		return (
 			-- candle up
 			SignalIsRelate(prices.Close[index-1], prices.Open[index-1], direction) and
 			-- candle cross ma up
-			SignalCross(prices.Close, ma, index, direction, dev))
+			SignalCross(prices.Close, mas, index, direction, dev))
 	else
 		-- return error
 		return -1
@@ -1066,7 +1062,7 @@ end
 -- Signal Price Uturn3
 --
 function SignalPriceUturn3(price, ma, index, direction)
-	direction = string.upper(string.sub(direction, 1, 1))
+	direction = direction and string.upper(string.sub(direction, 1, 1))
 
 	if (direction == Directions.Up) then
 		-- one or two of 2 first candles are down, last 1 candle is up
@@ -1138,9 +1134,6 @@ end
 -- Signal Value1 cross Value2 up and down
 --
 function SignalCross(value1, value2, index, direction, dev)
-	local dev = dev or 0
-	direction = string.upper(string.sub(direction, 1, 1))
-
 	if (direction == Directions.Up) then
 		return (((value2[index-2] + dev) >= value1[index-2]) and (value1[index-1] >= (value2[index-1] - dev)))
 
@@ -1205,10 +1198,10 @@ end
 --#region	UTILITIES
 --==========================================================================
 ----------------------------------------------------------------------------
--- function Reverse
+--	function Reverse
+--	return reverse of direction
 ----------------------------------------------------------------------------
 function Reverse(direction)
-	direction = string.upper(string.sub(direction, 1, 1))
 	if (direction == Directions.Up) then
 		return Directions.Down
 	elseif (direction == Directions.Down) then
@@ -1219,7 +1212,8 @@ function Reverse(direction)
 end
 
 ----------------------------------------------------------------------------
--- function GetDelta
+--	function GetDelta
+--	return abs difference between values
 ----------------------------------------------------------------------------
 function GetDelta(value1, value2)
 	return math.abs(value1 - value2)
@@ -1227,30 +1221,37 @@ end
 
 ----------------------------------------------------------------------------
 --	function PrintDebugMessage(message1, message2, ...)
+--	print messages as one string separated by symbol in message window and debug utility
 ----------------------------------------------------------------------------
 function PrintDebugMessage(...)
 	local args = { n = select("#",...), ... }
+	-- check number messages more then zero
 	if (args.n > 0) then
 		local count
 		local tmessage = {}
 
+		-- concate messages with symbol
 		for count = 1, args.n do
 			table.insert(tmessage, tostring(args[count]))
 		end
-
 		local smessage = table.concat(tmessage, "|")
+
+		-- print messages as one string
 		message(smessage)
 		PrintDbgStr("QUIK|" .. smessage)
+
+		-- return number of messages
 		return args.n
 	else
+		-- nothing todo
 		return 0
 	end
 end
 
 ----------------------------------------------------------------------------
--- function Squeeze
--- return number from 0 (if index start from 1) to period and then again from 0 (index == period)
--- pointer in cycylic buffer 
+--	function Squeeze
+--	return number from 0 (if index start from 1) to period and then again from 0 (index == period)
+--	pointer in cycylic buffer 
 ----------------------------------------------------------------------------
 function Squeeze(index, period)
 	return math.fmod(index - 1, period + 1)
@@ -1258,6 +1259,7 @@ end
 
 ----------------------------------------------------------------------------
 --	function RoundScale
+--	return value with requred numbers after digital point
 ----------------------------------------------------------------------------
 function RoundScale(value, scale)
 	if ((value == nil) or (scale == nil)) then
@@ -1274,17 +1276,25 @@ function RoundScale(value, scale)
 	end
 end
 
+----------------------------------------------------------------------------
+--	function GetChartTag
+--	return chart atg from indicator name
+----------------------------------------------------------------------------
 function GetChartTag(indicator_name)
 	return Settings.Name .. indicator_name
 end
 
+----------------------------------------------------------------------------
+--	function GetLevel
+--	return which levels packed in flag (chart levels)
+----------------------------------------------------------------------------
 function GetLevel(flag)
 	local result = {}
 
-	result.level4 = flag & 8
-	result.level3 = flag & 4
-	result.level2 = flag & 2
-	result.level1 = flag & 1
+	result[4] = flag & 8
+	result[3] = flag & 4
+	result[2] = flag & 2
+	result[1] = flag & 1
 
 	return result
 end
@@ -1298,12 +1308,15 @@ function SetChartLabel(x_value, y_value, indicator_name, text, icon, signal_leve
 		DelLabel(GetChartTag(indicator_name), Labels[indicator_name][index_candle-1])
 	end 
 	
+	-- check signal level and chart levels
+	signal_level = signal_level or Levels.Level1
 	local chart_levels = GetLevel(Charts[indicator_name].Level)
-	if (((signal_level == SignalLevels.Level1) and (chart_levels.level1 > 0)) or 
-		((signal_level == SignalLevels.Level2) and (chart_levels.level2 > 0)) or 
-		((signal_level == SignalLevels.Level3) and (chart_levels.level3 > 0))  or 
-		((signal_level == SignalLevels.Level4) and (chart_levels.level4 > 0))) then
+	if (((signal_level == Levels[1]) and (chart_levels[1] > 0)) or 
+		((signal_level == Levels[2]) and (chart_levels[2] > 0)) or 
+		((signal_level == Levels[3]) and (chart_levels[3] > 0))  or 
+		((signal_level == Levels[4]) and (chart_levels[4] > 0))) then
 
+		-- get direction from first letter of text - S for short/ L for Long
 		local direction = string.upper(string.sub(text, 1, 1))
 		if (direction == Directions.Up) then
 			LabelParams.ALIGNMENT = "BOTTOM"
@@ -1313,87 +1326,87 @@ function SetChartLabel(x_value, y_value, indicator_name, text, icon, signal_leve
 			return -1
 		end
 
-		icon = (icon and string.upper(string.sub(icon, 1, 1))) or ChartLabelIcons.Arrow
-
-		if (icon == ChartLabelIcons.Arrow) then
+		-- set icon
+		icon = (icon and string.upper(string.sub(icon, 1, 1))) or Icons.Triangle
+		if (icon == Icons.Arrow) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "arrow_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "arrow_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Point) then
+		elseif (icon == Icons.Point) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "point_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "point_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Triangle) then
+		elseif (icon == Icons.Triangle) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "triangle_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "triangle_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Cross) then
+		elseif (icon == Icons.Cross) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "cross_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "cross_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Romb) then
+		elseif (icon == Icons.Romb) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "romb_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "romb_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Plus) then
+		elseif (icon == Icons.Plus) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "plus_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "plus_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Flash) then
+		elseif (icon == Icons.Flash) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "flash_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "flash_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.Asterix) then
+		elseif (icon == Icons.Asterix) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "asterix_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "asterix_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigArrow) then
+		elseif (icon == Icons.BigArrow) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_arrow_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_arrow_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigPoint) then
+		elseif (icon == Icons.BigPoint) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_point_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_point_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigTriangle) then
+		elseif (icon == Icons.BigTriangle) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_triangle_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_triangle_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigCross) then
+		elseif (icon == Icons.BigCross) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_cross_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_cross_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigRomb) then
+		elseif (icon == Icons.BigRomb) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_romb_up.jpg"
 			elseif (direction == Directions.Down) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_romb_down.jpg"
 			end
-		elseif (icon == ChartLabelIcons.BigPlus) then
+		elseif (icon == Icons.BigPlus) then
 			if (direction == Directions.Up) then
 				LabelParams.IMAGE_PATH = IconPath .. "big_plus_up.jpg"
 			elseif (direction == Directions.Down) then
@@ -1403,29 +1416,34 @@ function SetChartLabel(x_value, y_value, indicator_name, text, icon, signal_leve
 			return -1
 		end
 
+		-- set other label vars
 		LabelParams.HINT = text
-		--LabelParams.TEXT = text
+		LabelParams.TEXT = text
 		LabelParams.YVALUE = y_value
-
 		LabelParams.DATE = tostring(10000 * x_value.year + 100 * x_value.month + x_value.day)
 		LabelParams.TIME = tostring(10000 * x_value.hour + 100 *  x_value.min + x_value.sec)
 
+		-- set chart label return id
 		return AddLabel(chart_tag, LabelParams)
 	else
+		-- nothing todo
 		return 0
 	end
 end
 
 ----------------------------------------------------------------------------
 --	function CheckDataSufficiency
+--	return true if number values from index back exist
 ----------------------------------------------------------------------------
 function CheckDataSufficiency(index, number, value)
+	-- if index under required number retirn false
 	if (index <= number) then
 		return false
 	end
 
 	local count
 	for count = 1, number, 1 do
+		-- if one of number values mot exist return false
 		if (value[index-count] == nil) then
 			return false
 		end
