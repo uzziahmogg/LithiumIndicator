@@ -2,9 +2,12 @@
 --	Indicator Lithium, 2021 (c) FEK
 --==========================================================================
 --todo convert RoundScale(..., 4) to RoundScale(..., values_after_point)
---todo func AddLabel use Labels array
+--// func AddLabel use Labels array
 --todo create func CheckElementarySignal
 --todo move long/short checking signals to diferent branch
+--todo check price/osc events uturn3/4
+--todo make code for elementary price/osc uturin3/4
+--todo make code for complex signals
 
 ----------------------------------------------------------------------------
 --#region	Settings
@@ -71,13 +74,13 @@ function Init()
 	FuncPC = PriceChannel()
 
 	-- signals start candles and counts
-	Signals = {	[Directions.Up] = { Prices = { CrossMA= { Count = 0, Candle = 0 }}, 
-				Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }}, 
-				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}}, 
-				[Directions.Down] = { Prices = { CrossMiddlePC = { Count = 0, Candle = 0 }}, 
-				Stochs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }},
-				RSIs = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
-				Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
+	Signals = {	[Directions.Up] = { [Prices.Name] = { CrossMA= { Count = 0, Candle = 0 }}, 
+			[Stochs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }}, 
+			[RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}}, 
+			[Directions.Down] = { [Prices.Name] = { CrossMiddlePC = { Count = 0, Candle = 0 }}, 
+			[Stochs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }},
+			[RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }}},
+			Params = { Durations = { Elementary = 4, Enter = 3 }, Steamer = { Dev = 30, Duration = 2 }}} 
 
 	return #Settings.line
 end
@@ -91,8 +94,6 @@ function OnCalculate(index_candle)
 	-- 	PrintDebugMessage("canle", index_candle, T(index_candle).day, T(index_candle).hour, T(index_candle).min)
 
 	if (index_candle == 1) then
-		ChartsParam = SetParam(0, Levels.Impulse, 0)
-		
 		DataSource = getDataSourceInfo()
 		SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
 
@@ -181,409 +182,302 @@ function OnCalculate(index_candle)
 	-- check start elementary signal price cross ma up 
 	if (SignalPriceCrossMA(Prices, PriceChannels.Middle, index_candle, Directions.Up)) then
 		-- set elementary down signal off
-		Signals[Directions.Down].Prices.CrossMA.Candle = 0
+		Signals[Directions.Down][Prices.Name].CrossMA.Candle = 0
 		-- set elementary up signal on
-		Signals[Directions.Up].Prices.CrossMA.Count = Signals[Directions.Up].Prices.CrossMA.Count + 1
-		Signals[Directions.Up].Prices.CrossMA.Candle = index_candle - 1
+		Signals[Directions.Up][Prices.Name].CrossMA.Count = Signals[Directions.Up][Prices.Name].CrossMA.Count + 1
+		Signals[Directions.Up][Prices.Name].CrossMA.Candle = index_candle - 1
 
 		-- set chart label
-		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1] - ChartSteps.Price * SecInfo.min_price_step), Chart.Prices.Tag, "LPriceCrossMA|Start|" .. tostring(Signals[Directions.Up].Prices.CrossMA.Count).."|" .. (index_candle-1) .. "|" ..Signals[Directions.Up].Trend.Candle, Icons.Arrow, Levels[1])
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.Low[index_candle-1] - Charts[Prices.Name].Step * SecInfo.min_price_step), Charts[Prices.Name].Tag, "LPriceCrossMA|Start|" .. tostring(Signals[Directions.Up][Prices.Name].CrossMA.Count).."|" .. (index_candle-1) .. "|" ..Signals[Directions.Up][Prices.Name].CrossMA.Candle, Icons.Arrow, Levels[1])
 	end
 
 	-- check start elementary signal price cross ma down 
 	if (SignalPriceCrossMA(Prices, PriceChannels.Middle, index_candle, Directions.Down)) then
 		-- set elementary up signal off
-		Signals[Directions.Up].Prices.CrossMA.Candle = 0
+		Signals[Directions.Up][Prices.Name].CrossMA.Candle = 0
 		-- set elementary down signal on
-		Signals[Directions.Down].Prices.CrossMA.Count = Signals[Directions.Down].Prices.CrossMA.Count + 1
-		Signals[Directions.Down].Prices.CrossMA.Candle = index_candle - 1
+		Signals[Directions.Down][Prices.Name].CrossMA.Count = Signals[Directions.Down][Prices.Name].CrossMA.Count + 1
+		Signals[Directions.Down][Prices.Name].CrossMA.Candle = index_candle - 1
 
 		-- set chart label
-		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1] + ChartSteps.Price * SecInfo.min_price_step), Chart.Prices.Tag, "SPriceCrossMA|Start|" .. tostring(Signals[Directions.Down].Prices.CrossMA.Count) .. "|" .. (index_candle-1) .. "|" .. Signals[Directions.Down].Trend.Candle, Icons.Arrow, Levels[1])
+		Labels[Prices.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Prices.High[index_candle-1] + Charts[Prices.Name].Step * SecInfo.min_price_step), Charts[Prices.Name].Tag, "SPriceCrossMA|Start|" .. tostring(Signals[Directions.Down][Prices.Name].CrossMA.Count) .. "|" .. (index_candle-1) .. "|" .. Signals[Directions.Down][Prices.Name].CrossMA.Candle, Icons.Arrow, Levels[1])
 	end
 	--#endregion
 
 	----------------------------------------------------------------------------
 	--	II. Elementary Stoch Signals
 	----------------------------------------------------------------------------
-	--
 	--#region	II.1. Elementary Stoch Signal: Signals[Directions.Down/Up].Stochs.Cross
 	--				Impulse Signal: Signals[Directions.Down/Up].Impulse
 	--				Depends on signal: SignalOscCross
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
-	--
-
-	--
 	-- check fast stoch cross slow stoch up
-	--
-	if (SignalOscCross(Stochs, index_candle, Directions.Up)) then
+		if (SignalOscCross(Stochs, index_candle, Directions.Up)) then
 		-- set elementary down signal off
-		Signals[Directions.Down].Stochs.Cross.Candle = 0
+		Signals[Directions.Down][Stochs.Name].Cross.Candle = 0
 		-- set elementary up signal on
-		Signals[Directions.Up].Stochs.Cross.Candle = index_candle - 1
-		Signals[Directions.Up].Stochs.Cross.Count = Signals[Directions.Up].Stochs.Cross.Count + 1
+		Signals[Directions.Up][Stochs.Name].Cross.Candle = index_candle - 1
+		Signals[Directions.Up][Stochs.Name].Cross.Count = Signals[Directions.Up][Stochs.Name].Cross.Count + 1
 
 		-- set chart label
-		if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-			DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-		end
-		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross|Start|"..tostring(Signals[Directions.Up].Stochs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 - Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "LStochCross|Start|" .. tostring(Signals[Directions.Up][Stochs.Name].Cross.Count) .. "|" .. (index_candle - 1), Icons.Triangle, Levels[1])
 	end
 
-	--
 	-- check fast stoch cross slow stoch down
-	--
 	if (SignalOscCross(Stochs, index_candle, Directions.Down)) then
 		-- set elementary down signal off
-		Signals[Directions.Up].Stochs.Cross.Candle = 0
+		Signals[Directions.Up][Stochs.Name].Cross.Candle = 0
 		-- set elementary up signal on
-		Signals[Directions.Down].Stochs.Cross.Candle = index_candle - 1
-		Signals[Directions.Down].Stochs.Cross.Count = Signals[Directions.Down].Stochs.Cross.Count + 1
+		Signals[Directions.Down][Stochs.Name].Cross.Candle = index_candle - 1
+		Signals[Directions.Down][Stochs.Name].Cross.Count = Signals[Directions.Down][Stochs.Name].Cross.Count + 1
 
 		-- set chart label
-		if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-			DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-		end
-		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochCross|Start|"..tostring(Signals[Directions.Down].Stochs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
-	end
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "SStochCross|Start|" .. tostring(Signals[Directions.Down][Stochs.Name].Cross.Count) .. "|" .. (index_candle - 1), Icons.Triangle, Levels[1])
 	end
 	--#endregion
 
-	--
 	--#region	II.2. Elementary Stoch Signal: Signals[Directions.Down/Up].Stochs.Cross50
 	--				Impulse Signal: Signals[Directions.Down/Up].Impulse
 	--				Depends on signal: SignalOscCrossLevel
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
-	--
-	if (CheckDataSufficiency(index_candle, 2, Stochs.Slow)) then
-		--
-		-- check slow stoch cross lvl50 up
-		--
-		if (SignalOscCrossLevel(Stochs.Slow, Stochs.Params.Levels.Center, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].Stochs.Cross50.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].Stochs.Cross50.Candle = index_candle - 1
-			Signals[Directions.Up].Stochs.Cross50.Count = Signals[Directions.Up].Stochs.Cross50.Count + 1
+	-- check slow stoch cross lvl50 up
+	if (SignalOscCrossLevel(Stochs.Slow, Stochs.Params.HLines.Center, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][Stochs.Name].Cross50.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][Stochs.Name].Cross50.Candle = index_candle - 1
+		Signals[Directions.Up][Stochs.Name].Cross50.Count = Signals[Directions.Up][Stochs.Name].Cross50.Count + 1
 
-			-- set chart label
-			-- if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-			-- 	DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			-- end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochCross50|Start|"..tostring(Signals[Directions.Up].Stochs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Impulse)
-		end
+		-- set chart label
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 - 2 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "LStochCross50|Start|" .. tostring(Signals[Directions.Up][Stochs.Name].Cross50.Count) .. "|" .. (index_candle - 1), Icons.Arrow, Levels[1])
+	end
 
-		--
-		-- check slow stoch cross lvl50 down
-		--
-		if (SignalOscCrossLevel(Stochs.Slow, Stochs.Params.Levels.Center, index_candle, Directions.Down)) then
-			-- set elementary up signal off
-			Signals[Directions.Up].Stochs.Cross50.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].Stochs.Cross50.Candle = index_candle - 1
-			Signals[Directions.Down].Stochs.Cross50.Count = Signals[Directions.Down].Stochs.Cross50.Count + 1
+	-- check slow stoch cross lvl50 down
+	if (SignalOscCrossLevel(Stochs.Slow, Stochs.Params.Levels.Center, index_candle, Directions.Down)) then
+		-- set elementary up signal off
+		Signals[Directions.Up][Stochs.Name].Cross50.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down][Stochs.Name].Cross50.Candle = index_candle - 1
+		Signals[Directions.Down][Stochs.Name].Cross50.Count = Signals[Directions.Down][Stochs.Name].Cross50.Count + 1
 
-			-- set chart label
-			-- if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-			-- 	DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			-- end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch,  "SStochCross50|Start|"..tostring(Signals[Directions.Down].Stochs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Impulse)
-		end
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 + 2 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag,  "SStochCross50|Start|" .. tostring(Signals[Directions.Down][Stochs.Name].Cross50.Count) .. "|" .. (index_candle - 1), Icons.Arrow, Levels[1])
 	end
 	--#endregion
 
-	--
 	-- #region	II.3. Elementary Stoch Signal: Signals[Directions.Down/Up].Stochs.Steamer
 	--				Enter Signal: Signals[Directions.Down/Up].TrendOn/Uturn
 	--				Depends on signal: SignalOscHorSteamer, SignalOscVerSteamer
 	--				Terminates by signals:
 	--				Terminates by duration:
-	--
-	if (CheckDataSufficiency(index_candle,  (Signals.Params.Steamer.Duration+2), Stochs.Slow) and CheckDataSufficiency(index_candle,  (Signals.Params.Steamer.Duration+2), Stochs.Fast)) then
-		-- check stoch steamer up
-		if (SignalOscVSteamer(Stochs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].Stochs.VSteamer.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].Stochs.VSteamer.Candle = index_candle - 1
-			Signals[Directions.Up].Stochs.VSteamer.Count = Signals[Directions.Up].Stochs.VSteamer.Count + 1
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-2*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochVSteamer|"..tostring(Signals[Directions.Up].Stochs.VSteamer.Count), Icons.Triangle, Levels.Impulse)
-		end
+	-- check stoch steamer up
+	if (SignalOscVSteamer(Stochs, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][Stochs.Name].VSteamer.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][Stochs.Name].VSteamer.Candle = index_candle - 1
+		Signals[Directions.Up][Stochs.Name].VSteamer.Count = Signals[Directions.Up][Stochs.Name].VSteamer.Count + 1
 
-		-- check stoch steamer down
-		if (SignalOscVSteamer(Stochs, index_candle, Directions.Down)) then
-			-- set elementary up signal off
-			Signals[Directions.Up].Stochs.VSteamer.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].Stochs.VSteamer.Candle = index_candle - 1
-			Signals[Directions.Down].Stochs.VSteamer.Count = Signals[Directions.Down].Stochs.VSteamer.Count + 1
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+2*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochVSteamer|"..tostring(Signals[Directions.Down].Stochs.VSteamer.Count), Icons.Triangle, Levels.Impulse)
-		end
-
-		-- check stoch steamer up
-		if (SignalOscHSteamer(Stochs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].Stochs.HSteamer.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].Stochs.HSteamer.Candle = index_candle - 1
-			Signals[Directions.Up].Stochs.HSteamer.Count = Signals[Directions.Up].Stochs.HSteamer.Count + 1
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100-6*ChartSteps.Stoch)/100), ChartTags.Stoch, "LStochHSteamer|"..tostring(Signals[Directions.Up].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), Icons.Romb, Levels.Impulse)
-		end
-		
-		-- check stoch steamer down
-		if (SignalOscHSteamer(Stochs, index_candle, Directions.Down)) then
-			-- set elementary up signal off
-			Signals[Directions.Up].Stochs.HSteamer.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].Stochs.HSteamer.Candle = index_candle - 1
-			Signals[Directions.Down].Stochs.HSteamer.Count = Signals[Directions.Down].Stochs.HSteamer.Count + 1
-			-- set chart label
-			if (Labels[Stochs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.Stoch, Labels[Stochs.Name][index_candle-1])
-			end
-			Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1]*(100+6*ChartSteps.Stoch)/100), ChartTags.Stoch, "SStochHSteamer|"..tostring(Signals[Directions.Down].Stochs.HSteamer.Count).."|"..tostring(index_candle-1), Icons.Romb, Levels.Impulse)
-		end 
+		-- set chart label
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 - 3 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "LStochVSteamer|" .. tostring(Signals[Directions.Up][Stochs.Name].VSteamer.Count), Icons.Triangle, Levels[2])
 	end
+
+	-- check stoch steamer down
+	if (SignalOscVSteamer(Stochs, index_candle, Directions.Down)) then
+		-- set elementary up signal off
+		Signals[Directions.Up][Stochs.Name].VSteamer.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down][Stochs.Name].VSteamer.Candle = index_candle - 1
+		Signals[Directions.Down][Stochs.Name].VSteamer.Count = Signals[Directions.Down][Stochs.Name].VSteamer.Count + 1
+
+		-- set chart label
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 + 3 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "SStochVSteamer|" .. tostring(Signals[Directions.Down][Stochs.Name].VSteamer.Count), Icons.Triangle, Levels[2])
+	end
+
+	-- check stoch steamer up
+	if (SignalOscHSteamer(Stochs, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][Stochs.Name].HSteamer.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][Stochs.Name].HSteamer.Candle = index_candle - 1
+		Signals[Directions.Up][Stochs.Name].HSteamer.Count = Signals[Directions.Up][Stochs.Name].HSteamer.Count + 1
+
+		-- set chart label
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 - 4 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "LStochHSteamer|" .. tostring(Signals[Directions.Up][Stochs.Name].HSteamer.Count) .. "|" .. tostring(index_candle - 1), Icons.Romb, Levels[2])
+	end
+	
+	-- check stoch steamer down
+	if (SignalOscHSteamer(Stochs, index_candle, Directions.Down)) then
+		-- set elementary up signal off
+		Signals[Directions.Up][Stochs.Name].HSteamer.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down][Stochs.Name].HSteamer.Candle = index_candle - 1
+		Signals[Directions.Down][Stochs.Name].HSteamer.Count = Signals[Directions.Down][Stochs.Name].HSteamer.Count + 1
+
+		-- set chart label
+		Labels[Stochs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (Stochs.Slow[index_candle-1] * (100 + 4 * Charts[Stochs.Name].Step) / 100), Charts[Stochs.Name].Tag, "SStochHSteamer|" .. tostring(Signals[Directions.Down][Stochs.Name].HSteamer.Count) .. "|" .. tostring(index_candle - 1), Icons.Romb, Levels[2])
+	end 
 	--#endregion 
 
 	----------------------------------------------------------------------------
 	--	III. Elementary RSI Signals
 	----------------------------------------------------------------------------
-	--
 	--#region	III.1. Elementary RSI Signal: Signals[Directions.Down/Up].RSIs.Cross
 	--				Impulse Signal: Signals[Directions.Down/Up].Impulse
 	---				Depends on signal: SignalOscCross
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
-	--
-	if (CheckDataSufficiency(index_candle, 2, RSIs.Slow) and CheckDataSufficiency(index_candle, 2, RSIs.Fast)) then
-		--
-		-- check fast rsi cross slow rsi up
-		--
-		if (SignalOscCross(RSIs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].RSIs.Cross.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].RSIs.Cross.Candle = index_candle - 1
-			Signals[Directions.Up].RSIs.Cross.Count = Signals[Directions.Up].RSIs.Cross.Count + 1
+	-- check fast rsi cross slow rsi up
+	if (SignalOscCross(RSIs, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][RSIs.Name].Cross.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][RSIs.Name].Cross.Candle = index_candle - 1
+		Signals[Directions.Up][RSIs.Name].Cross.Count = Signals[Directions.Up][RSIs.Name].Cross.Count + 1
 
-			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross|Start|"..tostring(Signals[Directions.Up].RSIs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
-		end
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 - Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSICross|Start|" .. tostring(Signals[Directions.Up][RSIs.Name].Cross.Count) .. "|" .. (index_candle - 1), Icons.Triangle, Levels[1])
+	end
 
-		--
-		-- check fast rsi cross slow rsi down
-		--
-		if (SignalOscCross(RSIs, index_candle, Directions.Down)) then
-			-- set elementary down signal off
-			Signals[Directions.Up].RSIs.Cross.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Down].RSIs.Cross.Candle = index_candle - 1
-			Signals[Directions.Down].RSIs.Cross.Count = Signals[Directions.Down].RSIs.Cross.Count + 1
+	-- check fast rsi cross slow rsi down
+	if (SignalOscCross(RSIs, index_candle, Directions.Down)) then
+		-- set elementary down signal off
+		Signals[Directions.Up][RSIs.Name].Cross.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Down][RSIs.Name].Cross.Candle = index_candle - 1
+		Signals[Directions.Down][RSIs.Name].Cross.Count = Signals[Directions.Down][RSIs.Name].Cross.Count + 1
 
-			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+ChartSteps.RSI)/100), ChartTags.RSI,  "SRSICross|Start|"..tostring(Signals[Directions.Down].RSIs.Cross.Count).."|"..(index_candle-1), Icons.Triangle, Levels.Elementary)
-		end
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 + Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag,  "SRSICross|Start|" .. tostring(Signals[Directions.Down][RSIs.Name].Cross.Count) .. "|" .. (index_candle-1), Icons.Triangle, Levels[1])
 	end
 	--#endregion
 
-	--
 	--#region	III.2. Elementary RSI Signal: Signals[Directions.Down/Up].RSIs.Cross50
 	--				Impulse Signal: Signals[Directions.Down/Up].Impulse
 	---				Depends on signal: SignalOscCrossLevel
 	--				Terminates by signals: Reverse self-signal
 	--				Terminates by duration: -
-	--
-	if (CheckDataSufficiency(index_candle, 2, RSIs.Slow)) then
-		--
-		-- check slow rsi cross lvl50 up
-		--
-		if (SignalOscCrossLevel(RSIs.Slow, RSIs.Params.Levels.Center, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].RSIs.Cross50.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].RSIs.Cross50.Candle = index_candle - 1
-			Signals[Directions.Up].RSIs.Cross50.Count = Signals[Directions.Up].RSIs.Cross50.Count + 1
+	-- check slow rsi cross lvl50 up
+	if (SignalOscCrossLevel(RSIs.Slow, RSIs.Params.Levels.Center, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][RSIs.Name].Cross50.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][RSIs.Name].Cross50.Candle = index_candle - 1
+		Signals[Directions.Up][RSIs.Name].Cross50.Count = Signals[Directions.Up][RSIs.Name].Cross50.Count + 1
 
-			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-2*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICross50|Start|"..tostring(Signals[Directions.Up].RSIs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Elementary)
-		end
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 - 2 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSICross50|Start|" .. tostring(Signals[Directions.Up][RSIs.Name].Cross50.Count) .. "|" .. (index_candle - 1), Icons.Arrow, Levels[1])
+	end
 
-		--
-		-- check slow rsi cross lvl50 udown
-		--
-		if (SignalOscCrossLevel(RSIs.Slow, RSIs.Params.Levels.Center, index_candle, Directions.Down)) then
-			-- set elementary down signal off
-			Signals[Directions.Up].RSIs.Cross50.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].RSIs.Cross50.Candle = index_candle - 1
-			Signals[Directions.Down].RSIs.Cross50.Count = Signals[Directions.Down].RSIs.Cross50.Count + 1
+	-- check slow rsi cross lvl50 udown
+	if (SignalOscCrossLevel(RSIs.Slow, RSIs.Params.Levels.Center, index_candle, Directions.Down)) then
+		-- set elementary down signal off
+		Signals[Directions.Up][RSIs.Name].Cross50.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down][RSIs.Name].Cross50.Candle = index_candle - 1
+		Signals[Directions.Down][RSIs.Name].Cross50.Count = Signals[Directions.Down][RSIs.Name].Cross50.Count + 1
 
-			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+2*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICross50|Start|"..tostring(Signals[Directions.Down].RSIs.Cross50.Count).."|"..(index_candle-1), Icons.Arrow, Levels.Elementary)
-		end
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 + 2 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "SRSICross50|Start|" .. tostring(Signals[Directions.Down][RSIs.Name].Cross50.Count) .. "|" .. (index_candle - 1), Icons.Arrow, Levels[1])
 	end
 	--#endregion
 
-	--
 	--#region	III.3. Elementary RSI Signal: Signals[Directions.Down/Up].RSIs.TrendOn
 	--				Enter Signals: Signals[Directions.Down/Up].TrendOn
 	--				Depends on signal: SignalOscTrendOn
 	--				Terminates by signals: Reverse self-signal,SignalOscTrendOff, SignalOscCross
 	--				Terminates by duration: Signals.Params.Durations.Elementary
-	--
-	if (CheckDataSufficiency(index_candle, 2, RSIs.Slow)) then
-		--
-		-- check start elementary slow rsi enter on uptrend zone signal
-		--
-		if (SignalOscTrendOn(RSIs, index_candle, Directions.Up)) then
-			-- set elementary down signal off
-			Signals[Directions.Down].RSIs.TrendOn.Candle = 0
-			-- set elementary up signal on
-			Signals[Directions.Up].RSIs.TrendOn.Candle = index_candle - 1
-			Signals[Directions.Up].RSIs.TrendOn.Count = Signals[Directions.Up].RSIs.TrendOn.Count + 1
+	-- check start elementary slow rsi enter on uptrend zone signal
+	if (SignalOscTrendOn(RSIs, index_candle, Directions.Up)) then
+		-- set elementary down signal off
+		Signals[Directions.Down][RSIs.Name].TrendOn.Candle = 0
+		-- set elementary up signal on
+		Signals[Directions.Up][RSIs.Name].TrendOn.Candle = index_candle - 1
+		Signals[Directions.Up][RSIs.Name].TrendOn.Count = Signals[Directions.Up][RSIs.Name].TrendOn.Count + 1
 
-			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Start|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(index_candle-1), Icons.Point, Levels.Elementary)
-		end
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 - 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSITrendOn|Start|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" .. (index_candle - 1), Icons.Point, Levels[1])
+	end
 
-		-- check presence elementary up signal
-		if (Signals[Directions.Up].RSIs.TrendOn.Candle > 0) then
-			-- set duration elemenetary up signal
-			local duration = index_candle - Signals[Directions.Up].RSIs.TrendOn.Candle
-			-- check continuation elementary up signal
-			if (duration <= Signals.Params.Durations.Elementary) then
-				-- check termination by slow rsi enter off uptrend zone
-				if (SignalOscTrendOff(RSIs, index_candle, Directions.Down)) then
-					-- set elementary up signal off
-					Signals[Directions.Up].RSIs.TrendOn.Candle = 0
-
-					-- set chart label
-					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOff|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
-				-- check termination by fast rsi cross slow rsi down
-				elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
-						-- set elementary up signal off
-						Signals[Directions.Up].RSIs.TrendOn.Candle = 0
-
-						-- set chart label
-						if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-							DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-						end
-						Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSICrossDown|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
-				-- process continuation elementary up signal
-				else
-					-- set chart label
-						-- if (Labels[RSIs.Name][index_candle] ~= nil) then
-						-- 	DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
-						-- end
-						--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|Continue|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Point, Levels.Elementary)
-				end
-			-- check termination by duration elementary up signal
-			elseif (duration > Signals.Params.Durations.Elementary) then
+	-- check presence elementary up signal
+	if (Signals[Directions.Up][RSIs.Name].TrendOn.Candle > 0) then
+		-- set duration elemenetary up signal
+		local duration = index_candle - Signals[Directions.Up][RSIs.Name].TrendOn.Candle
+		-- check continuation elementary up signal
+		if (duration <= Signals.Params.Durations.Elementary) then
+			-- check termination by slow rsi enter off uptrend zone
+			if (SignalOscTrendOff(RSIs, index_candle, Directions.Down)) then
 				-- set elementary up signal off
-				Signals[Directions.Up].RSIs.TrendOn.Candle = 0
+				Signals[Directions.Up][RSIs.Name].TrendOn.Candle = 0
 
 				-- set chart label
-				if (Labels[RSIs.Name][index_candle] ~= nil) then
-					DelLabel(ChartTags.Stoch, Labels[RSIs.Name][index_candle])
-				end
-				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100-3*ChartSteps.RSI)/100), ChartTags.RSI, "LRSITrendOn|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Cross, Levels.Elementary)
-			end
-		end
+				Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100 - 3 * Charts[RSIs.Name].Step) /100), Charts[RSIs.Name].Tag, "LRSITrendOff|End|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" .. (duration - 1) .. "|" .. (index_candle - 1), Icons.Cross, Levels[1])
+			-- check termination by fast rsi cross slow rsi down
+			elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
+				-- set elementary up signal off
+				Signals[Directions.Up][RSIs.Name].TrendOn.Candle = 0
 
-		--
-		-- check start elementary slow rsi enter on down trend zone signal
-		--
-		if (SignalOscTrendOn(RSIs, index_candle, Directions.Down)) then
+				-- set chart label
+				Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 - 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSICrossDown|End|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" .. (duration - 1) .. "|" .. (index_candle - 1), Icons.Cross, Levels[1])
+			-- process continuation elementary up signal
+			else
+				-- set chart label
+				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle] * (100 - 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSITrendOn|Continue|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" .. duration .. "|" .. index_candle, Icons.Point, Levels[1])
+			end
+		-- check termination by duration elementary up signal
+		elseif (duration > Signals.Params.Durations.Elementary) then
 			-- set elementary up signal off
-			Signals[Directions.Up].RSIs.TrendOn.Candle = 0
-			-- set elementary down signal on
-			Signals[Directions.Down].RSIs.TrendOn.Candle = index_candle - 1
-			Signals[Directions.Down].RSIs.TrendOn.Count = Signals[Directions.Down].RSIs.TrendOn.Count + 1
+			Signals[Directions.Up][RSIs.Name].TrendOn.Candle = 0
 
 			-- set chart label
-			if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-				DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-			end
-			Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI,  "SRSITrendOn|Start|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(index_candle-1), Icons.Point, Levels.Elementary)
+			Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle] * (100 - 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "LRSITrendOn|End|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" .. duration .. "|" ..index_candle, Icons.Cross, Levels[1])
 		end
+	end
 
-		-- check presence elementary down signal
-		if (Signals[Directions.Down].RSIs.TrendOn.Candle > 0) then
-			-- set duration elemenetary down signal
-			local duration = index_candle - Signals[Directions.Down].RSIs.TrendOn.Candle
-			-- check continuation elementary down signal
-			if (duration <= Signals.Params.Durations.Elementary) then
-				-- check termination by slow rsi enter off downtrend zone
-				if (SignalOscTrendOff(RSIs, index_candle, Directions.Up)) then
-					-- set elementary down signal off
-					Signals[Directions.Down].RSIs.TrendOn.Candle = 0
+	-- check start elementary slow rsi enter on down trend zone signal
+	if (SignalOscTrendOn(RSIs, index_candle, Directions.Down)) then
+		-- set elementary up signal off
+		Signals[Directions.Up][RSIs.Name].TrendOn.Candle = 0
+		-- set elementary down signal on
+		Signals[Directions.Down][RSIs.Name].TrendOn.Candle = index_candle - 1
+		Signals[Directions.Down][RSIs.Name].TrendOn.Count = Signals[Directions.Down][RSIs.Name].TrendOn.Count + 1
 
-					-- set chart label
-					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOff|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
-				-- check termination by fast rsi cross slow rsi down
-				elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
-					Signals[Directions.Up].RSIs.TrendOn.Candle = 0
+		-- set chart label
+		Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 + 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag,  "SRSITrendOn|Start|" .. tostring(Signals[Directions.Down][RSIs.Name].TrendOn.Count) .. "|" .. (index_candle - 1), Icons.Point, Levels[1])
+	end
 
-					-- set chart label
-					if (Labels[RSIs.Name][index_candle-1] ~= nil) then
-						DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle-1])
-					end
-					Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSICrossUp|End|"..tostring(Signals[Directions.Up].RSIs.TrendOn.Count).."|"..(duration-1).."|"..(index_candle-1), Icons.Cross, Levels.Elementary)
-				-- process continuation elementary down signal
-				else
-					-- set chart label
-					-- if (Labels[RSIs.Name][index_candle] ~= nil) then
-					-- 	DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
-					-- end
-					--Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|Continue|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Point, Levels.Elementary)
-				end
-			-- check termination by duration elementary down signal
-			elseif (duration > Signals.Params.Durations.Elementary) then
+	-- check presence elementary down signal
+	if (Signals[Directions.Down][RSIs.Name].TrendOn.Candle > 0) then
+		-- set duration elemenetary down signal
+		local duration = index_candle - Signals[Directions.Down][RSIs.Name].TrendOn.Candle
+		-- check continuation elementary down signal
+		if (duration <= Signals.Params.Durations.Elementary) then
+			-- check termination by slow rsi enter off downtrend zone
+			if (SignalOscTrendOff(RSIs, index_candle, Directions.Up)) then
 				-- set elementary down signal off
-				Signals[Directions.Down].RSIs.TrendOn.Candle = 0
+				Signals[Directions.Down][RSIs.Name].TrendOn.Candle = 0
 
 				-- set chart label
-				if (Labels[RSIs.Name][index_candle] ~= nil) then
-					DelLabel(ChartTags.RSI, Labels[RSIs.Name][index_candle])
-				end
-				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle]*(100+3*ChartSteps.RSI)/100), ChartTags.RSI, "SRSITrendOn|End|"..tostring(Signals[Directions.Down].RSIs.TrendOn.Count).."|"..duration.."|"..index_candle, Icons.Cross, Levels.Elementary)
+				Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 + 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "SRSITrendOff|End|" .. tostring(Signals[Directions.Down][RSIs.Name].TrendOn.Count) .. "|" ..(duration - 1).. "|" .. (index_candle - 1), Icons.Cross, Levels[1])
+			-- check termination by fast rsi cross slow rsi down
+			elseif (SignalOscCross(RSIs, index_candle, Directions.Down)) then
+				Signals[Directions.Up][RSIs.Name].TrendOn.Candle = 0
+
+				-- set chart label
+				Labels[RSIs.Name][index_candle-1] = SetChartLabel(T(index_candle-1), (RSIs.Slow[index_candle-1] * (100 + 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "SRSICrossUp|End|" .. tostring(Signals[Directions.Up][RSIs.Name].TrendOn.Count) .. "|" ..(duration - 1) .. "|" .. (index_candle - 1), Icons.Cross, Levels[1])
+			-- process continuation elementary down signal
+			else
+				-- set chart label
+				Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle] * (100 + 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "SRSITrendOn|Continue|" .. tostring(Signals[Directions.Down][RSIs.Name].TrendOn.Count) .. "|" .. duration .. "|" .. index_candle, Icons.Point, Levels[1])
 			end
+		-- check termination by duration elementary down signal
+		elseif (duration > Signals.Params.Durations.Elementary) then
+			-- set elementary down signal off
+			Signals[Directions.Down][RSIs.Name].TrendOn.Candle = 0
+
+			-- set chart label
+			Labels[RSIs.Name][index_candle] = SetChartLabel(T(index_candle), (RSIs.Slow[index_candle] * (100 + 3 * Charts[RSIs.Name].Step) / 100), Charts[RSIs.Name].Tag, "SRSITrendOn|End|" .. tostring(Signals[Directions.Down][RSIs.Name].TrendOn.Count) .. "|" .. duration .. "|" .. index_candle, Icons.Cross, Levels[1])
 		end
 	end
 	--#endregion
@@ -602,7 +496,8 @@ function OnCalculate(index_candle)
 		PrintDebugMessage("RSIs Down", "Cross", Signals[Directions.Down].RSIs.Cross.Count, "Cross50", Signals[Directions.Down].RSIs.Cross50.Count, "Uturn3", Signals[Directions.Down].RSIs.Uturn3.Count, "Uturn4", Signals[Directions.Down].RSIs.Uturn4.Count, "Spring3", Signals[Directions.Down].RSIs.Spring3.Count, "Spring4", Signals[Directions.Down].RSIs.Spring4.Count, "TrendOn", Signals[Directions.Down].RSIs.TrendOn.Count)
 	end 
 
-    return BBs.Top[index_candle], MAs[index_candle], BBs.Bottom[index_candle]
+
+    return PriceChannels.High[index_candle], PriceChannels.Middle[index_candle], PriceChannels.Low[index_candle]
 	-- return Stochs.Slow[index_candle], Stochs.Fast[index_candle]
 	-- return RSIs.Slow[index_candle], RSIs.Fast[index_candle]
 end
@@ -899,6 +794,7 @@ end
 --	Signal	Osc Vertical Steamer
 --
 function SignalOscVSteamer(osc, index, direction, dev)
+	if (CheckDataSufficiency(index_candle,  (Signals.Params.Steamer.Duration+2), Stochs.Slow) and CheckDataSufficiency(index_candle,  (Signals.Params.Steamer.Duration+2), Stochs.Fast)) then
 	dev = dev or Signals.Params.Steamer.Dev
 	direction = direction and string.upper(string.sub(direction, 1, 1))
 
@@ -933,6 +829,7 @@ end
 --
 function SignalOscCross(osc, index, direction, dev)
 	if (CheckDataSufficiency(index, 2, osc.Slow) and CheckDataSufficiency(index, 2, osc.Fast)) then	
+		if (CheckDataSufficiency(index_candle, 2, RSIs.Slow) and CheckDataSufficiency(index_candle, 2, RSIs.Fast)) then
 		dev = dev or 0
 		direction = direction and string.upper(string.sub(direction, 1, 1))
 		
@@ -955,6 +852,8 @@ end
 -- Signal Osc Cross Level
 --
 function SignalOscCrossLevel(osc, level, index, direction, dev)
+	if (CheckDataSufficiency(index_candle, 2, Stochs.Slow)) then
+		if (CheckDataSufficiency(index_candle, 2, RSIs.Slow)) then
 	local dev = dev or 0
 
 	return SignalCross(osc, {[index-2] = level, [index-1] = level}, index, direction, dev)
@@ -964,6 +863,7 @@ end
 -- SignalOscTrendOn
 --
 function SignalOscTrendOn(osc, index, direction)
+	if (CheckDataSufficiency(index_candle, 2, RSIs.Slow)) then
 	direction = string.upper(string.sub(direction, 1, 1))
 	local level
 
