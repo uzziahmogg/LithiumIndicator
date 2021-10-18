@@ -504,37 +504,48 @@ function Stoch(mode)
     local K_ma2 = SMA(Settings)
     local D_ma  = EMA(Settings)
 
+    -- cyclic buffer to highs
     local Highs = {}
+    -- cyclic buffer to lows
     local Lows = {}
-    local Candles = { processed = 0, count = 0 }
+    -- idx_chart point to index of real candles on chart/ds, idx_buffer point to candles in cyclic buffer
+    local Candles = { idx_chart = 0, idx_buffer = 0 }
 
-    return function (index_candle)
+    return function (index)
         if (Settings.period_k > 0) and (Settings.period_d > 0) then
-            if (index_candle == 1) then
+            
+            -- reinit arrays
+            if (index == 1) then
                 Highs = {}
                 Lows = {}
-                Candles = { processed = 0, count = 0 }
+                Candles.idx_chart = 0
+                Candles.idx_buffer = 0 
             end
 
-            if CandleExist(index_candle) then
-                if (index_candle ~= Candles.processed) then
-                    Candles = { processed = index_candle, count = Candles.count + 1 }
+            if CandleExist(index) then
+                if (Candles.idx_chart ~= index) then
+                    Candles.idx_chart = index
+                    Candles.idx_buffer = Candles.idx_buffer + 1
                 end
 
-                Highs[Squeeze(Candles.count, Settings.period_k - 1) + 1] = H(Candles.processed)
-                Lows[Squeeze(Candles.count, Settings.period_k - 1) + 1] = L(Candles.processed)
+                -- pointer into cyclic buffer from 1 to period_k
+                local idx = Squeeze(Candles.count, Settings.period_k - 1) + 1
+                Highs[idx] = H(Candles.idx_chart)
+                Lows[idx] = L(Candles.idx_chart)
 
-                if (Candles.count >= Settings.period_k)  then
+                local idx_k = Candles.idx_buffer - Settings.period_k
+                if (idx_k >= 0)  then
                     local max_high = math.max(unpack(Highs))
                     local max_low = math.min(unpack(Lows))
 
-                    local value_k1 = K_ma1(Candles.count - Settings.period_k + 1, { [Candles.count - Settings.period_k + 1] = C(Candles.processed) - max_low })
+                    local value_k1 = K_ma1(idx_k + 1, { [idx_k + 1] = C(Candles.idx_chart) - max_low })
 
-                    local value_k2 = K_ma2(Candles.count - Settings.period_k + 1, { [Candles.count - Settings.period_k + 1] = max_high - max_low })
+                    local value_k2 = K_ma2(idx_k + 1, { [idx_k + 1] = max_high - max_low })
 
-                    if ((Candles.count >= (Settings.period_k + Settings.shift - 1)) and (value_k2 ~= 0)) then
+                    local idx_d = Candles.idx_buffer - (Settings.period_k + Settings.shift) + 1
+                    if ((idx_d >= 0) and (value_k2 ~= 0)) then
                         local stoch_k = 100 * value_k1 / value_k2
-                        local stoch_d = D_ma(Candles.count - (Settings.period_k + Settings.shift - 2), { [Candles.count - (Settings.period_k + Settings.shift - 2)] = stoch_k })
+                        local stoch_d = D_ma(idx_d + 1, { [idx_d + 1] = stoch_k })
 
                         return stoch_k, stoch_d
                     end
