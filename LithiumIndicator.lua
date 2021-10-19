@@ -31,7 +31,7 @@ function Init()
         Params = { HLines = { TopExtreme = 80, Center = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
     Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
     RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {},
-        Params = { HLines = { TopExtreme = 80, TopTrend = 60, Center = 50, BottomTrend = 40, BottomExtreme = 20 }, PeriodSlow = 14, PeriodFast = 9 }}
+        Params = { HLines = { TopExtreme = 80, TopTrend = 60, Center = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9 }}
     PCs = { Name = "PC", Top = {}, Bottom = {}, Center = {}, Delta = {}, Params = { Period = 20 }}
 
     -- directions for signals, labels and deals
@@ -448,7 +448,7 @@ function OnCalculate(index_candle)
 end
 
 --==========================================================================
---#region	INDICATOR  Price Channel
+--#region INDICATOR Price Channel
 --==========================================================================
 ----------------------------------------------------------------------------
 -- Price Channel
@@ -535,8 +535,8 @@ function Stoch(mode)
 
                 local idx_k = Candles.idx_buffer - Settings.period_k
                 if (idx_k >= 0)  then
-                    local max_high = math.max(unpack(Highs))
-                    local max_low = math.min(unpack(Lows))
+                    local max_high = math.max(table.unpack(Highs))
+                    local max_low = math.min(table.unpack(Lows))
 
                     local value_k1 = K_ma1(idx_k + 1, { [idx_k + 1] = C(Candles.idx_chart) - max_low })
 
@@ -561,29 +561,32 @@ end
 --	function EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
 ----------------------------------------------------------------------------
 function EMA(Settings)
-    local Emas = { previous = nil, current = nil }
-    local Candles = { processed = 0, count = 0 }
+    local Emas = { prev = nil, cur = nil }
+    local Candles = { idx_chart = 0, idx_buffer = 0 }
 
-    return function(index_candle, prices)
-        if (index_candle == 1) then
-            Emas = { previous = nil, current = nil }
-            Candles = { processed = 0, count = 0 }
+    return function(index, prices)
+        if (index == 1) then
+            Emas.prev = nil
+            Emas.cur = nil 
+            Candles.idx_chart = 0
+            Candles.idx_buffer = 0 
         end
 
-        if CandleExist(index_candle) then
-            if (index_candle ~= Candles.processed) then
-                Candles = { processed = index_candle, count = Candles.count + 1 }
-                Emas.previous = Emas.current
+        if CandleExist(index) then
+            if (Candles.idx_chart ~= index) then
+                Candles.idx_chart = index
+                Candles.idx_buffer = Candles.idx_buffer + 1 
+                Emas.prev = Emas.cur
             end
 
-            if (Candles.count == 1) then
-                Emas.current = prices[Candles.processed]
+            if (Candles.idx_buffer == 1) then
+                Emas.cur = prices[Candles.idx_chart]
             else
-                Emas.current = (Emas.previous * (Settings.period_d - 1) + 2 * prices[Candles.processed]) / (Settings.period_d + 1)
+                Emas.cur = (Emas.prev * (Settings.period_d - 1) + 2 * prices[Candles.idx_chart]) / (Settings.period_d + 1)
             end
 
-            if (Candles.count >= Settings.period_d) then
-                return Emas.current
+            if (Candles.idx_buffer >= Settings.period_d) then
+                return Emas.cur
             end
         end
 
@@ -596,27 +599,29 @@ end
 ----------------------------------------------------------------------------
 function SMA(Settings)
     local Sums = {}
-    local Candles = { processed = 0, count = 0 }
+    local Candles = { idx_chart = 0, idx_buffer = 0 }
 
-    return function (index_candle, prices)
-        if (index_candle == 1) then
+    return function (index, prices)
+        if (index == 1) then
             Sums = {}
-            Candles = { processed = 0, count = 0 }
+            Candles.idx_chart = 0
+            Candles.idx_buffer = 0 
         end
 
-        if CandleExist(index_candle) then
-            if (index_candle ~= Candles.processed) then
-                Candles = { processed = index_candle, count = Candles.count + 1 }
+        if CandleExist(index) then
+            if (Candles.idx_chart ~= index) then
+                Candles.idx_chart = index
+                Candles.idx_buffer = Candles.idx_buffer + 1 
             end
 
-            local index1 = Squeeze(Candles.count, Settings.shift)
-            local index2 = Squeeze(Candles.count - 1, Settings.shift)
-            local index3 = Squeeze(Candles.count - Settings.shift, Settings.shift)
+            local idx_cur = Squeeze(Candles.idx_buffer, Settings.shift)
+            local idx_prev = Squeeze(Candles.idx_buffer - 1, Settings.shift)
+            local idx_oldest = Squeeze(Candles.idx_buffer - Settings.shift, Settings.shift)
 
-            Sums[index1] = (Sums[index2] or 0) + prices[Candles.processed]
+            Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Candles.idx_chart]
 
-            if (Candles.count >= Settings.shift) then
-                return (Sums[index1] - (Sums[index3] or 0)) / Settings.shift
+            if (Candles.idx_buffer >= Settings.shift) then
+                return (Sums[idx_cur] - (Sums[idx_oldest] or 0)) / Settings.shift
             end
         end
 
@@ -632,51 +637,46 @@ end
 -- function RSI calculate indicator RSI for durrent candle 
 ----------------------------------------------------------------------------
 function RSI(mode)
-    mode = string.sub(string.upper(mode), 1, 1)
-    local Settings = {}
-
-    if (mode == "S") then
-        Settings.period = RSIs.Params.PeriodSlow
-    elseif (mode == "F") then
-        Settings.period = RSIs.Params.PeriodFast
-    end
+    local Settings = { period = RSIs.Params[mode] }
 
     local Ma_up = MMA(Settings)
     local Ma_down = MMA(Settings)
 
-    local Prices = { previous = nil, current = nil}
-    local Itterations = { processed = 0, count = 0 }
+    local Prices = { prev = nil, cur = nil}
+    local Candles = { idx_chart = 0, idx_buffer = 0 }
 
-    return function (index_candle)
-        if (index_candle == 1) then
-            Itterations = { processed = 0, count = 0 }
+    return function (index)
+        if (index == 1) then
+            Candles.idx_chart = 0
+            Candles.idx_buffer = 0 
         end
 
-        if CandleExist(index_candle) then
-            if (index_candle ~= Itterations.processed) then
-                Itterations = { processed = index_candle, count = Itterations.count + 1 }
-                Prices.previous = Prices.current
+        if CandleExist(index) then
+            if (Candles.idx_chart ~= index) then
+                Candles.idx_chart = index
+                Candles.idx_buffer = Candles.idx_buffer + 1 
+                Prices.prev = Prices.cur
             end
 
-            Prices.current = C(Itterations.processed)
+            Prices.cur = C(Candles.idx_chart)
 
             local move_up = 0
             local move_down = 0
 
-            if (Itterations.count > 1) then
-                if (Prices.previous < Prices.current) then
-                    move_up = Prices.current - Prices.previous
+            if (Candles.idx_buffer > 1) then
+                if (Prices.prev < Prices.cur) then
+                    move_up = Prices.cur - Prices.prev
                 end
 
-                if (Prices.previous > Prices.current) then
-                    move_down = Prices.previous - Prices.current
+                if (Prices.prev > Prices.cur) then
+                    move_down = Prices.prev - Prices.cur
                 end
             end
 
-            local value_up = Ma_up(Itterations.count, { [Itterations.count] = move_up })
-            local value_down = Ma_down(Itterations.count, { [Itterations.count] = move_down })
+            local value_up = Ma_up(Candles.idx_buffer, { [Candles.idx_buffer] = move_up })
+            local value_down = Ma_down(Candles.idx_buffer, { [Candles.idx_buffer] = move_down })
 
-            if (Itterations.count >= Settings.period) then
+            if (Candles.idx_buffer >= Settings.period) then
                 if (value_down == 0) then
                     return 100
                 else
@@ -694,38 +694,41 @@ end
 --  --------------------------------------------------------------------------
 function MMA(Settings)
     local Sums = {}
-    local Values = { previous = nil, current = nil }
-    local Itterations = { processed = 0, count = 0 }
+    local Values = { prev = nil, cur = nil }
+    local Candles = { idx_chart = 0, idx_buffer = 0 }
 
-    return function(index_candle, prices)
-        if (index_candle == 1) then
+    return function(index, prices)
+        if (index == 1) then
             Sums = {}
-            Values = { previous = nil, current = nil }
-            Itterations = { processed = 0, count = 0 }
+            Values.prev = nil
+            Values.cur = nil 
+            Candles.idx_chart = 0
+            Candles.idx_buffer = 0 
         end
 
-        if CandleExist(index_candle) then
-            if (index_candle ~= Itterations.processed) then
-                Itterations = { processed = index_candle, count = Itterations.count + 1 }
-                Values.previous = Values.current
+        if CandleExist(index) then
+            if (Candles.idx_chart ~= index) then
+                Candles.idx_chart = index
+                Candles.idx_buffer = Candles.idx_buffer + 1 
+                Values.prev = Values.cur
             end
 
-            local index1 = Squeeze(Itterations.count, Settings.period)
-            local index2 = Squeeze(Itterations.count - 1, Settings.period)
-            local index3 = Squeeze(Itterations.count - Settings.period, Settings.period)
+            local idx_cur = Squeeze(Candles.idx_buffer, Settings.period)
+            local idx_prev = Squeeze(Candles.idx_buffer - 1, Settings.period)
+            local idx_oldest = Squeeze(Candles.idx_buffer - Settings.period, Settings.period)
 
-            if (Itterations.count <= (Settings.period + 1)) then
-                Sums[index1] = (Sums[index2] or 0) + prices[Itterations.processed]
+            if (Candles.idx_buffer <= (Settings.period + 1)) then
+                Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Candles.idx_chart]
 
-                if ((Itterations.count == Settings.period) or (Itterations.count == Settings.period + 1)) then
-                    Values.current = (Sums[index1] - (Sums[index3] or 0)) / Settings.period
+                if ((Candles.idx_buffer == Settings.period) or (Candles.idx_buffer == Settings.period + 1)) then
+                    Values.cur = (Sums[idx_cur] - (Sums[idx_oldest] or 0)) / Settings.period
                 end
             else
-                Values.current = (Values.previous * (Settings.period - 1) + prices[Itterations.processed]) / Settings.period
+                Values.cur = (Values.prev * (Settings.period - 1) + prices[Candles.idx_chart]) / Settings.period
             end
 
-            if (Itterations.count >= Settings.period) then
-                return Values.current
+            if (Candles.idx_buffer >= Settings.period) then
+                return Values.cur
             end
         end
 
@@ -760,7 +763,7 @@ function SignalOscVSteamer(index, direction, oscs, vertical_difference, dev)
         ((GetDelta(oscs.Fast[index-1], oscs.Slow[index-1]) <= v_diff) and (GetDelta(oscs.Fast[index-2], oscs.Slow[index-2]) <= v_diff) and (GetDelta(oscs.Fast[index-3], oscs.Slow[index-3]) <= v_diff))) then
 
             -- set chart label
-            ChartLabels[oscs.Name][index-1] = SetChartLabel(T(index-1), GetChartLabelYPos(index-1, direction, oscs.Name), Charts[oscs.Name].Tag, GetChartLabelText(index-1, direction, oscs.Name, "VSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
+            ChartLabels[oscs.Name][index-1] = SetChartLabel(T(index-1), GetChartLabelYPos(index-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText(index-1, direction, oscs.Name, "VSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
 
             return true
         else
@@ -792,7 +795,7 @@ function SignalOscHSteamer(index, direction, oscs, horizontal_duration, dev)
                 (ConditionRelate(oscs.Fast[(index-count)-1], oscs.Slow[(index-count)-1], direction, dev) and ConditionRelate(oscs.Fast[index-1], oscs.Slow[index-1], direction, dev))) then
 
                     -- set chart label
-                    ChartLabels[oscs.Name][(index-count)-1] = SetChartLabel(T((index-count)-1), GetChartLabelYPos((index-count)-1, direction, oscs.Name), Charts[oscs.Name].Tag, GetChartLabelText((index-count)-1, direction, oscs.Name, "HSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
+                    ChartLabels[oscs.Name][(index-count)-1] = SetChartLabel(T((index-count)-1), GetChartLabelYPos((index-count)-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText((index-count)-1, direction, oscs.Name, "HSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
 
                     return true
                 end
@@ -992,11 +995,11 @@ function SignalOscUturn4(index, direction, oscs, dev)
 
         -- true or false
         return ( -- deltas uturn
-            (EventMove((index-2), Directions.Down, osc.Delta, dev) and EventMove(index, Directions.Up, osc.Delta, dev)) and
+            (EventMove((index-2), Directions.Down, oscs.Delta, dev) and EventMove(index, Directions.Up, oscs.Delta, dev)) and
             -- fastosc/slowosc uturn
-            (EventMove((index-2), Reverse(direction), osc.Fast, dev) and EventMove(index, direction, osc.Fast, dev) and EventMove(index, direction, osc.Slow, dev)) and
+            (EventMove((index-2), Reverse(direction), oscs.Fast, dev) and EventMove(index, direction, oscs.Fast, dev) and EventMove(index, direction, oscs.Slow, dev)) and
             -- fastosc over slowosc all 4 candles
-            (ConditionRelate(direction, osc.Fast[index-4], osc.Slow[index-4], dev) and ConditionRelate(direction, osc.Fast[index-3], osc.Slow[index-3], dev) and ConditionRelate(direction, osc.Fast[index-2], osc.Slow[index-2], dev) and ConditionRelate(direction, osc.Fast[index-1], osc.Slow[index-1], dev)))
+            (ConditionRelate(direction, oscs.Fast[index-4], oscs.Slow[index-4], dev) and ConditionRelate(direction, oscs.Fast[index-3], oscs.Slow[index-3], dev) and ConditionRelate(direction, oscs.Fast[index-2], oscs.Slow[index-2], dev) and ConditionRelate(direction, oscs.Fast[index-1], oscs.Slow[index-1], dev)))
 
     -- not enough data
     else
