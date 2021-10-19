@@ -474,8 +474,8 @@ function PriceChannel()
                 end
 
                 -- insert high and low to circle buffers Highs and Lows
-                Highs[Squeeze(Candles.count, PCs.Params.Period - 1) + 1] = H(Candles.processed)
-                Lows[Squeeze(Candles.count, PCs.Params.Period - 1) + 1] = L(Candles.processed)
+                Highs[CyclicPointer(Candles.count, PCs.Params.Period - 1) + 1] = H(Candles.processed)
+                Lows[CyclicPointer(Candles.count, PCs.Params.Period - 1) + 1] = L(Candles.processed)
 
                 -- calc and return max results
                 if (Candles.count >= PCs.Params.Period) then
@@ -508,8 +508,9 @@ function Stoch(mode)
     local Highs = {}
     -- cyclic buffer to lows
     local Lows = {}
-    -- idx_chart point to index of real candles on chart/ds, idx_buffer point to candles in cyclic buffer
-    local Candles = { idx_chart = 0, idx_buffer = 0 }
+    -- idx_chart point to index of real candles on chart/ds, idx_buffer point to candles in cyclic buffer count number processed candles
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
     return function (index)
         if (Settings.period_k > 0) and (Settings.period_d > 0) then
@@ -518,31 +519,31 @@ function Stoch(mode)
             if (index == 1) then
                 Highs = {}
                 Lows = {}
-                Candles.idx_chart = 0
-                Candles.idx_buffer = 0 
+                Idx_chart = 0
+                Idx_buffer = 0 
             end
 
             if CandleExist(index) then
-                if (Candles.idx_chart ~= index) then
-                    Candles.idx_chart = index
-                    Candles.idx_buffer = Candles.idx_buffer + 1
+                if (Idx_chart ~= index) then
+                    Idx_chart = index
+                    Idx_buffer = Idx_buffer + 1
                 end
 
                 -- pointer into cyclic buffer from 1 to period_k
-                local idx = Squeeze(Candles.count, Settings.period_k - 1) + 1
-                Highs[idx] = H(Candles.idx_chart)
-                Lows[idx] = L(Candles.idx_chart)
+                local idx = CyclicPointer(Idx_buffer, Settings.period_k - 1) + 1
+                Highs[idx] = H(Idx_chart)
+                Lows[idx] = L(Idx_chart)
 
-                local idx_k = Candles.idx_buffer - Settings.period_k
+                local idx_k = Idx_buffer - Settings.period_k
                 if (idx_k >= 0)  then
                     local max_high = math.max(table.unpack(Highs))
                     local max_low = math.min(table.unpack(Lows))
 
-                    local value_k1 = K_ma1(idx_k + 1, { [idx_k + 1] = C(Candles.idx_chart) - max_low })
+                    local value_k1 = K_ma1(idx_k + 1, { [idx_k + 1] = C(Idx_chart) - max_low })
 
                     local value_k2 = K_ma2(idx_k + 1, { [idx_k + 1] = max_high - max_low })
 
-                    local idx_d = Candles.idx_buffer - (Settings.period_k + Settings.shift) + 1
+                    local idx_d = Idx_buffer - (Settings.period_k + Settings.shift) + 1 --?+1
                     if ((idx_d >= 0) and (value_k2 ~= 0)) then
                         local stoch_k = 100 * value_k1 / value_k2
                         local stoch_d = D_ma(idx_d + 1, { [idx_d + 1] = stoch_k })
@@ -561,32 +562,34 @@ end
 --	function EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
 ----------------------------------------------------------------------------
 function EMA(Settings)
-    local Emas = { prev = nil, cur = nil }
-    local Candles = { idx_chart = 0, idx_buffer = 0 }
+    local Ema_prev = 0
+    local Ema_cur = 0
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
     return function(index, prices)
         if (index == 1) then
-            Emas.prev = nil
-            Emas.cur = nil 
-            Candles.idx_chart = 0
-            Candles.idx_buffer = 0 
+            Ema_prev = 0
+            Ema_cur = 0 
+            Idx_chart = 0
+            Idx_buffer = 0 
         end
 
         if CandleExist(index) then
-            if (Candles.idx_chart ~= index) then
-                Candles.idx_chart = index
-                Candles.idx_buffer = Candles.idx_buffer + 1 
-                Emas.prev = Emas.cur
+            if (Idx_chart ~= index) then
+                Idx_chart = index
+                Idx_buffer = Idx_buffer + 1 
+                Ema_prev = cur
             end
 
-            if (Candles.idx_buffer == 1) then
-                Emas.cur = prices[Candles.idx_chart]
+            if (Idx_buffer == 1) then
+                Ema_cur = prices[Idx_chart]
             else
-                Emas.cur = (Emas.prev * (Settings.period_d - 1) + 2 * prices[Candles.idx_chart]) / (Settings.period_d + 1)
+                Ema_cur = (Ema_prev * (Settings.period_d - 1) + 2 * prices[Idx_chart]) / (Settings.period_d + 1)
             end
 
-            if (Candles.idx_buffer >= Settings.period_d) then
-                return Emas.cur
+            if (Idx_buffer >= Settings.period_d) then
+                return Ema_cur
             end
         end
 
@@ -599,29 +602,30 @@ end
 ----------------------------------------------------------------------------
 function SMA(Settings)
     local Sums = {}
-    local Candles = { idx_chart = 0, idx_buffer = 0 }
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
     return function (index, prices)
         if (index == 1) then
             Sums = {}
-            Candles.idx_chart = 0
-            Candles.idx_buffer = 0 
+            Idx_chart = 0
+            Idx_buffer = 0 
         end
 
         if CandleExist(index) then
-            if (Candles.idx_chart ~= index) then
-                Candles.idx_chart = index
-                Candles.idx_buffer = Candles.idx_buffer + 1 
+            if (Idx_chart ~= index) then
+                Idx_chart = index
+                Idx_buffer = Idx_buffer + 1 
             end
 
-            local idx_cur = Squeeze(Candles.idx_buffer, Settings.shift)
-            local idx_prev = Squeeze(Candles.idx_buffer - 1, Settings.shift)
-            local idx_oldest = Squeeze(Candles.idx_buffer - Settings.shift, Settings.shift)
+            local idx_cur = CyclicPointer(Idx_buffer, Settings.shift)
+            local idx_prev = CyclicPointer(Idx_buffer - 1, Settings.shift)
+            local idx_oldest = CyclicPointer(Idx_buffer - Settings.shift, Settings.shift)
 
-            Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Candles.idx_chart]
+            Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Idx_chart] / Settings.shift
 
-            if (Candles.idx_buffer >= Settings.shift) then
-                return (Sums[idx_cur] - (Sums[idx_oldest] or 0)) / Settings.shift
+            if (Idx_buffer >= Settings.shift) then
+                return (Sums[idx_cur] - (Sums[idx_oldest] or 0))
             end
         end
 
@@ -642,41 +646,45 @@ function RSI(mode)
     local Ma_up = MMA(Settings)
     local Ma_down = MMA(Settings)
 
-    local Prices = { prev = nil, cur = nil}
-    local Candles = { idx_chart = 0, idx_buffer = 0 }
+    local Price_prev = 0
+    local Price_cur = 0
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
     return function (index)
         if (index == 1) then
-            Candles.idx_chart = 0
-            Candles.idx_buffer = 0 
+            Idx_chart = 0
+            Idx_buffer = 0 
+            Price_cur = 0
+            Price_prev = 0
         end
 
         if CandleExist(index) then
-            if (Candles.idx_chart ~= index) then
-                Candles.idx_chart = index
-                Candles.idx_buffer = Candles.idx_buffer + 1 
-                Prices.prev = Prices.cur
+            if (Idx_chart ~= index) then
+                Idx_chart = index
+                Idx_buffer = Idx_buffer + 1 
+                Price_prev = Price_cur
             end
 
-            Prices.cur = C(Candles.idx_chart)
+            Price_cur = C(Idx_chart)
 
             local move_up = 0
             local move_down = 0
 
-            if (Candles.idx_buffer > 1) then
-                if (Prices.prev < Prices.cur) then
-                    move_up = Prices.cur - Prices.prev
+            if (Idx_buffer > 1) then
+                if (Price_prev < Price_cur) then
+                    move_up = Price_cur - Price_prev
                 end
 
-                if (Prices.prev > Prices.cur) then
-                    move_down = Prices.prev - Prices.cur
+                if (Price_prev > Price_cur) then
+                    move_down = Price_prev - Price_cur
                 end
             end
 
-            local value_up = Ma_up(Candles.idx_buffer, { [Candles.idx_buffer] = move_up })
-            local value_down = Ma_down(Candles.idx_buffer, { [Candles.idx_buffer] = move_down })
+            local value_up = Ma_up(Idx_buffer, { [Idx_buffer] = move_up })
+            local value_down = Ma_down(Idx_buffer, { [Idx_buffer] = move_down })
 
-            if (Candles.idx_buffer >= Settings.period) then
+            if (Idx_buffer >= Settings.period) then
                 if (value_down == 0) then
                     return 100
                 else
@@ -694,41 +702,43 @@ end
 --  --------------------------------------------------------------------------
 function MMA(Settings)
     local Sums = {}
-    local Values = { prev = nil, cur = nil }
-    local Candles = { idx_chart = 0, idx_buffer = 0 }
+    local Mma_prev = 0
+    local MMa_cur = 0
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
     return function(index, prices)
         if (index == 1) then
             Sums = {}
-            Values.prev = nil
-            Values.cur = nil 
-            Candles.idx_chart = 0
-            Candles.idx_buffer = 0 
+            Mma_prev = 0
+            Mma_cur = 0 
+            Idx_chart = 0
+            Idx_buffer = 0 
         end
 
         if CandleExist(index) then
-            if (Candles.idx_chart ~= index) then
-                Candles.idx_chart = index
-                Candles.idx_buffer = Candles.idx_buffer + 1 
-                Values.prev = Values.cur
+            if (Idx_chart ~= index) then
+                Idx_chart = index
+                Idx_buffer = Idx_buffer + 1 
+                Mma_prev = Mma_cur
             end
 
-            local idx_cur = Squeeze(Candles.idx_buffer, Settings.period)
-            local idx_prev = Squeeze(Candles.idx_buffer - 1, Settings.period)
-            local idx_oldest = Squeeze(Candles.idx_buffer - Settings.period, Settings.period)
+            local idx_cur = CyclicPointer(Idx_buffer, Settings.period)
+            local idx_prev = CyclicPointer(Idx_buffer - 1, Settings.period)
+            local idx_oldest = CyclicPointer(Idx_buffer - Settings.period, Settings.period)
 
-            if (Candles.idx_buffer <= (Settings.period + 1)) then
-                Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Candles.idx_chart]
+            if (Idx_buffer <= (Settings.period + 1)) then --?+1
+                Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Idx_chart] / Settings.period
 
-                if ((Candles.idx_buffer == Settings.period) or (Candles.idx_buffer == Settings.period + 1)) then
-                    Values.cur = (Sums[idx_cur] - (Sums[idx_oldest] or 0)) / Settings.period
+                if ((Idx_buffer == Settings.period) or (Idx_buffer == Settings.period + 1)) then --?+1
+                    Mma_cur = (Sums[idx_cur] - (Sums[idx_oldest] or 0)) 
                 end
             else
-                Values.cur = (Values.prev * (Settings.period - 1) + prices[Candles.idx_chart]) / Settings.period
+                Mma_cur = Mma_prev * (Settings.period - 1) + prices[Idx_chart] / Settings.period
             end
 
-            if (Candles.idx_buffer >= Settings.period) then
-                return Values.cur
+            if (Idx_buffer >= Settings.period) then
+                return Mma_cur
             end
         end
 
@@ -1177,7 +1187,7 @@ end
 ----------------------------------------------------------------------------
 -- function Squeeze return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
 ----------------------------------------------------------------------------
-function Squeeze(index, period)
+function CyclicPointer(index, period)
     return math.fmod(index - 1, period + 1)
 end
 
