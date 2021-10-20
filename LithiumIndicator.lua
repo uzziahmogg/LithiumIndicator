@@ -27,11 +27,9 @@ Settings = { Name = "FEK_LITHIUM",
 --==========================================================================
 function Init()
     -- indicators data arrays and params
-    Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {},
-        Params = { HLines = { TopExtreme = 80, Center = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
     Prices = { Name = "Price", Open = {}, Close = {}, High = {}, Low = {}}
-    RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {},
-        Params = { HLines = { TopExtreme = 80, TopTrend = 60, Center = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9 }}
+    Stochs = { Name = "Stoch", Fast = {}, Slow = {}, Delta = {}, Params = { HLines = { TopExtreme = 80, Center = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }}}
+    RSIs = { Name = "RSI", Fast = {}, Slow = {}, Delta = {}, Params = { HLines = { TopExtreme = 80, TopTrend = 60, Center = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9 }}
     PCs = { Name = "PC", Top = {}, Bottom = {}, Center = {}, Delta = {}, Params = { Period = 20 }}
 
     -- directions for signals, labels and deals
@@ -62,7 +60,7 @@ function Init()
         ChartLabels.Params.IconPath = ScriptPath .. "\\white_theme\\"
         ChartLabels.Params.R = 0
         ChartLabels.Params.G = 0
-        ChartLabesl.Params.B = 0
+        ChartLabels.Params.B = 0
     end
 
     -- chart label icons
@@ -93,8 +91,6 @@ function Init()
         Params = { Duration = 2, Steamer = { VerticalDifference = 30, HorizontalDuration = 2 }}}
     --States = { [Directions.Up] = { Trend = { Count = 0, Candle = 0 }},         [Directions.Down] = { Trend = { Count = 0, Candle = 0 }}}
 
-    Index_Candle = 0
-
     return #Settings.line
 end
 --#endregion
@@ -103,13 +99,6 @@ end
 --	OnCalculate
 --==========================================================================
 function OnCalculate(index_candle)
-    -- debug logging
-    if (index_candle == 240) or (index_candle == 245) then
-        local t = T(index_candle)
-        PrintDebugMessage("OnCalculate:", index_candle, t.month, t.day, t.hour, t.min)
-    end
-    Index_Candle = index_candle
-    
     -- set initial values on first candle
     if (index_candle == 1) then
         DataSource = getDataSourceInfo()
@@ -126,9 +115,6 @@ function OnCalculate(index_candle)
     Prices.Low[index_candle] = L(index_candle)
 
     -- calculate current stoch
-    if (index_candle == 240) or (index_candle == 245) then
-        PrintDebugMessage("Stoch1:", index_candle)
-    end
     Stochs.Slow[index_candle], _ = StochSlow(index_candle)
     Stochs.Fast[index_candle], _ = StochFast(index_candle)
 
@@ -137,21 +123,20 @@ function OnCalculate(index_candle)
 
     Stochs.Delta[index_candle] = (Stochs.Slow[index_candle] ~= nil) and (Stochs.Fast[index_candle] ~= nil) and RoundScale(GetDelta(Stochs.Fast[index_candle], Stochs.Slow[index_candle]), SecInfo.scale) or nil
 
-    if (index_candle == 240) or (index_candle == 245) then
-        PrintDebugMessage("Stoch2:", index_candle, Stochs.Slow[index_candle], Stochs.Fast[index_candle], Stochs.Delta[index_candle])
-    end
-
     -- calculate current rsi
     RSIs.Fast[index_candle] = RSIFast(index_candle)
     RSIs.Slow[index_candle] = RSISlow(index_candle)
+
     RSIs.Fast[index_candle] = RoundScale(RSIs.Fast[index_candle], SecInfo.scale)
     RSIs.Slow[index_candle] = RoundScale(RSIs.Slow[index_candle], SecInfo.scale)
 
     RSIs.Delta[index_candle] = (RSIs.Fast[index_candle] ~= nil) and (RSIs.Slow[index_candle] ~= nil) and RoundScale(GetDelta(RSIs.Fast[index_candle], RSIs.Slow[index_candle]), SecInfo.scale) or nil
 
-    if (index_candle == 240) or (index_candle == 245) 
-    then
-        PrintDebugMessage("RSI:", index_candle, RSIs.Slow[index_candle], RSIs.Fast[index_candle], RSIs.Delta[index_candle])
+    -- debuglog
+    if (index_candle >= 7000 and index_candle <= 9000) then
+        local t = T(index_candle)
+        PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
+        PrintDebugMessage("RSI", RSIs.Slow[index_candle], RSIs.Fast[index_candle],  RSIs.Delta[index_candle])
     end
 
     -- calculate current price channel
@@ -164,10 +149,6 @@ function OnCalculate(index_candle)
 
     PCs.Delta[index_candle] = (Prices.Close[index_candle] ~= nil) and (PCs.Center[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Close[index_candle], PCs.Center[index_candle]), SecInfo.scale) or nil
 
-    if (index_candle == 240) or (index_candle == 245) 
-    then
-        PrintDebugMessage("PC:", index_candle, PCs.Top[index_candle], PCs.Bottom[index_candle], PCs.Center[index_candle], PCs.Delta[index_candle])
-    end
     --#endregion
 
     ----------------------------------------------------------------------------
@@ -442,9 +423,9 @@ function OnCalculate(index_candle)
 ]]
     --PrintDebugSummary()
 
-    return PCs.Top[index_candle], PCs.Center[index_candle], PCs.Bottom[index_candle]
+    --return PCs.Top[index_candle], PCs.Center[index_candle], PCs.Bottom[index_candle]
     -- return Stochs.Slow[index_candle], Stochs.Fast[index_candle]
-    -- return RSIs.Slow[index_candle], RSIs.Fast[index_candle]
+    return RSIs.Slow[index_candle], RSIs.Fast[index_candle]
 end
 
 --==========================================================================
@@ -456,29 +437,32 @@ end
 function PriceChannel()
     local Highs = {}
     local Lows = {}
-    local Candles = { processed = 0, count = 0 }
+    local Idx_chart = 0
+    local Idx_buffer = 0 
 
-    return function (index_candle)
+    return function (index)
         if (PCs.Params.Period > 0) then
             -- first candle - reinit for start
-            if (index_candle == 1) then
+            if (index == 1) then
                 Highs = {}
                 Lows = {}
-                Candles = { processed = 0, count = 0 }
+                Idx_chart = 0
+                Idx_buffer = 0 
             end
 
-            if CandleExist(index_candle) then
+            if CandleExist(index) then
                 -- new candle new processed candle and increased count processed candles
-                if (Candles.processed ~= index_candle) then
-                    Candles = { processed = index_candle, count = Candles.count + 1 }
+                if (Idx_chart ~= index) then
+                    Idx_chart = index
+                    Idx_buffer = Idx_buffer + 1
                 end
 
                 -- insert high and low to circle buffers Highs and Lows
-                Highs[CyclicPointer(Candles.count, PCs.Params.Period - 1) + 1] = H(Candles.processed)
-                Lows[CyclicPointer(Candles.count, PCs.Params.Period - 1) + 1] = L(Candles.processed)
+                Highs[CyclicPointer(Idx_buffer, PCs.Params.Period - 1) + 1] = H(Idx_chart)
+                Lows[CyclicPointer(Idx_buffer, PCs.Params.Period - 1) + 1] = L(Idx_chart)
 
                 -- calc and return max results
-                if (Candles.count >= PCs.Params.Period) then
+                if (Idx_buffer >= PCs.Params.Period) then
                     local max_high = math.max(table.unpack(Highs))
                     local max_low = math.min(table.unpack(Lows))
 
@@ -568,6 +552,7 @@ function EMA(Settings)
     local Idx_buffer = 0 
 
     return function(index, prices)
+        -- PrintDebugMessage("fromEMA", index, prices[index], Ema_prev, Ema_cur)
         if (index == 1) then
             Ema_prev = 0
             Ema_cur = 0 
@@ -579,7 +564,7 @@ function EMA(Settings)
             if (Idx_chart ~= index) then
                 Idx_chart = index
                 Idx_buffer = Idx_buffer + 1 
-                Ema_prev = cur
+                Ema_prev = Ema_cur
             end
 
             if (Idx_buffer == 1) then
@@ -683,6 +668,9 @@ function RSI(mode)
 
             local value_up = Ma_up(Idx_buffer, { [Idx_buffer] = move_up })
             local value_down = Ma_down(Idx_buffer, { [Idx_buffer] = move_down })
+
+            PrintDebugMessage("RSI", index, Settings.Params, Price_prev, Price_cur, Idx_chart, Idx_buffer, move_up, move_down, value_up, value_down)
+
 
             if (Idx_buffer >= Settings.period) then
                 if (value_down == 0) then
