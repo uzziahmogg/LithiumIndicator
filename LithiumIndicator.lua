@@ -133,11 +133,11 @@ function OnCalculate(index_candle)
     RSIs.Delta[index_candle] = (RSIs.Fast[index_candle] ~= nil) and (RSIs.Slow[index_candle] ~= nil) and RoundScale(GetDelta(RSIs.Fast[index_candle], RSIs.Slow[index_candle]), SecInfo.scale) or nil
 
     -- debuglog
-    if (index_candle >= 7000 and index_candle <= 9000) then
-        local t = T(index_candle)
-        PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
-        PrintDebugMessage("RSI", RSIs.Slow[index_candle], RSIs.Fast[index_candle],  RSIs.Delta[index_candle])
-    end
+    -- if (index_candle >= 7000 and index_candle <= 9000) then
+    --     local t = T(index_candle)
+    --     PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
+    --     PrintDebugMessage("RSI", RSIs.Slow[index_candle], RSIs.Fast[index_candle],  RSIs.Delta[index_candle])
+    -- end
 
     -- calculate current price channel
     PCs.Top[index_candle], PCs.Bottom[index_candle] = PC(index_candle)
@@ -669,7 +669,9 @@ function RSI(mode)
             local value_up = Ma_up(Idx_buffer, { [Idx_buffer] = move_up })
             local value_down = Ma_down(Idx_buffer, { [Idx_buffer] = move_down })
 
-            PrintDebugMessage("RSI", index, Settings.Params, Price_prev, Price_cur, Idx_chart, Idx_buffer, move_up, move_down, value_up, value_down)
+            -- PrintDebugMessage("fromRSI1", index, mode, RSIs.Params[mode], Settings.period)
+            -- PrintDebugMessage("fromRSI2", Idx_chart, Idx_buffer, C(Idx_chart), Ma_up, Ma_down)
+            PrintDebugMessage("fromRSI3", Price_prev, Price_cur, move_up, move_down, value_up, value_down)
 
 
             if (Idx_buffer >= Settings.period) then
@@ -689,15 +691,15 @@ end
 --	function MMA = (MMAi-1 * (n - 1) + Pi) / n
 --  --------------------------------------------------------------------------
 function MMA(Settings)
-    local Sums = {}
+    local Smas = {}
     local Mma_prev = 0
-    local MMa_cur = 0
+    local Mma_cur = 0
     local Idx_chart = 0
     local Idx_buffer = 0 
 
     return function(index, prices)
         if (index == 1) then
-            Sums = {}
+            Smas = {}
             Mma_prev = 0
             Mma_cur = 0 
             Idx_chart = 0
@@ -716,13 +718,13 @@ function MMA(Settings)
             local idx_oldest = CyclicPointer(Idx_buffer - Settings.period, Settings.period)
 
             if (Idx_buffer <= (Settings.period + 1)) then --?+1
-                Sums[idx_cur] = (Sums[idx_prev] or 0) + prices[Idx_chart] / Settings.period
+                Smas[idx_cur] = (Smas[idx_prev] or 0) + prices[Idx_chart] / Settings.period
 
                 if ((Idx_buffer == Settings.period) or (Idx_buffer == Settings.period + 1)) then --?+1
-                    Mma_cur = (Sums[idx_cur] - (Sums[idx_oldest] or 0)) 
+                    Mma_cur = Smas[idx_cur] - (Smas[idx_oldest] or 0)
                 end
             else
-                Mma_cur = Mma_prev * (Settings.period - 1) + prices[Idx_chart] / Settings.period
+                Mma_cur = (Mma_prev * (Settings.period - 1) + prices[Idx_chart]) / Settings.period
             end
 
             if (Idx_buffer >= Settings.period) then
@@ -1166,9 +1168,7 @@ function GetDelta(value1, value2)
     if ((value1 == nil) or (value2 == nil)) then
         return nil
     end
-    if (type(value1) ~= "number" or type(value2) ~= "number") then
-        PrintDebugMessage("fromGetDelta", Index_Candle, value1, value2)
-    end
+
     return math.abs(value1 - value2)
 end
 
@@ -1284,7 +1284,7 @@ function PrintDebugMessage(...)
 
     if (smessage ~= nil) then
         -- print messages as one string
-        message(smessage)
+        -- message(smessage)
         PrintDbgStr("QUIK|" .. smessage)
 
         -- return number of messages
