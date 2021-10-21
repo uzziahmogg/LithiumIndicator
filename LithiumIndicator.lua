@@ -39,7 +39,7 @@ function Init()
     ChartPermissions = { 1, 2, 4, 8 }
 
     -- tags for charts to show labels and steps for text labels on charts, permission for what label show on chart
-    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 15, Permission = ChartPermissions[1] + ChartPermissions[3] },	-- FEK_LITHIUMPrice
+    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5, Permission = ChartPermissions[1] + ChartPermissions[3] },	-- FEK_LITHIUMPrice
         [Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Level = ChartPermissions[4] }, -- FEK_LITHIUMStoch
         [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Level = ChartPermissions[2] }}		-- FEK_LITHIUMRSI
 
@@ -99,6 +99,12 @@ end
 --	OnCalculate
 --==========================================================================
 function OnCalculate(index_candle)
+    -- debuglog
+    -- if (index_candle >= 7000 and index_candle <= 9000) then
+    --     local t = T(index_candle)
+    --     PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
+    -- end
+
     -- set initial values on first candle
     if (index_candle == 1) then
         DataSource = getDataSourceInfo()
@@ -132,13 +138,6 @@ function OnCalculate(index_candle)
 
     RSIs.Delta[index_candle] = (RSIs.Fast[index_candle] ~= nil) and (RSIs.Slow[index_candle] ~= nil) and RoundScale(GetDelta(RSIs.Fast[index_candle], RSIs.Slow[index_candle]), SecInfo.scale) or nil
 
-    -- debuglog
-    -- if (index_candle >= 7000 and index_candle <= 9000) then
-    --     local t = T(index_candle)
-    --     PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
-    --     PrintDebugMessage("RSI", RSIs.Slow[index_candle], RSIs.Fast[index_candle],  RSIs.Delta[index_candle])
-    -- end
-
     -- calculate current price channel
     PCs.Top[index_candle], PCs.Bottom[index_candle] = PC(index_candle)
 
@@ -148,7 +147,6 @@ function OnCalculate(index_candle)
     PCs.Center[index_candle] = (PCs.Top[index_candle] ~= nil) and (PCs.Bottom[index_candle] ~= nil) and RoundScale((PCs.Bottom[index_candle] + (PCs.Top[index_candle] - PCs.Bottom[index_candle]) / 2), SecInfo.scale) or nil
 
     PCs.Delta[index_candle] = (Prices.Close[index_candle] ~= nil) and (PCs.Center[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Close[index_candle], PCs.Center[index_candle]), SecInfo.scale) or nil
-
     --#endregion
 
     ----------------------------------------------------------------------------
@@ -165,7 +163,7 @@ function OnCalculate(index_candle)
         -- SetState((index_candle-1), Directions.Up, "Trend")
 
         -- set chart label
-        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Prices.Name, "CrossMA", ChartIcons.Triangle, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Prices.Name, "CrossMA", ChartIcons.Triangle, ChartPermissions[1], DealStages[1])
     end
 
     -- check start signal price cross ma down
@@ -174,7 +172,7 @@ function OnCalculate(index_candle)
         -- SetState((index_candle-1), Directions.Down, "Trend")
 
         -- set chart label
-        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "CrossMA", ChartIcons.Triangle, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "CrossMA", ChartIcons.Triangle, ChartPermissions[1], DealStages[1])
     end
     --#endregion
 --[[
@@ -423,9 +421,9 @@ function OnCalculate(index_candle)
 ]]
     --PrintDebugSummary()
 
-    --return PCs.Top[index_candle], PCs.Center[index_candle], PCs.Bottom[index_candle]
+    return PCs.Top[index_candle], PCs.Center[index_candle], PCs.Bottom[index_candle]
     -- return Stochs.Slow[index_candle], Stochs.Fast[index_candle]
-    return RSIs.Slow[index_candle], RSIs.Fast[index_candle]
+    -- return RSIs.Slow[index_candle], RSIs.Fast[index_candle]
 end
 
 --==========================================================================
@@ -552,7 +550,6 @@ function EMA(Settings)
     local Idx_buffer = 0 
 
     return function(index, prices)
-        -- PrintDebugMessage("fromEMA", index, prices[index], Ema_prev, Ema_cur)
         if (index == 1) then
             Ema_prev = 0
             Ema_cur = 0 
@@ -669,11 +666,6 @@ function RSI(mode)
             local value_up = Ma_up(Idx_buffer, { [Idx_buffer] = move_up })
             local value_down = Ma_down(Idx_buffer, { [Idx_buffer] = move_down })
 
-            -- PrintDebugMessage("fromRSI1", index, mode, RSIs.Params[mode], Settings.period)
-            -- PrintDebugMessage("fromRSI2", Idx_chart, Idx_buffer, C(Idx_chart), Ma_up, Ma_down)
-            PrintDebugMessage("fromRSI3", Price_prev, Price_cur, move_up, move_down, value_up, value_down)
-
-
             if (Idx_buffer >= Settings.period) then
                 if (value_down == 0) then
                     return 100
@@ -763,7 +755,7 @@ function SignalOscVSteamer(index, direction, oscs, vertical_difference, dev)
         ((GetDelta(oscs.Fast[index-1], oscs.Slow[index-1]) <= v_diff) and (GetDelta(oscs.Fast[index-2], oscs.Slow[index-2]) <= v_diff) and (GetDelta(oscs.Fast[index-3], oscs.Slow[index-3]) <= v_diff))) then
 
             -- set chart label
-            ChartLabels[oscs.Name][index-1] = SetChartLabel(T(index-1), GetChartLabelYPos(index-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText(index-1, direction, oscs.Name, "VSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
+            -- ChartLabels[oscs.Name][index-1] = SetChartLabel(T(index-1), GetChartLabelYPos(index-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText(index-1, direction, oscs.Name, "VSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
 
             return true
         else
@@ -795,7 +787,7 @@ function SignalOscHSteamer(index, direction, oscs, horizontal_duration, dev)
                 (ConditionRelate(oscs.Fast[(index-count)-1], oscs.Slow[(index-count)-1], direction, dev) and ConditionRelate(oscs.Fast[index-1], oscs.Slow[index-1], direction, dev))) then
 
                     -- set chart label
-                    ChartLabels[oscs.Name][(index-count)-1] = SetChartLabel(T((index-count)-1), GetChartLabelYPos((index-count)-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText((index-count)-1, direction, oscs.Name, "HSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
+                    -- ChartLabels[oscs.Name][(index-count)-1] = SetChartLabel(T((index-count)-1), GetChartLabelYPos((index-count)-1, direction, oscs.Name), ChartParams[oscs.Name].Tag, GetChartLabelText((index-count)-1, direction, oscs.Name, "HSteamer", DealStages.Start), ChartIcons.Flash, ChartPermissions[1])
 
                     return true
                 end
@@ -1266,7 +1258,9 @@ function GetMessage(...)
 
         -- concate messages with symbol
         for count = 1, args.n do
-            table.insert(tmessage, type(args[count]) == "string" and args[count] or tostring(args[count]))
+            if (args[count] ~= nil) then
+                table.insert(tmessage, type(args[count]) == "string" and args[count] or tostring(args[count]))
+            end
         end
 
         return (table.concat(tmessage, "|"))
@@ -1299,11 +1293,11 @@ end
 ----------------------------------------------------------------------------
 -- function GetChartLabelText
 ----------------------------------------------------------------------------
-function GetChartLabelText(index, direction, indicator_name, signal_name, text)
+function GetChartLabelText(direction, indicator_name, signal_name, text)
     
     local dir = (direction == Directions.Up) and "L" or "S"
 
-    return GetMessage(dir .. indicator_name .. signal_name, Signals[direction][indicator_name][signal_name].Count, index, Signals[direction][indicator_name][signal_name].Candle, text)
+    return GetMessage(dir .. indicator_name .. signal_name, Signals[direction][indicator_name][signal_name].Count, Signals[direction][indicator_name][signal_name].Candle, text)
 end
 
 ----------------------------------------------------------------------------
@@ -1313,10 +1307,11 @@ end
 function GetChartLabelYPos(index, direction, indicator_name)
     local position_y
     local sign = (direction == Directions.Up) and -1 or 1 
+    local price = (direction == Directions.Up) and "Low" or "High"
     
     -- y pos for price chart
     if (indicator_name == Prices.Name) then
-        position_y = Prices.Low[index] + sign * ChartParams[Prices.Name].Step * SecInfo.min_price_step
+        position_y = Prices[price][index] + sign * ChartParams[Prices.Name].Step * SecInfo.min_price_step
 
     -- y pos for stoch chart
     elseif (indicator_name == Stochs.Name) then
@@ -1342,9 +1337,9 @@ end
 ----------------------------------------------------------------------------
 -- function SetChartLabel
 ----------------------------------------------------------------------------
-function SetChartLabel(index, direction, indicator_name, signal_name, icon, signal_grade, text)
+function SetChartLabel(index, direction, indicator_name, signal_name, icon, signal_permission, text)
     -- check signal level and chart levels
-    if CheckChartPermission(indicator_name, signal_grade) then
+    if CheckChartPermission(indicator_name, signal_permission) then
 
         -- delete label duplicates
         local chart_tag = GetChartTag(indicator_name)
@@ -1371,10 +1366,11 @@ function SetChartLabel(index, direction, indicator_name, signal_name, icon, sign
 
         -- set text
         ChartLabels.Params.HINT = direction .. indicator_name .. signal_name
-        ChartLabels.Params.TEXT = GetChartLabelText(index, direction, indicator_name, signal_name, text)
+        ChartLabels.Params.TEXT = GetChartLabelText(direction, indicator_name, signal_name, text)
 
         -- set chart label return id
-        return AddLabel(chart_tag, ChartLabels.Params)
+        local result = AddLabel(chart_tag, ChartLabels.Params)
+        return result
 
     -- nothing todo
     else

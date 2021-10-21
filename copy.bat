@@ -1,0 +1,1 @@
+copy /Y B:\MyLua\Git\LithiumIndicator\LithiumIndicator.lua C:\QuikFinam\LuaIndicators
