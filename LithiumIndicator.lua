@@ -39,8 +39,8 @@ function Init()
     ChartPermissions = { 1, 2, 4, 8 }
 
     -- tags for charts to show labels and steps for text labels on charts, permission for what label show on chart
-    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5, Permission = ChartPermissions[1] + ChartPermissions[3] },	-- FEK_LITHIUMPrice
-        [Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Permission = ChartPermissions[1] }, -- FEK_LITHIUMStoch
+    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5, Permission = ChartPermissions[1] + ChartPermissions[2] },	-- FEK_LITHIUMPrice
+        [Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Permission = ChartPermissions[1] + ChartPermissions[3]}, -- FEK_LITHIUMStoch
         [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Permission = ChartPermissions[1] +  ChartPermissions[4]}}		-- FEK_LITHIUMRSI
 
     -- chart labels ids and default params
@@ -82,29 +82,29 @@ function Init()
     -- several states cinsist enters like Leg1ZigZagSpring, Uturn50 etc
     SignalNames = { CrossMA = "CrossMA", Cross50 = "Cross50" }
     Signals = {	[Directions.Up] = { 
-        [Prices.Name] = { CrossMA = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }},
+        [Prices.Name] = { CrossMA = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Trend = { Count = 0, Candle = 0 }},
         [Stochs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }},
         [RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }}},
         [Directions.Down] = { 
-        [Prices.Name] = { CrossMA = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }},
+        [Prices.Name] = { CrossMA = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Trend = { Count = 0, Candle = 0 }},
         [Stochs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }},
-        [RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }}},
+        [RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }}}, 
         Params = { Duration = 2, Steamer = { VerticalDifference = 30, HorizontalDuration = 2 }}}
-    --States = { [Directions.Up] = { Trend = { Count = 0, Candle = 0 }},         [Directions.Down] = { Trend = { Count = 0, Candle = 0 }}}
+    States = { [Directions.Up] = { Trend = { Count = 0, Candle = 0 }}, [Directions.Down] = { Trend = { Count = 0, Candle = 0 }}, Params = {Duration = 5}}
 
     return #Settings.line
 end
 --#endregion
 
 --==========================================================================
---	OnCalculate
+-- OnCalculate
 --==========================================================================
 function OnCalculate(index_candle)
     -- set initial values on first candle
     if (index_candle == 1) then
         DataSource = getDataSourceInfo()
         SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
-        
+
         SetInitialCounts()
     end
 
@@ -114,6 +114,8 @@ function OnCalculate(index_candle)
     Prices.Closes[index_candle] = C(index_candle)
     Prices.Highs[index_candle] = H(index_candle)
     Prices.Lows[index_candle] = L(index_candle)
+
+    -- PrintDebugMessage("OnCalcPrices", index_candle, Prices.Opens[index_candle] ,Prices.Highs[index_candle] ,Prices.Lows[index_candle] ,Prices.Closes[index_candle])
 
     -- calculate current stoch
     Stochs.Slows[index_candle], _ = StochSlow(index_candle)
@@ -133,6 +135,8 @@ function OnCalculate(index_candle)
 
     RSIs.Deltas[index_candle] = (RSIs.Fasts[index_candle] ~= nil) and (RSIs.Slows[index_candle] ~= nil) and RoundScale(GetDelta(RSIs.Fasts[index_candle], RSIs.Slows[index_candle]), SecInfo.scale) or nil
 
+    -- PrintDebugMessage("OnCalcRSI", index_candle, RSIs.Slows[index_candle], RSIs.Fasts[index_candle], RSIs.Deltas[index_candle])
+
     -- calculate current price channel
     PCs.Tops[index_candle], PCs.Bottoms[index_candle] = PC(index_candle)
 
@@ -142,18 +146,28 @@ function OnCalculate(index_candle)
     PCs.Centres[index_candle] = (PCs.Tops[index_candle] ~= nil) and (PCs.Bottoms[index_candle] ~= nil) and RoundScale((PCs.Bottoms[index_candle] + (PCs.Tops[index_candle] - PCs.Bottoms[index_candle]) / 2), SecInfo.scale) or nil
 
     PCs.Deltas[index_candle] = (Prices.Closes[index_candle] ~= nil) and (PCs.Centres[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Closes[index_candle], PCs.Centres[index_candle]), SecInfo.scale) or nil
+
+    -- PrintDebugMessage("OnCalcPC", index_candle, PCs.Tops[index_candle], PCs.Bottoms[index_candle], PCs.Centres[index_candle])
     --#endregion
 
+    -- debuglog
+    -- if (index_candle == 7301) or (index_candle == 7302) or (index_candle == 7303) then
+    --     local t = T(index_candle)
+    --     PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
+    --     PrintDebugMessage("OnStoch", index_candle, Stochs.Slows[index_candle], Stochs.Fasts[index_candle], Stochs.Deltas[index_candle])
+    -- end
+    
     ----------------------------------------------------------------------------
-    -- I. States
+    -- I. Price Signals
     ----------------------------------------------------------------------------
     --#region   I.1. Signal: Signals[Down/Up].Price.CrossMA
-    --          Depends on signal: -
+    --          Functions: SignalPriceCrossMA
     --          Signal terminates by signals: Reverse self-signal
     --          Signal terminates by duration: -
     --          State: States[Down/Up].Price.Trend
+
     -- check start signal price cross ma up
---[[     if (SignalPriceCrossMA(index_candle, Directions.Up, Prices, PCs.Centres)) then
+    if (SignalPriceCrossMA(index_candle, Directions.Up, Prices, PCs.Centres)) then
         SetSignal((index_candle-1), Directions.Up, Prices.Name, "CrossMA")
         -- SetState((index_candle-1), Directions.Up, "Trend")
 
@@ -168,11 +182,11 @@ function OnCalculate(index_candle)
 
         -- set chart label
         ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "CrossMA", ChartIcons.Triangle, ChartPermissions[1])
-    end ]]
+    end 
     --#endregion
 --[[
     ----------------------------------------------------------------------------
-    -- II. Elementary Stoch Signals
+    -- II. Stoch Signals
     ----------------------------------------------------------------------------
     --#region   II.1. Elementary Stoch Signal: Signals[Down/Up].Stochs.Cross
     --          Impulse Signal: Signals[Down/Up].Impulse
@@ -198,19 +212,13 @@ function OnCalculate(index_candle)
     end
     --#endregion
 ]]
-    --#region II.2. Elementary Stoch Signal: Signals[Down/Up].Stochs.Cross50
-    --              Impulse Signal: Signals[Down/Up].Impulse
-    --              Depends on signal: SignalOscCrossLevel
+    --#region II.2. Signal: Signals[Down/Up].Stochs.Cross50
+    --              Functions: SignalOscCrossLevel
     --              Terminates by signals: Reverse self-signal
     --              Terminates by duration: -
-    -- check slow stoch cross lvl50 up
-    -- debuglog
-    -- if (index_candle == 7449 or index_candle == 7453 or index_candle == 7454 or index_candle == 7461) then
-    --     local t = T(index_candle)
-    --     PrintDebugMessage("OnCalculate", index_candle, t.month, t.day, t.hour, t.min)
-    -- end
+    --              State: States[Down/Up].Trend
 
-    --[[
+    -- check slow stoch cross lvl50 up
     if (SignalOscCrossLevel(index_candle, Directions.Up, Stochs, Stochs.Params.HLines.Centre)) then
         SetSignal((index_candle-1), Directions.Up, Stochs.Name, "Cross50")
 
@@ -227,6 +235,7 @@ function OnCalculate(index_candle)
     end
     --#endregion
 
+--[[
     --#region II.3. Elementary Stoch Signal: Signals[Down/Up].Stochs.VSteamer
     --              Enter Signal: Signals[Down/Up]["TrendOn"]/Uturn
     --              Depends on signal: SignalOscVSteamer
@@ -271,7 +280,7 @@ function OnCalculate(index_candle)
     --#endregion
 
     ----------------------------------------------------------------------------
-    -- III. Elementary RSI Signals
+    -- III. RSI Signals
     ----------------------------------------------------------------------------
     --#region III.1. Elementary RSI Signal: Signals[Down/Up].RSIs.Cross
     --               Impulse Signal: Signals[Down/Up].Impulse
@@ -295,11 +304,12 @@ function OnCalculate(index_candle)
     end
     --#endregion
 ]]
-    --#region III.2. Elementary RSI Signal: Signals[Down/Up].RSIs.Cross50
-    --               Impulse Signal: Signals[Down/Up].Impulse
-    ---              Depends on signal: SignalOscCrossLevel
+    --#region III.2. Signal: Signals[Down/Up].RSIs.Cross50
+    ---              Functions: SignalOscCrossLevel
     --               Terminates by signals: Reverse self-signal
     --               Terminates by duration: -
+    --               State: States[Down/Up].Trend
+
     -- check slow rsi cross lvl50 up
     if (SignalOscCrossLevel(index_candle, Directions.Up, RSIs, RSIs.Params.HLines.Centre)) then
         SetSignal((index_candle-1), Directions.Up, RSIs.Name, "Cross50")
@@ -422,11 +432,84 @@ function OnCalculate(index_candle)
     end -- down presence
     --#endregion
 ]]
-    --PrintDebugSummary()
 
-    -- return PCs.Tops[index_candle], PCs.Centres[index_candle], PCs.Bottoms[index_candle]
+    ----------------------------------------------------------------------------
+    -- IV. States
+    ----------------------------------------------------------------------------
+    --#region IV.1. State: Signals[Down/Up].Trend
+    ---             Depends: Price.CrossMA, Stoch.Cross50, RSI.Cross50
+    --              Terminates by signals: One of reverse self-signal
+    --              Terminates by duration: -
+
+    -- check start trend up state and check signals up
+    if ((Signals[Directions.Up][Prices.Name]["Trend"].Candle == 0) and (Signals[Directions.Up][Prices.Name]["CrossMA"].Candle > 0) and (Signals[Directions.Up][Stochs.Name]["Cross50"].Candle > 0) and (Signals[Directions.Up][RSIs.Name]["Cross50"].Candle > 0)) then
+		-- set trend down signal off
+        SetSignal((index_candle-1), Directions.Up, Prices.Name, "CrossMA")
+        SetState((index_candle-1), Directions.Up, "Trend")
+
+        -- set chart label
+        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Prices.Name, "Trend", ChartIcons.BigArrow, ChartPermissions[2], DealStages.Start)
+    end
+
+    -- check start trend down state and check signals down
+    if ((Signals[Directions.Down][Prices.Name]["Trend"].Candle == 0) and (Signals[Directions.Down][Prices.Name]["CrossMA"].Candle > 0) and (Signals[Directions.Down][Stochs.Name]["Cross50"].Candle > 0) and (Signals[Directions.Down][RSIs.Name]["Cross50"].Candle > 0)) then
+        -- set trend down signal off
+        SetSignal((index_candle-1), Directions.Down, Prices.Name, "CrossMA")
+        SetState((index_candle-1), Directions.Down, "Trend")
+
+        -- set chart label
+        ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "Trend", ChartIcons.BigArrow, ChartPermissions[2], DealStages.Start)
+    end
+
+    -- check end state up by end of up signals  
+    if (Signals[Directions.Up][Prices.Name]["Trend"].Candle > 0) then
+
+        local duration = index_candle - Signals[Directions.Up][Prices.Name]["Trend"].Candle
+
+        if ((Signals[Directions.Up][Prices.Name]["CrossMA"].Candle == 0) or (Signals[Directions.Up][Stochs.Name]["Cross50"].Candle == 0) or (Signals[Directions.Up][RSIs.Name]["Cross50"].Candle == 0)) then
+            -- set chart label
+            ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Prices.Name, "Trend", ChartIcons.BigCross, ChartPermissions[2], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+
+            -- turn off state
+            Signals[Directions.Up][Prices.Name]["Trend"].Candle = 0
+
+        elseif (duration >= States.Params.Duration) then
+            -- set chart label
+            ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Prices.Name, "Trend", ChartIcons.BigCross, ChartPermissions[2], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. "by duration")
+            
+            -- turn off state
+            Signals[Directions.Up][Prices.Name]["Trend"].Candle = 0
+            
+        end
+    end
+
+    -- check end state down by end of down signals  
+    if (Signals[Directions.Down][Prices.Name]["Trend"].Candle > 0) then
+
+        local duration = index_candle - Signals[Directions.Down][Prices.Name]["Trend"].Candle
+        
+        if ((Signals[Directions.Down][Prices.Name]["CrossMA"].Candle == 0) or (Signals[Directions.Down][Stochs.Name]["Cross50"].Candle == 0) or (Signals[Directions.Down][RSIs.Name]["Cross50"].Candle == 0)) then
+            -- set chart label
+            ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "Trend", ChartIcons.BigCross, ChartPermissions[2], tostring(duration) .. "|" .. DealStages.End)
+            
+            -- turn off state
+            Signals[Directions.Down][Prices.Name]["Trend"].Candle = 0
+            
+        elseif (duration >= States.Params.Duration) then            
+            -- set chart label
+            ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "Trend", ChartIcons.BigCross, ChartPermissions[2], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. "by duration")
+            
+            -- turn off state
+            Signals[Directions.Down][Prices.Name]["Trend"].Candle = 0
+        end
+    end 
+	--#endregion
+
+    PrintDebugSummary(index_candle, 7314)
+
+    return PCs.Tops[index_candle], PCs.Centres[index_candle], PCs.Bottoms[index_candle]
     -- return Stochs.Slows[index_candle], Stochs.Fasts[index_candle]
-    return RSIs.Slows[index_candle], RSIs.Fasts[index_candle]
+    -- return RSIs.Slows[index_candle], RSIs.Fasts[index_candle]
 end
 
 --==========================================================================
@@ -477,10 +560,10 @@ end
 --#endregion
 
 --==========================================================================
---#region	INDICATOR STOCH
+--#region INDICATOR STOCH
 --==========================================================================
 ----------------------------------------------------------------------------
---	function Stochastic Oscillator ("SO")
+-- function Stochastic Oscillator ("SO")
 ----------------------------------------------------------------------------
 function Stoch(mode)
     local Settings = { period_k = Stochs.Params[mode].PeriodK, shift = Stochs.Params[mode].Shift, period_d = Stochs.Params[mode].PeriodD }
@@ -544,7 +627,7 @@ function Stoch(mode)
 end
 
 ----------------------------------------------------------------------------
---	function EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
+-- function EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
 ----------------------------------------------------------------------------
 function EMA(Settings)
     local Ema_prev = 0
@@ -583,7 +666,7 @@ function EMA(Settings)
 end
 
 ----------------------------------------------------------------------------
---	function SMA = sums(Pi) / n
+-- function SMA = sums(Pi) / n
 ----------------------------------------------------------------------------
 function SMA(Settings)
     local Sums = {}
@@ -819,12 +902,14 @@ end
 --
 -- Signal Osc Cross Level
 --
-function SignalOscCrossLevel(index, direction, oscs, level, dev)
-    dev = dev or 0
-
+function SignalOscCrossLevel(index, direction, oscs, level, dev)    
     if (CheckDataExist(index, 2, oscs.Slows)) then
-        -- true or false
+        dev = dev or 0
+
+        -- osc cross level up/down
         return EventCross(index, direction, oscs.Slows, {[index-2] = level, [index-1] = level}, dev)
+
+    -- not enough data
     else
         return false
     end
@@ -1010,14 +1095,11 @@ end
 -- Signal Price	CrossMA
 --
 function SignalPriceCrossMA(index, direction, prices, mas, dev)
-    if (CheckDataExist(index, 1, prices.Opens) and CheckDataExist(index, 2, prices.Closes) and CheckDataExist(index, 2, mas)) then
-
+    if (CheckDataExist(index, 2, prices.Closes) and CheckDataExist(index, 2, mas)) then
         dev = dev or 0
 
-        return (-- candle up/down
-                ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev) and
-                -- candle cross ma up/down
-                EventCross(index, direction, prices.Closes, mas, dev))
+        -- candle close cross ma up/down
+        return (EventCross(index, direction, prices.Closes, mas, dev))
 
     -- not enough data
     else
@@ -1126,7 +1208,6 @@ end
 -- Event is 2 last candles Value is equal
 --
 function EventFlat(index, value, dev)
-    --PrintDebugMessage("EventFlat", index)
     return (GetDelta(value[index-1], value[index-2]) <= dev)
 end
 
@@ -1157,7 +1238,7 @@ function Reverse(direction)
 end
 
 ----------------------------------------------------------------------------
--- function GetDelta    return abs difference between values
+-- function GetDelta return abs difference between values
 ----------------------------------------------------------------------------
 function GetDelta(value1, value2)
     if ((value1 == nil) or (value2 == nil)) then
@@ -1175,7 +1256,7 @@ function CyclicPointer(index, period)
 end
 
 ----------------------------------------------------------------------------
--- function RoundScale  return value with requred numbers after digital point
+-- function RoundScale return value with requred numbers after digital point
 ----------------------------------------------------------------------------
 function RoundScale(value, scale)
     if ((value == nil) or (scale == nil)) then
@@ -1214,14 +1295,14 @@ end
 ----------------------------------------------------------------------------
 -- function SetStates
 ----------------------------------------------------------------------------
---[[ function SetState(index, direction, signal_name)
-    -- set state up/down off
-    States[Reverse(direction)][signal_name].Candle = 0
+function SetState(index, direction, signal_name)
+    -- set signal up/down off
+    Signals[Reverse(direction)][Prices.Name][signal_name].Candle = 0
 
-    -- set state down/up on
-    States[direction][signal_name].Count = States[direction][signal_name].Count + 1
-    States[direction][signal_name].Candle = index
-end]]
+    -- set signal down/up on
+    Signals[direction][Prices.Name][signal_name].Count = Signals[direction][Prices.Name][signal_name].Count + 1
+    Signals[direction][Prices.Name][signal_name].Candle = index
+end
 
 --------------------------------------------------------------------------
 -- function CheckDataExist return true if number values from index_candle back exist
@@ -1393,6 +1474,8 @@ function SetInitialCounts()
     Signals[Directions.Down][Prices.Name]["Uturn3"].Candle = 0
     Signals[Directions.Down][Prices.Name]["Uturn4"].Count = 0
     Signals[Directions.Down][Prices.Name]["Uturn4"].Candle = 0
+    Signals[Directions.Down][Prices.Name]["Trend"].Count = 0
+    Signals[Directions.Down][Prices.Name]["Trend"].Candle = 0
 
     Signals[Directions.Down][Stochs.Name]["Cross"].Count = 0
     Signals[Directions.Down][Stochs.Name]["Cross"].Candle = 0
@@ -1438,7 +1521,9 @@ function SetInitialCounts()
     Signals[Directions.Up][Prices.Name]["Uturn3"].Count = 0
     Signals[Directions.Up][Prices.Name]["Uturn3"].Candle = 0
     Signals[Directions.Up][Prices.Name]["Uturn4"].Count = 0
-    Signals[Directions.Up][Prices.Name]["Uturn4"].Candle = 0
+    Signals[Directions.Up][Prices.Name]["Uturn4"].Candle = 0    
+    Signals[Directions.Up][Prices.Name]["Trend"].Count = 0
+    Signals[Directions.Up][Prices.Name]["Trend"].Candle = 0
 
     Signals[Directions.Up][Stochs.Name]["Cross"].Count = 0
     Signals[Directions.Up][Stochs.Name]["Cross"].Candle = 0
@@ -1482,21 +1567,22 @@ end
 ----------------------------------------------------------------------------
 --
 ----------------------------------------------------------------------------
--- function PrintDebugSummary(number)
---     if (index_candle == number) then
---         PrintDebugMessage("===Enter Up===", "TrendOn", Signals[Directions.Up]["TrendOn"].Count, "Uturn", Signals[Directions.Up].Uturn.Count, "Spring1", Signals[Directions.Up].Spring1.Count, "Spring2", Signals[Directions.Up].Spring2.Count)
---         PrintDebugMessage("Complex Up", "Trend", Signals[Directions.Up].Trend.Count, "Impulse", Signals[Directions.Up].Impulse.Count, "Enter", Signals[Directions.Up].Enter.Count)
---         PrintDebugMessage("Prices Up", "CrossMA", Signals[Directions.Up].Prices.CrossMA.Count, "Uturn3", Signals[Directions.Up].Prices.Uturn3.Count, "Uturn4", Signals[Directions.Up].Prices.Uturn4.Count)
---         PrintDebugMessage("Stochs Up", "Cross", Signals[Directions.Up].Stochs.Cross.Count, "Cross50", Signals[Directions.Up].Stochs.Cross50.Count, "Uturn3", Signals[Directions.Up].Stochs.Uturn3.Count, "Uturn4", Signals[Directions.Up].Stochs.Uturn4.Count, "Spring3", Signals[Directions.Up].Stochs.Spring3.Count, "Spring4", Signals[Directions.Up].Stochs.Spring4.Count, "VSteamer", Signals[Directions.Up].Stochs.VSteamer.Count, "HSteamer", Signals[Directions.Up].Stochs.HSteamer.Count)
---         PrintDebugMessage("RSIs Up", "Cross", Signals[Directions.Up].RSIs.Cross.Count, "Cross50", Signals[Directions.Up].RSIs.Cross50.Count, "Uturn3", Signals[Directions.Up].RSIs.Uturn3.Count, "Uturn4", Signals[Directions.Up].RSIs.Uturn4.Count, "Spring3", Signals[Directions.Up].RSIs.Spring3.Count, "Spring4", Signals[Directions.Up].RSIs.Spring4.Count, "TrendOn", Signals[Directions.Up].RSIs["TrendOn"].Count)
---
---         PrintDebugMessage("===Enter Down", "TrendOn", Signals[Directions.Down]["TrendOn"].Count, "Uturn", Signals[Directions.Down].Uturn.Count, "Spring1", Signals[Directions.Down].Spring1.Count, "Spring2", Signals[Directions.Down].Spring2.Count)
---         PrintDebugMessage("Complex Down", "Trend", Signals[Directions.Down].Trend.Count, "Impulse", Signals[Directions.Down].Impulse.Count, "Enter", Signals[Directions.Down].Enter.Count)
---         PrintDebugMessage("Prices Down", "CrossMA", Signals[Directions.Down].Prices.CrossMA.Count, "Uturn3", Signals[Directions.Down].Prices.Uturn3.Count, "Uturn4", Signals[Directions.Down].Prices.Uturn4.Count)
---         PrintDebugMessage("Stochs Down", "Cross", Signals[Directions.Down].Stochs.Cross.Count, "Cross50", Signals[Directions.Down].Stochs.Cross50.Count, "Uturn3", Signals[Directions.Down].Stochs.Uturn3.Count, "Uturn4", Signals[Directions.Down].Stochs.Uturn4.Count, "Spring3", Signals[Directions.Down].Stochs.Spring3.Count, "Spring4", Signals[Directions.Down].Stochs.Spring4.Count, "VSteamer", Signals[Directions.Down].Stochs.VSteamer.Count, "HSteamer", Signals[Directions.Down].Stochs.HSteamer.Count)
---         PrintDebugMessage("RSIs Down", "Cross", Signals[Directions.Down].RSIs.Cross.Count, "Cross50", Signals[Directions.Down].RSIs.Cross50.Count, "Uturn3", Signals[Directions.Down].RSIs.Uturn3.Count, "Uturn4", Signals[Directions.Down].RSIs.Uturn4.Count, "Spring3", Signals[Directions.Down].RSIs.Spring3.Count, "Spring4", Signals[Directions.Down].RSIs.Spring4.Count, "TrendOn", Signals[Directions.Down].RSIs["TrendOn"].Count)
---     end
--- end
+function PrintDebugSummary(index, number)
+    if (index == number) then
+        local t = T(index)
+        PrintDebugMessage("Summary", index, t.month, t.day, t.hour, t.min)
+
+        PrintDebugMessage("StatesUp", "Trend", Signals[Directions.Up][Prices.Name]["Trend"].Count)
+        PrintDebugMessage("PricesUp", "CrossMA", Signals[Directions.Up][Prices.Name]["CrossMA"].Count)
+        PrintDebugMessage("StochsUp", "Cross", Signals[Directions.Up][Stochs.Name]["Cross"].Count, "Cross50", Signals[Directions.Up][Stochs.Name]["Cross50"].Count)
+        PrintDebugMessage("RSIsUp", "Cross", Signals[Directions.Up][RSIs.Name]["Cross"].Count, "Cross50", Signals[Directions.Up][RSIs.Name]["Cross50"].Count)
+
+        PrintDebugMessage("StatesDown", "Trend", Signals[Directions.Down][Prices.Name]["Trend"].Count)
+        PrintDebugMessage("PricesDown", "CrossMA", Signals[Directions.Down][Prices.Name]["CrossMA"].Count)
+        PrintDebugMessage("StochsDown", "Cross", Signals[Directions.Down][Stochs.Name]["Cross"].Count, "Cross50", Signals[Directions.Down][Stochs.Name]["Cross50"].Count)
+        PrintDebugMessage("RSIsDown", "Cross", Signals[Directions.Down][RSIs.Name]["Cross"].Count, "Cross50", Signals[Directions.Down][RSIs.Name]["Cross50"].Count)
+    end
+end
 --#endregion
 
 ----------------------------------------------------------------------------
