@@ -43,7 +43,7 @@ function Init()
     -- tags for charts to show labels and steps for text labels on charts, permission for what label show on chart
     ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5, Permission = ChartPermissions[1] + ChartPermissions[2] },	-- FEK_LITHIUMPrice
         [Stochs.Name] = { Tag = GetChartTag(Stochs.Name), Step = 10, Permission = ChartPermissions[1] + ChartPermissions[4]}, -- FEK_LITHIUMStoch
-        [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Permission = ChartPermissions[1] + ChartPermissions[4]}}		-- FEK_LITHIUMRSI
+        [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5, Permission = ChartPermissions[2] + ChartPermissions[4]}}		-- FEK_LITHIUMRSI
 
     -- chart labels ids and default params
     ChartLabels = { [Prices.Name] = {}, [Stochs.Name] = {}, [RSIs.Name] = {},
@@ -70,6 +70,8 @@ function Init()
 
     DealStages = { Start = "Start", Continue = "Continue", End = "End" }
 
+    Test = {A={}}
+
     -- indicator functions
     StochSlow = Stoch("Slow")
     StochFast = Stoch("Fast")
@@ -91,7 +93,7 @@ function Init()
         [Prices.Name] = { CrossMA = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Trend = { Count = 0, Candle = 0 }},
         [Stochs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, HSteamer = { Count = 0, Candle = 0 }, VSteamer = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }, Impulse = { Count = 0, Candle = 0 }},
         [RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }}}, 
-        Params = { Duration = 2, Steamers = { VerticalDifference = 30, HorizontalDuration = 2 }, Devs = { Stoch = 1, RSI = 0.4 }}}
+        Params = { Duration = 2, Steamers = { VerticalDifference = 30, HorizontalDuration = 2 }, Devs = { Stoch = 0, RSI = 0 }}}
 
     States = { [Directions.Up] = { Trend = { Count = 0, Candle = 0 }}, [Directions.Down] = { Trend = { Count = 0, Candle = 0 }}, Params = {Duration = 5}}
 
@@ -148,10 +150,10 @@ function OnCalculate(index_candle)
     --#endregion
 
     -- debuglog
---[[     if (index_candle >= 7300) then
+    if (index_candle == 7753) then
         local t = T(index_candle)
         PrintDebugMessage("OnCalc", index_candle, t.month, t.day, t.hour, t.min)
-    end ]]
+    end
     
     ----------------------------------------------------------------------------
     -- I. Price Signals
@@ -187,22 +189,40 @@ function OnCalculate(index_candle)
     --          Terminates by signals: Reverse self-signal
     --          Terminates by duration: -
     --          State: States[Down/Up].Impulse
+
+if (index_candle == 7753) then
+
+    
     -- check fast stoch cross slow stoch up
     if (SignalOscCross(index_candle, Directions.Up, Stochs, Signals.Params.Devs.Stoch)) then
         SetSignal((index_candle-1), Directions.Up, Stochs.Name, "Cross")
-
+        
+        PrintDebugMessage("CheckStohUp1", index_candle, ChartLabels[Stochs.Name][index_candle-1], Test.A[index_candle])
+        
+        
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1])
+        
+        Test.A[index_candle] = ChartLabels[Stochs.Name][index_candle-1]
+
+PrintDebugMessage("CheckStohUp2", index_candle, ChartLabels[Stochs.Name][index_candle-1], Test.A[index_candle])
+
     end
 
     -- check fast stoch cross slow stoch down
     if (SignalOscCross(index_candle, Directions.Down, Stochs, Signals.Params.Devs.Stoch)) then
         SetSignal((index_candle-1), Directions.Down, Stochs.Name, "Cross")
-        -- SetState((index_candle-1), Directions.Down, "Impulse")
+
+PrintDebugMessage("CheckStohDown1", index_candle, ChartLabels[Stochs.Name][index_candle-1])
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1])
+
+PrintDebugMessage("CheckStohDown2", index_candle, ChartLabels[Stochs.Name][index_candle-1])
+
     end
+
+end
     --#endregion
 
     --#region II.2. Signal: Signals[Down/Up].Stochs.Cross50
@@ -216,7 +236,7 @@ function OnCalculate(index_candle)
         SetSignal((index_candle-1), Directions.Up, Stochs.Name, "Cross50")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Cross50", ChartIcons.Triangle, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Cross50", ChartIcons.Triangle, ChartPermissions[1]t)
     end
 
     -- check slow stoch cross lvl50 down
@@ -224,7 +244,7 @@ function OnCalculate(index_candle)
         SetSignal((index_candle-1), Directions.Down, Stochs.Name, "Cross50")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Cross50", ChartIcons.Triangle, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Cross50", ChartIcons.Triangle, ChartPermissions[1])
     end ]]
     --#endregion
 
@@ -281,14 +301,14 @@ function OnCalculate(index_candle)
     --               Terminates by signals: Reverse self-signal
     --               Terminates by duration: -
     --               State: Signals[Down/Up].Impulse
-
+--[[ 
     -- check fast rsi cross slow rsi up
     if (SignalOscCross(index_candle, Directions.Up, RSIs, Signals.Params.Devs.
     RSI)) then
         SetSignal((index_candle-1), Directions.Up, RSIs.Name, "Cross")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1])
     end
 
     -- check fast rsi cross slow rsi down
@@ -297,8 +317,8 @@ function OnCalculate(index_candle)
         SetSignal((index_candle-1), Directions.Down, RSIs.Name, "Cross")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1], DealStages.Start)
-    end
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[1])
+    end ]]
     --#endregion
 
     --#region III.2. Signal: Signals[Down/Up].RSIs.Cross50
@@ -515,7 +535,7 @@ function OnCalculate(index_candle)
         SetState((index_candle-1), Directions.Up, "Impulse")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigArrow, ChartPermissions[4], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigArrow, ChartPermissions[3], DealStages.Start)
     end
     
     -- check start trend down state and check signals down
@@ -524,7 +544,7 @@ function OnCalculate(index_candle)
         SetState((index_candle-1), Directions.Down, "Impulse")
 
         -- set chart label
-        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigArrow, ChartPermissions[4], DealStages.Start)
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigArrow, ChartPermissions[3], DealStages.Start)
     end
     
     -- check state trend up end
@@ -535,18 +555,18 @@ function OnCalculate(index_candle)
         -- state trend up end by end one of up signals
         if ((Signals[Directions.Up][Stochs.Name]["Cross"].Candle == 0) or (Signals[Directions.Up][RSIs.Name]["Cross"].Candle == 0)) then
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[4], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[3], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
 
             -- turn off state
             Signals[Directions.Up][Stochs.Name]["Impulse"].Candle = 0
 
-        -- state trend up end by end of duration
+--[[         -- state trend up end by end of duration
         elseif (duration >= States.Params.Duration) then
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[4], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
+            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[3], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
 
             -- turn off state
-            Signals[Directions.Up][Stochs.Name]["Impulse"].Candle = 0
+            Signals[Directions.Up][Stochs.Name]["Impulse"].Candle = 0 ]]
 
         end
     end
@@ -559,22 +579,22 @@ function OnCalculate(index_candle)
         -- state trend down end by end one of down signals
         if ((Signals[Directions.Down][Stochs.Name]["Cross"].Candle == 0) or (Signals[Directions.Down][RSIs.Name]["Cross"].Candle == 0)) then
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[4], tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[3], tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
 
             -- turn off state
             Signals[Directions.Down][Stochs.Name]["Impulse"].Candle = 0
-
+--[[ 
         -- state trend down end by end of duration
         elseif (duration >= States.Params.Duration) then            
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[4], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
+            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Impulse", ChartIcons.BigCross, ChartPermissions[3], tostring(index_candle-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
 
             -- turn off state
-            Signals[Directions.Down][Stochs.Name]["Impulse"].Candle = 0
+            Signals[Directions.Down][Stochs.Name]["Impulse"].Candle = 0 ]]
         end
     end 
 
-    PrintDebugSummary(index_candle, 7314)
+    -- PrintDebugSummary(index_candle, 7314)
 
     -- return PCs.Tops[index_candle], PCs.Centres[index_candle], PCs.Bottoms[index_candle]
     return Stochs.Slows[index_candle], Stochs.Fasts[index_candle]
@@ -1419,9 +1439,7 @@ function GetMessage(...)
 
         -- concate messages with symbol
         for count = 1, args.n do
-            if (args[count] ~= nil) then
-                table.insert(tmessage, type(args[count]) == "string" and args[count] or tostring(args[count]))
-            end
+            table.insert(tmessage, type(args[count]) == "string" and args[count] or tostring(args[count]))
         end
 
         return (table.concat(tmessage, "|"))
@@ -1458,12 +1476,14 @@ function GetChartLabelText(direction, indicator_name, signal_name, text)
     
     local dir = (direction == Directions.Up) and "L" or "S"
 
-    return GetMessage(dir .. indicator_name .. signal_name, Signals[direction][indicator_name][signal_name].Count, Signals[direction][indicator_name][signal_name].Candle, text)
+    -- return GetMessage(dir .. indicator_name .. signal_name, Signals[direction][indicator_name][signal_name].Count, Signals[direction][indicator_name][signal_name].Candle, text)
+    return GetMessage(dir, Signals[direction][indicator_name][signal_name].Count, Signals[direction][indicator_name][signal_name].Candle, text)
+
 end
 
 ----------------------------------------------------------------------------
 -- function GetChartLabelYPos
---todo make cyclic variable for several levels of y position
+--? make cyclic variable for several levels of y position
 ----------------------------------------------------------------------------
 function GetChartLabelYPos(index, direction, indicator_name)
     local position_y
@@ -1504,9 +1524,13 @@ function SetChartLabel(index, direction, indicator_name, signal_name, icon, sign
 
         -- delete label duplicates
         local chart_tag = GetChartTag(indicator_name)
+
+PrintDebugMessage("SetChartLabel1", index, ChartLabels[indicator_name][index])
+local resdel
         if (ChartLabels[indicator_name][index] ~= nil) then
-            DelLabel(chart_tag, ChartLabels[indicator_name][index])
+            resdel = DelLabel(chart_tag, ChartLabels[indicator_name][index])
         end
+PrintDebugMessage("SetChartLabel2", index, resdel, ChartLabels[indicator_name][index])
 
         -- set label icon
         ChartLabels.Params.IMAGE_PATH = ChartLabels.Params.IconPath .. GetChartIcon(direction, icon)
@@ -1530,11 +1554,14 @@ function SetChartLabel(index, direction, indicator_name, signal_name, icon, sign
         ChartLabels.Params.TEXT = GetChartLabelText(direction, indicator_name, signal_name, text)
 
         -- set chart label return id
-        local result = AddLabel(chart_tag, ChartLabels.Params)
-        return result
+        local resad = AddLabel(chart_tag, ChartLabels.Params)
 
+PrintDebugMessage("SetChartLabel3", index, resad, ChartLabels[indicator_name][index])
+
+        return resad
     -- nothing todo
     else
+-- PrintDebugMessage("SetChartLabel4", index, resad, ChartLabels[indicator_name][index])
         return -1
     end
 end
