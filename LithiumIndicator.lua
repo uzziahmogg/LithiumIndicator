@@ -147,10 +147,10 @@ function OnCalculate(index_candle)
     --#endregion
 
     -- debuglog
-    if (index_candle == 7285 or index_candle == 7286 or index_candle == 7287) then
+    --[[ if (index_candle > 7200) then
         local t = T(index_candle)
         PrintDebugMessage("OnCalc", index_candle, t.month, t.day, t.hour, t.min)
-    end
+    end ]]
     
     ----------------------------------------------------------------------------
     -- I. Price Signals
@@ -1212,16 +1212,18 @@ function SignalPriceUturn3(index, direction, prices, mas, dev)
 
         dev = dev or 0
 
-        if (index == 7285 or index == 7286 or index == 7287) then
-            PrintDebugMessage("Uturn3-1", index,  "contr-trend", ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev), "pro-trend", ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev))
-            PrintDebugMessage("Uturn3-2", "Closes uturn", EventUturn(index, direction, prices.Closes, dev), "delta uturn", EventUturn(index, Directions.Up, mas.Deltas, dev))
-            PrintDebugMessage("Uturn3-3", "ma move pro-trend", EventMove(index, direction, mas.Centres, dev), EventFlat(index, mas.Centres, dev))
-            PrintDebugMessage("Uturn3-4", " 3 last candles", EventMove((index-1), direction, mas.Centres, dev), EventFlat((index-1), mas.Centres, dev))
+        if (index == 7255 or index == 7258 or index == 7257 or index == 7256) then
+            PrintDebugMessage("===", "Uturn3", index, T(index).month, T(index).day, T(index).hour, T(index).min, direction, "===")
+            PrintDebugMessage("   candle-3 or -2 contr-trend", (ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev)), "   candle pro-trend-1", ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev))
+            PrintDebugMessage("   closes0 uturn", EventUturn(index, direction, prices.Closes, dev), "   delta0 uturn", EventUturn(index, Directions.Up, mas.Deltas, dev))
+            PrintDebugMessage("   ma move pro-trend0", EventMove(index, direction, mas.Centres, dev), EventFlat(index, mas.Centres, dev))
+            PrintDebugMessage("   ma move pro-trend-1", EventMove((index-1), direction, mas.Centres, dev), EventFlat((index-1), mas.Centres, dev))
+            PrintDebugMessage("   strength up", (prices.Closes[index-1] >= prices.Closes[index-2]) and (prices.Closes[index-1] >= prices.Closes[index-3]), "   strength down", (prices.Closes[index-2] >= prices.Closes[index-1]) and (prices.Closes[index-3] >= prices.Closes[index-1]))
         end
 
         local condition = 
             -- one first candle contr-trend, one last candle pro-trend
-            ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) and ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev) and
+            (ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev)) and ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev) and
             -- prices.Closes uturn
             EventUturn(index, direction, prices.Closes, dev) and
             -- delta uturn with delta min at uturn top
