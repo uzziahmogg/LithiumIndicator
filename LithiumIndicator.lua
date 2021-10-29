@@ -102,6 +102,12 @@ end
 -- OnCalculate
 --==========================================================================
 function OnCalculate(index_candle)
+    -- debuglog
+    --[[ if (index_candle > 7200) then
+        local t = T(index_candle)
+        PrintDebugMessage("OnCalc", index_candle, t.month, t.day, t.hour, t.min)
+    end ]]
+
     -- set initial values on first candle
     if (index_candle == 1) then
         DataSource = getDataSourceInfo()
@@ -145,12 +151,6 @@ function OnCalculate(index_candle)
 
     PCs.Deltas[index_candle] = (Prices.Closes[index_candle] ~= nil) and (PCs.Centres[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Closes[index_candle], PCs.Centres[index_candle]), SecInfo.scale) or nil
     --#endregion
-
-    -- debuglog
-    --[[ if (index_candle > 7200) then
-        local t = T(index_candle)
-        PrintDebugMessage("OnCalc", index_candle, t.month, t.day, t.hour, t.min)
-    end ]]
     
     ----------------------------------------------------------------------------
     -- I. Price Signals
@@ -1212,13 +1212,17 @@ function SignalPriceUturn3(index, direction, prices, mas, dev)
 
         dev = dev or 0
 
-        if (index == 7255 or index == 7258 or index == 7257 or index == 7256) then
+        if (index == 7744 or index == 7743 or index == 7742 or index == 7741) then
             PrintDebugMessage("===", "Uturn3", index, T(index).month, T(index).day, T(index).hour, T(index).min, direction, "===")
             PrintDebugMessage("   candle-3 or -2 contr-trend", (ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev)), "   candle pro-trend-1", ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev))
-            PrintDebugMessage("   closes0 uturn", EventUturn(index, direction, prices.Closes, dev), "   delta0 uturn", EventUturn(index, Directions.Up, mas.Deltas, dev))
-            PrintDebugMessage("   ma move pro-trend0", EventMove(index, direction, mas.Centres, dev), EventFlat(index, mas.Centres, dev))
+            PrintDebugMessage("   closes0 uturn", EventUturn(index, direction, prices.Closes, dev), "   delta0 uturn", EventUturn(index, direction, mas.Deltas, dev))
+            PrintDebugMessage("    ma deltas", mas.Deltas[index-3], mas.Deltas[index-2], mas.Deltas[index-1])
+            PrintDebugMessage("   ma move pro-trend-0", EventMove(index, direction, mas.Centres, dev), EventFlat(index, mas.Centres, dev))
             PrintDebugMessage("   ma move pro-trend-1", EventMove((index-1), direction, mas.Centres, dev), EventFlat((index-1), mas.Centres, dev))
-            PrintDebugMessage("   strength up", (prices.Closes[index-1] >= prices.Closes[index-2]) and (prices.Closes[index-1] >= prices.Closes[index-3]), "   strength down", (prices.Closes[index-2] >= prices.Closes[index-1]) and (prices.Closes[index-3] >= prices.Closes[index-1]))
+            PrintDebugMessage("   strength up3", (prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))),
+            "   strength up2", (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2]))), 
+            "   strength down3", ((prices.Highs[index-3] - 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3])) > prices.Closes[index-1]),
+            "   strength down2", ((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index-1]))
         end
 
         local condition = 
@@ -1227,19 +1231,24 @@ function SignalPriceUturn3(index, direction, prices, mas, dev)
             -- prices.Closes uturn
             EventUturn(index, direction, prices.Closes, dev) and
             -- delta uturn with delta min at uturn top
-            EventUturn(index, Directions.Up, mas.Deltas, dev) and
+            EventUturn(index, direction, mas.Deltas, dev) and
             -- ma move pro-trend 3 last candles
             (EventMove(index, direction, mas.Centres, dev) or EventFlat(index, mas.Centres, dev)) and (EventMove((index-1), direction, mas.Centres, dev) or EventFlat((index-1), mas.Centres, dev))
 
         if (direction == Directions.Up) then
             return (condition and
                 -- strength condition
-                (prices.Closes[index-1] >= prices.Closes[index-2]) and (prices.Closes[index-1] >= prices.Closes[index-3]))
+                -- (prices.Closes[index-1] >= prices.Closes[index-2]) and (prices.Closes[index-1] >= prices.Closes[index-3]))
+                ((prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))) or
+			    (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])))))
 
         elseif (direction == Directions.Down) then
             return (condition and
                 -- strength condition
-                (prices.Closes[index-2] >= prices.Closes[index-1]) and (prices.Closes[index-3] >= prices.Closes[index-1]))
+                -- (prices.Closes[index-2] >= prices.Closes[index-1]) and (prices.Closes[index-3] >= prices.Closes[index-1]))
+
+                (((prices.Highs[index-3] - 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3])) > prices.Closes[index-1]) or
+			    ((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index-1])))
         end
 
     -- not enough data
@@ -1351,7 +1360,9 @@ function GetDelta(value1, value2)
         return nil
     end
 
-    return math.abs(value1 - value2)
+    -- return math.abs(value1 - value2)
+    return (value1 - value2)
+
 end
 
 ----------------------------------------------------------------------------
