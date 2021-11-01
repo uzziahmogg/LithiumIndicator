@@ -94,6 +94,10 @@ function Init()
         [RSIs.Name] = { Cross = { Count = 0, Candle = 0 }, Cross50 = { Count = 0, Candle = 0 }, TrendOn = { Count = 0, Candle = 0 }, TrendOff = { Count = 0, Candle = 0 }, Uturn3 = { Count = 0, Candle = 0 }, Uturn4 = { Count = 0, Candle = 0 }, Spring3 = { Count = 0, Candle = 0 }, Spring4 = { Count = 0, Candle = 0 }}}, 
         Params = { Duration = 2, Steamers = { VerticalDifference = 30, HorizontalDuration = 2 }, Devs = { Stoch = 0, RSI = 0 }}}
 
+        CentreLines = {}
+
+        PriceTypes = { Median = 1, Typical = 2, Weighted = 3, AvarageCloses = 4 }
+
     return #Settings.line
 end
 --#endregion
@@ -147,9 +151,9 @@ function OnCalculate(index_candle)
     PCs.Tops[index_candle] = RoundScale(PCs.Tops[index_candle], SecInfo.scale)
     PCs.Bottoms[index_candle] = RoundScale(PCs.Bottoms[index_candle], SecInfo.scale)
 
-    PCs.Centres[index_candle] = (PCs.Tops[index_candle] ~= nil) and (PCs.Bottoms[index_candle] ~= nil) and RoundScale((PCs.Bottoms[index_candle] + (PCs.Tops[index_candle] - PCs.Bottoms[index_candle]) / 2), SecInfo.scale) or nil
+    --[[ PCs.Centres[index_candle] = (PCs.Tops[index_candle] ~= nil) and (PCs.Bottoms[index_candle] ~= nil) and RoundScale((PCs.Bottoms[index_candle] + (PCs.Tops[index_candle] - PCs.Bottoms[index_candle]) / 2), SecInfo.scale) or nil
 
-    PCs.Deltas[index_candle] = (Prices.Closes[index_candle] ~= nil) and (PCs.Centres[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Closes[index_candle], PCs.Centres[index_candle]), SecInfo.scale) or nil
+    PCs.Deltas[index_candle] = (Prices.Closes[index_candle] ~= nil) and (PCs.Centres[index_candle] ~= nil) and RoundScale(GetDelta(Prices.Closes[index_candle], PCs.Centres[index_candle]), SecInfo.scale) or nil ]]
     --#endregion
     
     ----------------------------------------------------------------------------
@@ -159,7 +163,7 @@ function OnCalculate(index_candle)
     --          Functions: SignalPriceCrossMA
     --          Signal terminates by signals: Reverse self-signal
     --          Signal terminates by duration: -
-    --          State: States[Down/Up].Price.Trend
+    --          State: States[Down/Up].Price.StateTrend
 
     -- check start signal price cross ma up
     --[[ if (SignalPriceCrossMA(index_candle, Directions.Up, Prices, PCs.Centres)) then
@@ -185,7 +189,7 @@ function OnCalculate(index_candle)
     --          Enter: Signals[Down/Up].Price.EnterUturn3
 
     -- check start signal uturn3 up
-    if (SignalPriceUturn3(index_candle, Directions.Up, Prices, PCs)) then
+    --[[ if (SignalPriceUturn3(index_candle, Directions.Up, Prices, PCs)) then
         SetSignal((index_candle-1), Directions.Up, Prices.Name, "Uturn3")
 
         -- set chart label
@@ -198,7 +202,7 @@ function OnCalculate(index_candle)
 
         -- set chart label
         ChartLabels[Prices.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Prices.Name, "Uturn3", ChartIcons.Arrow, ChartPermissions[1])
-    end
+    end ]]
     --#endregion
 
     ----------------------------------------------------------------------------
@@ -208,7 +212,7 @@ function OnCalculate(index_candle)
     --          Functions: SignalOscCross
     --          Terminates by signals: Reverse self-signal
     --          Terminates by duration: -
-    --          State: States[Down/Up].Impulse
+    --          State: Signals[Down/Up].Stochs.StateImpulse
 
     -- check fast stoch cross slow stoch up
     --[[ if (SignalOscCross(index_candle, Directions.Up, Stochs, Signals.Params.Devs.Stoch)) then
@@ -231,7 +235,7 @@ function OnCalculate(index_candle)
     --              Functions: SignalOscCrossLevel
     --              Terminates by signals: Reverse self-signal
     --              Terminates by duration: -
-    --              State: States[Down/Up].Trend
+    --              State: Signals[Down/Up].Prices.StateTrend
 
     -- check slow stoch cross lvl50 up
     --[[ if (SignalOscCrossLevel(index_candle, Directions.Up, Stochs, Stochs.Params.HLines.Centre)) then
@@ -302,15 +306,17 @@ function OnCalculate(index_candle)
     --               Functions: SignalOscCross
     --               Terminates by signals: Reverse self-signal
     --               Terminates by duration: -
-    --               State: Signals[Down/Up].Impulse
+    --               State: Signals[Down/Up].Stochs.StateImpulse
 
     -- check fast rsi cross slow rsi up
-    --[[ if (SignalOscCross(index_candle, Directions.Up, RSIs, Signals.Params.Devs.
+    if (SignalOscCross(index_candle, Directions.Up, RSIs, Signals.Params.Devs.
     RSI)) then
         SetSignal((index_candle-1), Directions.Up, RSIs.Name, "Cross")
 
         -- set chart label
         ChartLabels[RSIs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[3])
+
+        CentreLines[index_candle-1] = GetCentreLine(index_candle, Directions.Up, PriceTypes.Median, Prices)
     end
 
     -- check fast rsi cross slow rsi down
@@ -320,14 +326,16 @@ function OnCalculate(index_candle)
 
         -- set chart label
         ChartLabels[RSIs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, RSIs.Name, "Cross", ChartIcons.Romb, ChartPermissions[3])
-    end ]]
+
+        CentreLines[index_candle-1] = GetCentreLine(index_candle, Directions.Down, PriceTypes.Median, Prices)
+    end
     --#endregion
 
     --#region III.2. Signal: Signals[Down/Up].RSIs.Cross50
     --               Functions: SignalOscCrossLevel
     --               Terminates by signals: Reverse self-signal
     --               Terminates by duration: -
-    --               State: States[Down/Up].Trend
+    --               State: States[Down/Up].Prices.StateTrend
 
     -- check slow rsi cross lvl50 up
     --[[ if (SignalOscCrossLevel(index_candle, Directions.Up, RSIs, RSIs.Params.HLines.Centre)) then
@@ -604,7 +612,7 @@ function OnCalculate(index_candle)
 
     --PrintDebugSummary(index_candle, 7314)
 
-    return PCs.Tops[index_candle], PCs.Centres[index_candle], PCs.Bottoms[index_candle]
+    return PCs.Tops[index_candle], CentreLines[index_candle], PCs.Bottoms[index_candle]
     -- return Stochs.Slows[index_candle], Stochs.Fasts[index_candle]
     -- return RSIs.Slows[index_candle], RSIs.Fasts[index_candle]
 end
@@ -653,6 +661,41 @@ function PriceChannel()
         end
         return nil, nil
     end
+end
+
+----------------------------------------------------------------------------
+-- function CentreLine
+----------------------------------------------------------------------------
+function GetCentreLine(index, direction, price_type, prices)
+    if (price_type == PriceTypes.AvarageCloses) then
+        return (prices.Closes[index-2] + prices.Closes[index-1]) / 2
+    end
+    
+    local result
+
+    if (direction  == Directions.Up) then
+        result = (prices.Lows[index-2] + prices.Highs[index-1]) / 2
+    elseif (direction  == Directions.Down) then
+        result = (prices.Lows[index-1] + prices.Highs[index-2]) / 2
+    end
+    
+    if (price_type == PriceTypes.Median) then
+        return result
+    end
+    
+    result = (result * 2 + prices.Closes[index-1]) / 3
+    
+    if (price_type == PriceTypes.Typical) then
+        return result
+    end
+
+    result = (result * 3 + prices.Opens[index-2]) / 4
+
+    if (price_type == PriceTypes.Weighted) then
+        return result
+    end
+
+    return -1
 end
 --#endregion
 
