@@ -1,15 +1,21 @@
 Settings = {
-    Name = "FEK_CentreLine"
-}
+    Name = "FEK_CentreLine", 
+    line ={{ Name = "Calculated", Type = TYPE_LINE, Color = RGB(255, 0, 0) }--[[ , { Name = "Approximated", Type = TYPE_DASH, Color = RGB(0, 255, 0) } ]]}}
 
 -----------------------------------------------------------------------------
 -- function Init
 -----------------------------------------------------------------------------
 function Init()
-    CentreLines = {Indexes = {}, Values - {}}
+    CentreLines = { Indexes = {}, Values = {} }
+
+    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, Params = { Dev = 0, Slow = 14, Fast = 9 }}
+
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Deltas = {}}
+
+    Directions = { Long = "L", Short = "S" }
 
     -- chart labels ids and default params
-    ChartLabels = { [RSIs.Name] = {}, [RSIs.Name] = {}, Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
+    ChartLabels = { [Prices.Name] = {}, [RSIs.Name] = {}, Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
     -- get script path
     ScriptPath = getScriptPath()
@@ -30,34 +36,23 @@ function Init()
     -- chart label icons
     ChartIcons = { Arrow = "arrow", Point = "point", Triangle = "triangle", Cross = "cross", Romb = "romb", Plus = "plus", Flash = "flash", Asterix = "asterix", BigArrow = "big_arrow", BigPoint = "big_point", BigTriangle = "big_triangle", BigCross = "big_cross", BigRomb = "big_romb", BigPlus = "big_plus" }
 
-    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5 }, -- FEK_LITHIUMPrice
-    [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5}} -- FEK_LITHIUMRSI
+    ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5 }, -- FEK_CentreLinePrice
+    [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5}} -- FEK_CentreLineRSI
 
-    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, Params = { Dev = 0, Slow = 14, Fast = 9 }}
-
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Deltas = {}}
-
-    Signals = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}
-    Directions = { Up = "up", Down = "down" }
+    Signals = { [Directions.Long] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}, [Directions.Short] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}}
 
     PriceTypes = { Median = 1, Typical = 2, Weighted = 3, AvarageCloses = 4 }
 
     RSIFast = RSI("Fast")
     RSISlow = RSI("Slow")
 
-    return 1
+    return #Settings.line
 end
 
 -----------------------------------------------------------------------------
 -- function OnCalculate
 -----------------------------------------------------------------------------
 function OnCalculate(index)
-    -- debug output
-    if (index == 1) then
-        local t = T(index)
-        PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
-    end
-
     -- set initial values on first candle
     if (index == 1) then
         DataSource = getDataSourceInfo()
@@ -79,37 +74,43 @@ function OnCalculate(index)
     RSIs.Fasts[index] = RoundScale(RSIs.Fasts[index], SecInfo.scale)
     RSIs.Slows[index] = RoundScale(RSIs.Slows[index], SecInfo.scale)
 
-    RSIs.Deltas[index] = (RSIs.Fasts[index] ~= nil) and (RSIs.Slows[index] ~= nil) and RoundScale(GetDelta(RSIs.Fasts[index], RSIs.Slows[index]), SecInfo.scale) or nil
+    --RSIs.Deltas[index] = (RSIs.Fasts[index] ~= nil) and (RSIs.Slows[index] ~= nil) and RoundScale(GetDelta(RSIs.Fasts[index], RSIs.Slows[index]), SecInfo.scale) or nil
 
-    --todo recalc centre_line beetwen new last corner point
     -- check fast rsi cross slow rsi up
-    if (SignalOscCross((index-1), Directions.Up, RSIs)) then
-        SetSignal((index-1), Directions.Up, RSIs, Signals.Cross)
+    if (SignalOscCross((index-1), Directions.Long, RSIs)) then
+
+        SetSignal((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross)
 
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Up, RSIs, Signals.Cross, ChartIcons.Romb)
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Indexes[#CentreLines+1] = index - 1
-        CentreLine.Values[#CentreLines+1] = GetCentreLine((index-1), Directions.Up, PriceTypes.Median, Prices)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Median, Prices)
     end
     
     -- check fast rsi cross slow rsi down
-    if (SignalOscCross((index-1), Directions.Down, RSIs)) then
-        SetSignal((index-1), Directions.Down, RSIs, Signals.Cross)
-        
+    if (SignalOscCross((index-1), Directions.Short, RSIs)) then
+
+        SetSignal((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross)
+
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Down, RSIs, Signals.Cross, ChartIcons.Romb)
-        
-        CentreLines.Indexes[#CentreLines+1] = index - 1
-        CentreLines.Values[#CentreLines+1] = GetCentreLine((index-1), Directions.Down, PriceTypes.Median, Prices)
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross, ChartIcons.Romb)
+
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Median, Prices)
     end
 
     -- calc last point indicator CentreLine
-    local last_centre_line = GetLastCentreLine(index)
+    -- local last_centre_line = GetApproximatedCentreLine(index)
 
-    Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
+    --Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
 
-    return last_centre_line
+    -- debuglog
+    if (index) then
+        local t = T(index)
+        PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
+    end 
+
+    -- return RSIs.Slows[index], RSIs.Fasts[index]
+    return nil
 end
 
 -----------------------------------------------------------------------------
@@ -117,6 +118,7 @@ end
 -----------------------------------------------------------------------------
 function SignalOscCross(index, direction, oscs, dev)
     if (CheckDataExist(index, 2, oscs.Slows) and CheckDataExist(index, 2, oscs.Fasts)) then
+
         dev = dev or 0
 
         -- true or false
@@ -128,54 +130,100 @@ end
 
 -----------------------------------------------------------------------------
 -- function EventCross
+--todo check condition flat for PriceCrossMA
 -----------------------------------------------------------------------------
 function EventCross(index, direction, value1, value2, dev)
-    return (ConditionRelate(direction, value2[index-1], value1[index-1], dev) and ConditionRelate(direction, value1[index], value2[index], dev))
+    -- return (ConditionRelate(direction, value2[index-1], value1[index-1], dev) or ConditionFlat(value2[index-1], value1[index-1], dev)) and ConditionRelate(direction, value1[index], value2[index], dev)
+
+    return ConditionRelate(direction, value2[index-1], value1[index-1], dev)  and ConditionRelate(direction, value1[index], value2[index], dev)
+end
+
+-----------------------------------------------------------------------------
+-- function ConditionFlat
+-----------------------------------------------------------------------------
+function ConditionFlat(value1, value2, dev)
+    return math.abs(GetDelta(value1, value2)) <= dev
+end
+
+-----------------------------------------------------------------------------
+-- function Condition Is Value1 over or under Value2
+-----------------------------------------------------------------------------
+function ConditionRelate(direction, value1, value2, dev)
+    if (direction == Directions.Long) then
+        return (value1 > (value2 + dev))
+    elseif (direction == Directions.Short) then
+        return (value2 > (value1 + dev))
+    end
 end
 
 -----------------------------------------------------------------------------
 -- function GetCentreLine
 -----------------------------------------------------------------------------
-function GetCentreLine(index, direction, price_type, prices)
-    if (price_type == PriceTypes.AvarageCloses) then
-        return (prices.Closes[index-1] + prices.Closes[index]) / 2
+function GetCalculatedCentreLine(index, direction, price_type, prices)
+    CentreLines.Indexes[#CentreLines.Indexes+1] = index
+
+    function GetCentreLine()
+        if (price_type == PriceTypes.AvarageCloses) then
+            return (prices.Closes[index-1] + prices.Closes[index]) / 2
+        end
+
+        local result
+
+        if (direction  == Directions.Long) then
+            result = (prices.Lows[index-1] + prices.Highs[index]) / 2
+        elseif (direction  == Directions.Short) then
+            result = (prices.Lows[index] + prices.Highs[index-1]) / 2
+        end
+
+        if (price_type == PriceTypes.Median) then
+            return result
+        end
+
+        result = (result * 2 + prices.Closes[index]) / 3
+
+        if (price_type == PriceTypes.Typical) then
+            return result
+        end
+
+        result = (result * 3 + prices.Opens[index-1]) / 4
+
+        if (price_type == PriceTypes.Weighted) then
+            return result
+        end
+
+        return -1
     end
 
-    local result
-
-    if (direction  == Directions.Up) then
-        result = (prices.Lows[index-1] + prices.Highs[index]) / 2
-    elseif (direction  == Directions.Down) then
-        result = (prices.Lows[index] + prices.Highs[index-1]) / 2
-    end
-
-    if (price_type == PriceTypes.Median) then
-        return result
-    end
-
-    result = (result * 2 + prices.Closes[index]) / 3
-
-    if (price_type == PriceTypes.Typical) then
-        return result
-    end
-
-    result = (result * 3 + prices.Opens[index-1]) / 4
-
-    if (price_type == PriceTypes.Weighted) then
-        return result
-    end
-
-    return -1
+    local centre_line = GetCentreLine()
+    SetValue(index, 1, centre_line)
+    
+    return centre_line
 end
 
 -----------------------------------------------------------------------------
--- function 
+-- function GetApproximatedCentreLine
 -----------------------------------------------------------------------------
-function GetLastCentreLine(index)
+function GetApproximatedCentreLine(index)
     local cl_last = #CentreLines.Indexes
+    local a = CentreLines.Values[cl_last]
+    local b1 = (CentreLines.Indexes[cl_last] - CentreLines.Indexes[cl_last-1]) 
+    local b2 = (CentreLines.Values[cl_last] - CentreLines.Values[cl_last-1])
+    local b = b2 / b1
 
-    local result = CentreLines.Values[cl_last] + (CentreLines.Values[cl_last] - CentreLines.Values[cl_last-1]) / (CentreLines.Indexes[cl_last] - CentreLines.Indexes[cl_last-1]) * (index - CentreLines.Indexes[cl_last])
+    return a + b * (index - CentreLines.Indexes[cl_last])
 end
+
+----------------------------------------------------------------------------
+-- function Reverse return reverse of direction
+----------------------------------------------------------------------------
+function Reverse(direction)
+    if (direction == Directions.Long) then
+        return Directions.Short
+    elseif (direction == Directions.Short) then
+        return Directions.Long
+    end
+end
+
 ----------------------------------------------------------------------------
 -- function GetChartTag     return chart tag from Robot name and Indicator name
 ----------------------------------------------------------------------------
@@ -186,13 +234,13 @@ end
 ----------------------------------------------------------------------------
 -- function SetSignal
 ----------------------------------------------------------------------------
-function SetSignal(index, direction, indicator_name, signal_name)
+function SetSignal(index, direction, indicator, signal)
     -- set signal up/down off
-    Signals[Reverse(direction)][indicator_name][signal_name].Candle = 0
+    Signals[Reverse(direction)][indicator.Name][signal.Name].Candle = 0
 
     -- set signal down/up on
-    Signals[direction][indicator_name][signal_name].Count = Signals[direction][indicator_name][signal_name].Count + 1
-    Signals[direction][indicator_name][signal_name].Candle = index
+    Signals[direction][indicator.Name][signal.Name].Count = Signals[direction][indicator.Name][signal.Name].Count + 1
+    Signals[direction][indicator.Name][signal.Name].Candle = index
 end
 
 --------------------------------------------------------------------------
@@ -260,39 +308,31 @@ function PrintDebugMessage(...)
     end
 end
 
-----------------------------------------------------------------------------
--- function GetChartLabelText
-----------------------------------------------------------------------------
-function GetChartLabelText(direction, indicator_name, signal_name, text)
-
-    local dir = (direction == Directions.Up) and "L" or "S"
-
-    return GetMessage(dir .. indicator_name .. signal_name, Signals[direction][indicator_name][signal_name].Count, Signals[direction][indicator_name][signal_name].Candle, text)
+-----------------------------------------------------------------------------
+-- function GetChartLabelXPos
+-----------------------------------------------------------------------------
+function GetChartLabelXPos(t)
+    return tostring(10000 * t.year + 100 * t.month + t.day), tostring(10000 * t.hour + 100 * t.min + t.sec)
 end
 
 ----------------------------------------------------------------------------
 -- function GetChartLabelYPos
---todo make cyclic variable for several levels of y position
 ----------------------------------------------------------------------------
 function GetChartLabelYPos(index, direction, indicator_name)
-    local position_y
-    local sign = (direction == Directions.Up) and -1 or 1
-    local price = (direction == Directions.Up) and "Lows" or "Highs"
+    local y
+    local sign = (direction == Directions.Long) and -1 or 1
+    local price = (direction == Directions.Long) and "Lows" or "Highs"
 
     -- y pos for price chart
     if (indicator_name == Prices.Name) then
-        position_y = Prices[price][index] + sign * ChartParams[Prices.Name].Step * SecInfo.min_price_step
-
-    -- y pos for stoch chart
-    elseif (indicator_name == Stochs.Name) then
-        position_y = Stochs.Slows[index] * (100 + sign * ChartParams[Stochs.Name].Step) / 100
+        y = Prices[price][index] + sign * ChartParams[Prices.Name].Step * SecInfo.min_price_step
 
     -- y pos for rsi chart
     elseif (indicator_name == RSIs.Name) then
-        position_y = RSIs.Slows[index] * (100 + sign * ChartParams[RSIs.Name].Step) / 100
+        y = RSIs.Slows[index] * (100 + sign * ChartParams[RSIs.Name].Step) / 100
     end
 
-    return position_y
+    return y
 end
 
 ----------------------------------------------------------------------------
@@ -301,43 +341,67 @@ end
 function GetChartIcon(direction, icon)
     icon = icon or ChartIcons.Triangle
 
-    return icon .. "_" .. direction .. ".jpg"
+    return ChartLabels.Params.IconPath .. icon .. "_" .. direction .. ".jpg"
 end
 
 ----------------------------------------------------------------------------
 -- function SetChartLabel
 ----------------------------------------------------------------------------
-function SetChartLabel(index, direction, indicator_name, signal_name, icon, text)
+function SetChartLabel(index, direction, indicator, signal, icon, text)
     -- delete label duplicates
-    local chart_tag = GetChartTag(indicator_name)
-    if (ChartLabels[indicator_name][index] ~= nil) then
-        DelLabel(chart_tag, ChartLabels[indicator_name][index])
+    local chart_tag = GetChartTag(indicator.Name)
+
+    if (ChartLabels[indicator.Name][index] ~= nil) then
+        DelLabel(chart_tag, ChartLabels[indicator.Name][index])
     end
 
     -- set label icon
-    ChartLabels.Params.IMAGE_PATH = ChartLabels.Params.IconPath .. GetChartIcon(direction, icon)
+    ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
 
     -- set label position
-    local x  = T(index)
-    ChartLabels.Params.DATE = tostring(10000 * x.year + 100 * x.month + x.day)
-    ChartLabels.Params.TIME = tostring(10000 * x.hour + 100 * x.min + x.sec)
+    ChartLabels.Params.DATE, ChartLabels.Params.TIME = GetChartLabelXPos(T(index))
 
-    ChartLabels.Params.YVALUE = GetChartLabelYPos(index, direction, indicator_name)
+    ChartLabels.Params.YVALUE = GetChartLabelYPos(index, direction, indicator.Name)
 
     -- set chart alingment from direction
-    if (direction == Directions.Up) then
+    if (direction == Directions.Long) then
         ChartLabels.Params.ALIGNMENT = "BOTTOM"
-    elseif (direction == Directions.Down) then
+    elseif (direction == Directions.Short) then
         ChartLabels.Params.ALIGNMENT = "TOP"
     end
 
     -- set text
-    ChartLabels.Params.HINT = direction .. indicator_name .. signal_name
-    ChartLabels.Params.TEXT = GetChartLabelText(direction, indicator_name, signal_name, text)
+    ChartLabels.Params.TEXT = GetMessage(direction, signal.Name, Signals[direction][indicator.Name][signal.Name].Count)
+
+    ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[direction][indicator.Name][signal.Name].Candle, text)
 
     -- set chart label return id
-    local result = AddLabel(chart_tag, ChartLabels.Params)
-    return result
+    return AddLabel(chart_tag, ChartLabels.Params)
+end
+
+----------------------------------------------------------------------------
+-- function Squeeze return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
+----------------------------------------------------------------------------
+function CyclicPointer(index, period)
+    return math.fmod(index - 1, period + 1)
+end
+
+----------------------------------------------------------------------------
+-- function RoundScale return value with requred numbers after digital point
+----------------------------------------------------------------------------
+function RoundScale(value, scale)
+    if ((value == nil) or (scale == nil)) then
+        return nil
+    end
+
+    -- calc and return result
+    local mult = 10^(scale or 0)
+
+    if (value >= 0) then
+        return (math.floor(value * mult + 0.5) / mult)
+    else
+        return (math.ceil(value * mult - 0.5) / mult)
+    end
 end
 
 ----------------------------------------------------------------------------
@@ -454,12 +518,20 @@ end
 -----------------------------------------------------------------------------
 function SetInitialCounts()
     -- down signals
-    Signals[Directions.Down][RSIs.Name]["Cross"].Count = 0
-    Signals[Directions.Down][RSIs.Name]["Cross"].Candle = 0
+    Signals[Directions.Short][Prices.Name]["Cross"].Count = 0
+    Signals[Directions.Short][Prices.Name]["Cross"].Candle = 0
+    Signals[Directions.Short][RSIs.Name]["Cross"].Count = 0
+    Signals[Directions.Short][RSIs.Name]["Cross"].Candle = 0    
+    Signals[Directions.Short]["Enter"]["Cross"].Count = 0
+    Signals[Directions.Short]["Enter"]["Cross"].Candle = 0
 
     -- up signals
-    Signals[Directions.Up][RSIs.Name]["Cross"].Count = 0
-    Signals[Directions.Up][RSIs.Name]["Cross"].Candle = 0
+    Signals[Directions.Long][Prices.Name]["Cross"].Count = 0
+    Signals[Directions.Long][Prices.Name]["Cross"].Candle = 0
+    Signals[Directions.Long][RSIs.Name]["Cross"].Count = 0
+    Signals[Directions.Long][RSIs.Name]["Cross"].Candle = 0
+    Signals[Directions.Long]["Enter"]["Cross"].Count = 0
+    Signals[Directions.Long]["Enter"]["Cross"].Candle = 0
 end
 
 -----------------------------------------------------------------------------
