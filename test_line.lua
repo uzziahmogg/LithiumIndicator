@@ -58,6 +58,9 @@ function OnCalculate(index)
         DataSource = getDataSourceInfo()
         SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
 
+        CentreLines.Indexes[1] = 1
+        CentreLines.Values[1] = C(1)
+
         SetInitialCounts()
     end
 
@@ -84,7 +87,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Weighted, Prices)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Weighted)
     end
     
     -- check fast rsi cross slow rsi down
@@ -95,7 +98,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Weighted, Prices)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Weighted)
     end
 
     -- calc last point indicator CentreLine
@@ -107,7 +110,6 @@ function OnCalculate(index)
     -- if (index == 10135 or index == 10136) then
     --     local t = T(index)
     --     PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
-    --     PrintDebugMessage("RSI", index-1, index,  RSIs.Slows[index-1], RSIs.Fasts[index-1],  RSIs.Slows[index], RSIs.Fasts[index])
     -- end 
 
     -- return RSIs.Slows[index], RSIs.Fasts[index]
@@ -160,33 +162,33 @@ end
 -----------------------------------------------------------------------------
 -- function GetCentreLine
 -----------------------------------------------------------------------------
-function GetCalculatedCentreLine(index, direction, price_type, prices)
+function GetCalculatedCentreLine(index, direction, price_type)
     CentreLines.Indexes[#CentreLines.Indexes+1] = index
 
     function GetCentreLine()
         if (price_type == PriceTypes.AvarageCloses) then
-            return (prices.Closes[index-1] + prices.Closes[index]) / 2
+            return (Prices.Closes[index-1] + Prices.Closes[index]) / 2
         end
 
         local result
 
         if (direction  == Directions.Long) then
-            result = (prices.Lows[index-1] + prices.Highs[index]) / 2
+            result = (Prices.Lows[index-1] + Prices.Highs[index]) / 2
         elseif (direction  == Directions.Short) then
-            result = (prices.Lows[index] + prices.Highs[index-1]) / 2
+            result = (Prices.Lows[index] + Prices.Highs[index-1]) / 2
         end
 
         if (price_type == PriceTypes.Median) then
             return result
         end
 
-        result = (result * 2 + prices.Closes[index]) / 3
+        result = (result * 2 + Prices.Closes[index]) / 3
 
         if (price_type == PriceTypes.Typical) then
             return result
         end
 
-        result = (result * 3 + prices.Opens[index-1]) / 4
+        result = (result * 3 + Prices.Opens[index-1]) / 4
 
         if (price_type == PriceTypes.Weighted) then
             return result
@@ -205,19 +207,13 @@ end
 -- function GetApproximatedCentreLine
 -----------------------------------------------------------------------------
 function GetApproximatedCentreLine(index)
-    local cl_last = #CentreLines.Indexes
-    local cl_last1 = #CentreLines.Values
+    local cl_size = #CentreLines.Indexes
 
-    local a = CentreLines.Values[cl_last]
-    local b1 = (CentreLines.Indexes[cl_last] - CentreLines.Indexes[cl_last-1]) 
-    local b2 = (CentreLines.Values[cl_last] - CentreLines.Values[cl_last-1])
-    local b = b2 / b1
+    if (cl_size >= 2) then
+        return CentreLines.Values[cl_size] + (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1]) / (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1]) * (index - CentreLines.Indexes[cl_size])
+    end
 
-    PrintDebugMessage("fromAppCentreLine", index, cl_last, cl_last1, "|",
-    CentreLines.Indexes[cl_last], CentreLines.Indexes[cl_last-1],
-    CentreLines.Values[cl_last], CentreLines.Values[cl_last-1])
-
-    return a + b * (index - CentreLines.Indexes[cl_last])
+    return nil
 end
 
 ----------------------------------------------------------------------------
