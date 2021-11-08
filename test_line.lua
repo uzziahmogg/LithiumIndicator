@@ -1,6 +1,6 @@
 Settings = {
     Name = "FEK_CentreLine", 
-    line ={{ Name = "Calculated", Type = TYPE_LINE, Color = RGB(255, 0, 0) }--[[ , { Name = "Approximated", Type = TYPE_DASH, Color = RGB(0, 255, 0) } ]]}}
+    line ={{ Name = "Calculated", Type = TYPE_LINE, Color = RGB(255, 0, 0) }, { Name = "Approximated", Type = TYPE_DASH, Color = RGB(0, 255, 0) }}}
 
 -----------------------------------------------------------------------------
 -- function Init
@@ -84,7 +84,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Median, Prices)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Weighted, Prices)
     end
     
     -- check fast rsi cross slow rsi down
@@ -95,22 +95,23 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Median, Prices)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Weighted, Prices)
     end
 
     -- calc last point indicator CentreLine
-    -- local last_centre_line = GetApproximatedCentreLine(index)
+    local last_centre_line = GetApproximatedCentreLine(index)
 
     --Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
 
     -- debuglog
-    if (index) then
-        local t = T(index)
-        PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
-    end 
+    -- if (index == 10135 or index == 10136) then
+    --     local t = T(index)
+    --     PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
+    --     PrintDebugMessage("RSI", index-1, index,  RSIs.Slows[index-1], RSIs.Fasts[index-1],  RSIs.Slows[index], RSIs.Fasts[index])
+    -- end 
 
     -- return RSIs.Slows[index], RSIs.Fasts[index]
-    return nil
+    return nil, last_centre_line
 end
 
 -----------------------------------------------------------------------------
@@ -205,10 +206,16 @@ end
 -----------------------------------------------------------------------------
 function GetApproximatedCentreLine(index)
     local cl_last = #CentreLines.Indexes
+    local cl_last1 = #CentreLines.Values
+
     local a = CentreLines.Values[cl_last]
     local b1 = (CentreLines.Indexes[cl_last] - CentreLines.Indexes[cl_last-1]) 
     local b2 = (CentreLines.Values[cl_last] - CentreLines.Values[cl_last-1])
     local b = b2 / b1
+
+    PrintDebugMessage("fromAppCentreLine", index, cl_last, cl_last1, "|",
+    CentreLines.Indexes[cl_last], CentreLines.Indexes[cl_last-1],
+    CentreLines.Values[cl_last], CentreLines.Values[cl_last-1])
 
     return a + b * (index - CentreLines.Indexes[cl_last])
 end
