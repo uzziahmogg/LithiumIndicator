@@ -1,3 +1,8 @@
+--============================================================================
+--todo remove all chart labels keep only last 30
+--todo remove all prices and inds array, kepp only last three
+--? why calculated centre line don't paint point at candle 1
+--============================================================================
 Settings = {
     Name = "FEK_CentreLine", 
     line ={{ Name = "Calculated", Type = TYPE_LINE, Color = RGB(255, 0, 0) }, { Name = "Approximated", Type = TYPE_DASH, Color = RGB(0, 255, 0) }}}
@@ -6,8 +11,6 @@ Settings = {
 -- function Init
 -----------------------------------------------------------------------------
 function Init()
-    CentreLines = { Indexes = {}, Values = {} }
-
     RSIs = { Name = "RSI", Fasts = {}, Slows = {}, Params = { Dev = 0, Slow = 14, Fast = 9 }}
 
     Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Deltas = {}}
@@ -39,7 +42,9 @@ function Init()
     ChartParams = { [Prices.Name] = { Tag = GetChartTag(Prices.Name), Step = 5 }, -- FEK_CentreLinePrice
     [RSIs.Name] = { Tag = GetChartTag(RSIs.Name), Step = 5}} -- FEK_CentreLineRSI
 
-    Signals = { [Directions.Long] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}, [Directions.Short] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}}
+    -- Signals = { [Directions.Long] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}, [Directions.Short] = { [Prices.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, [RSIs.Name] = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}, Enter = { Cross = { Name = "Cross", Count = 0, Candle = 0 }}}}
+
+    Signals = { [Directions.Long] = { [Prices.Name] = { Cross = { Name = "Cross", Count, Candle }}, [RSIs.Name] = { Cross = { Name = "Cross", Count, Candle }}, Enter = { Cross = { Name = "Cross", Count, Candle }}}, [Directions.Short] = { [Prices.Name] = { Cross = { Name = "Cross", Count, Candle }}, [RSIs.Name] = { Cross = { Name = "Cross", Count, Candle }}, Enter = { Cross = { Name = "Cross", Count, Candle }}}}
 
     PriceTypes = { Median = 1, Typical = 2, Weighted = 3, AvarageCloses = 4 }
 
@@ -58,6 +63,7 @@ function OnCalculate(index)
         DataSource = getDataSourceInfo()
         SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
 
+        CentreLines = { Indexes = {}, Values = {} }
         CentreLines.Indexes[1] = 1
         CentreLines.Values[1] = C(1)
 
@@ -107,10 +113,16 @@ function OnCalculate(index)
     --Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
 
     -- debuglog
-    -- if (index == 10135 or index == 10136) then
-    --     local t = T(index)
-    --     PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
-    -- end 
+    if (index <= 25) then
+        local t = T(index)
+        PrintDebugMessage("OnCalc1", index, t.month .. "-" .. t.day .. "/" .. t.hour .. ":" .. t.min)
+        PrintDebugMessage("OnCalc2", #CentreLines.Indexes, #CentreLines.Values)
+        local i
+        for i = 1, #CentreLines.Indexes do
+            PrintDebugMessage("OnCalc3", i, CentreLines.Indexes[i], CentreLines.Values[i])
+        end        
+        PrintDbgStr("OnCalc4|" .. tostring(last_centre_line))
+    end  
 
     -- return RSIs.Slows[index], RSIs.Fasts[index]
     return nil, last_centre_line
@@ -197,7 +209,10 @@ function GetCalculatedCentreLine(index, direction, price_type)
         return -1
     end
 
-    local centre_line = GetCentreLine()
+    -- local centre_line = GetCentreLine()
+    -- debug output
+    local centre_line = Prices.Closes[index]
+
     SetValue(index, 1, centre_line)
     
     return centre_line
@@ -280,11 +295,11 @@ function GetMessage(...)
         -- concate messages with symbol
         for count = 1, args.n do
             if (args[count] ~= nil) then
-                table.insert(tmessage, type(args[count]) == "string" and args[count] or tostring(args[count]))
+                table.insert(tmessage, ((type(args[count]) == "string") and args[count]) or tostring(args[count]))
             end
         end
 
-        return (table.concat(tmessage, "|"))
+        return table.concat(tmessage, "|"), args.n
     else
         -- nothing todo
         return nil
@@ -295,7 +310,7 @@ end
 -- function PrintDebugMessage(message1, message2, ...) print messages as one string separated by symbol in message window and debug utility
 ----------------------------------------------------------------------------
 function PrintDebugMessage(...)
-    local smessage = GetMessage(...)
+    local smessage, n = GetMessage(...)
 
     if (smessage ~= nil) then
         -- print messages as one string
@@ -303,8 +318,7 @@ function PrintDebugMessage(...)
         PrintDbgStr("QUIK|" .. smessage)
 
         -- return number of messages
-        local args = { n = select("#",...), ... }
-        return args.n
+        return n
     else
         -- nothing todo
         return 0
