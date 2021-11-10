@@ -46,7 +46,7 @@ function Init()
 
     Signals = { [Directions.Long] = { [Prices.Name] = { Cross = { Name = "Cross", Count, Candle }}, [RSIs.Name] = { Cross = { Name = "Cross", Count, Candle }}, Enter = { Cross = { Name = "Cross", Count, Candle }}}, [Directions.Short] = { [Prices.Name] = { Cross = { Name = "Cross", Count, Candle }}, [RSIs.Name] = { Cross = { Name = "Cross", Count, Candle }}, Enter = { Cross = { Name = "Cross", Count, Candle }}}}
 
-    PriceTypes = { Median = 1, Typical = 2, Weighted = 3, AvarageCloses = 4 }
+    PriceTypes = { Median = 1, Typical = 2, Weighted = 3, AvarageCloses = 4, Close = 5 }
 
     RSIFast = RSI("Fast")
     RSISlow = RSI("Slow")
@@ -58,6 +58,8 @@ end
 -- function OnCalculate
 -----------------------------------------------------------------------------
 function OnCalculate(index)
+    local calc_centre_line
+
     -- set initial values on first candle
     if (index == 1) then
         DataSource = getDataSourceInfo()
@@ -68,6 +70,9 @@ function OnCalculate(index)
         CentreLines.Values[1] = C(1)
 
         SetInitialCounts()
+        calc_centre_line = CentreLines.Values[1]
+    else
+        calc_centre_line = nil
     end
 
     -- calculate current prices
@@ -93,7 +98,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Weighted)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Close)
     end
     
     -- check fast rsi cross slow rsi down
@@ -104,28 +109,27 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Weighted)
+        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Close)
     end
 
     -- calc last point indicator CentreLine
-    local last_centre_line = GetApproximatedCentreLine(index)
+    local appr_centre_line = GetApproximatedCentreLine(index)
 
     --Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
 
     -- debuglog
-    if (index <= 25) then
+    if (index > 10500) then
         local t = T(index)
-        PrintDebugMessage("OnCalc1", index, t.month .. "-" .. t.day .. "/" .. t.hour .. ":" .. t.min)
-        PrintDebugMessage("OnCalc2", #CentreLines.Indexes, #CentreLines.Values)
-        local i
-        for i = 1, #CentreLines.Indexes do
-            PrintDebugMessage("OnCalc3", i, CentreLines.Indexes[i], CentreLines.Values[i])
-        end        
-        PrintDbgStr("OnCalc4|" .. tostring(last_centre_line))
+        PrintDebugMessage("OnCalc1", index, t.month .. "-" .. t.day .. "--" .. t.hour .. ":" .. t.min)
+        PrintDebugMessage("OnCalc2", tostring(calc_centre_line), tostring(appr_centre_line))
+        PrintDebugMessage("OnCalc3", #CentreLines.Indexes-1, CentreLines.Indexes[#CentreLines.Indexes-1], #CentreLines.Values-1, CentreLines.Values[#CentreLines.Values-1])
+        PrintDebugMessage("OnCalc3", #CentreLines.Indexes, CentreLines.Indexes[#CentreLines.Indexes], #CentreLines.Values, CentreLines.Values[#CentreLines.Values])
+
     end  
 
+
     -- return RSIs.Slows[index], RSIs.Fasts[index]
-    return nil, last_centre_line
+    return calc_centre_line, appr_centre_line
 end
 
 -----------------------------------------------------------------------------
@@ -178,6 +182,10 @@ function GetCalculatedCentreLine(index, direction, price_type)
     CentreLines.Indexes[#CentreLines.Indexes+1] = index
 
     function GetCentreLine()
+        if (price_type == PriceTypes.Close) then
+            return Prices.Closes[index]
+        end
+
         if (price_type == PriceTypes.AvarageCloses) then
             return (Prices.Closes[index-1] + Prices.Closes[index]) / 2
         end
@@ -209,9 +217,7 @@ function GetCalculatedCentreLine(index, direction, price_type)
         return -1
     end
 
-    -- local centre_line = GetCentreLine()
-    -- debug output
-    local centre_line = Prices.Closes[index]
+    local centre_line = GetCentreLine()
 
     SetValue(index, 1, centre_line)
     
@@ -224,8 +230,25 @@ end
 function GetApproximatedCentreLine(index)
     local cl_size = #CentreLines.Indexes
 
+
+
     if (cl_size >= 2) then
-        return CentreLines.Values[cl_size] + (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1]) / (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1]) * (index - CentreLines.Indexes[cl_size])
+        local a = CentreLines.Values[cl_size]
+        local b1 = (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1])
+        local b2 = (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1])
+        local res = a + b1 / b2 * (index - CentreLines.Indexes[cl_size])
+    
+    -- debuglog
+    if (index > 10500) then
+        local t = T(index)
+        PrintDebugMessage("GetApp1", index, t.month .. "-" .. t.day .. "--" .. t.hour .. ":" .. t.min)
+        PrintDebugMessage("GetApp2", tostring(cl_size), res)
+        PrintDebugMessage("GetApp3", a, b1, b2, (index - CentreLines.Indexes[cl_size]))
+    end  
+
+    -- return CentreLines.Values[cl_size] + (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1]) / (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1]) * (index - CentreLines.Indexes[cl_size])
+    return res
+
     end
 
     return nil
@@ -483,7 +506,7 @@ end
 
 ----------------------------------------------------------------------------
 --	function MMA = (MMAi-1 * (n - 1) + Pi) / n
---  --------------------------------------------------------------------------
+----------------------------------------------------------------------------
 function MMA(Settings)
     local Smas = {}
     local Mma_prev = 0
@@ -531,7 +554,7 @@ function MMA(Settings)
 end
 
 -----------------------------------------------------------------------------
---
+-- SetInitialCounts
 -----------------------------------------------------------------------------
 function SetInitialCounts()
     -- down signals
@@ -565,3 +588,4 @@ function GetDelta(value1, value2)
 end
 
 
+--[[ End of File ]]--
