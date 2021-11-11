@@ -98,7 +98,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals[Directions.Long][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Close)
+        SetCalculatedCentreLine((index-1), Directions.Long, PriceTypes.Close)
     end
     
     -- check fast rsi cross slow rsi down
@@ -109,7 +109,7 @@ function OnCalculate(index)
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals[Directions.Short][RSIs.Name].Cross, ChartIcons.Romb)
 
-        CentreLines.Values[#CentreLines.Values+1] = GetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Close)
+        SetCalculatedCentreLine((index-1), Directions.Short, PriceTypes.Close)
     end
 
     -- calc last point indicator CentreLine
@@ -118,15 +118,10 @@ function OnCalculate(index)
     --Prices.Deltas[index] = (Prices.Closes[index] ~= nil) and (last_centre_line) and RoundScale(GetDelta(Prices.Closes[index], last_centre_line), SecInfo.scale) or nil
 
     -- debuglog
-    if (index > 10500) then
+--[[     if (index > 10500) then
         local t = T(index)
         PrintDebugMessage("OnCalc1", index, t.month .. "-" .. t.day .. "--" .. t.hour .. ":" .. t.min)
-        PrintDebugMessage("OnCalc2", tostring(calc_centre_line), tostring(appr_centre_line))
-        PrintDebugMessage("OnCalc3", #CentreLines.Indexes-1, CentreLines.Indexes[#CentreLines.Indexes-1], #CentreLines.Values-1, CentreLines.Values[#CentreLines.Values-1])
-        PrintDebugMessage("OnCalc3", #CentreLines.Indexes, CentreLines.Indexes[#CentreLines.Indexes], #CentreLines.Values, CentreLines.Values[#CentreLines.Values])
-
-    end  
-
+    end   ]]
 
     -- return RSIs.Slows[index], RSIs.Fasts[index]
     return calc_centre_line, appr_centre_line
@@ -176,11 +171,9 @@ function ConditionRelate(direction, value1, value2, dev)
 end
 
 -----------------------------------------------------------------------------
--- function GetCentreLine
+-- function SetCentreLine
 -----------------------------------------------------------------------------
-function GetCalculatedCentreLine(index, direction, price_type)
-    CentreLines.Indexes[#CentreLines.Indexes+1] = index
-
+function SetCalculatedCentreLine(index, direction, price_type)
     function GetCentreLine()
         if (price_type == PriceTypes.Close) then
             return Prices.Closes[index]
@@ -217,11 +210,16 @@ function GetCalculatedCentreLine(index, direction, price_type)
         return -1
     end
 
-    local centre_line = GetCentreLine()
+    if (index ~= CentreLines.Indexes[#CentreLines.Indexes]) then
+        CentreLines.Indexes[#CentreLines.Indexes+1] = index
+        CentreLines.Values[#CentreLines.Values+1] = GetCentreLine()
 
-    SetValue(index, 1, centre_line)
-    
-    return centre_line
+        SetValue(index, 1, CentreLines.Values[#CentreLines.Values])
+        
+        return CentreLines.Values[#CentreLines.Values]
+    end
+
+    return -1
 end
 
 -----------------------------------------------------------------------------
@@ -230,25 +228,8 @@ end
 function GetApproximatedCentreLine(index)
     local cl_size = #CentreLines.Indexes
 
-
-
     if (cl_size >= 2) then
-        local a = CentreLines.Values[cl_size]
-        local b1 = (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1])
-        local b2 = (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1])
-        local res = a + b1 / b2 * (index - CentreLines.Indexes[cl_size])
-    
-    -- debuglog
-    if (index > 10500) then
-        local t = T(index)
-        PrintDebugMessage("GetApp1", index, t.month .. "-" .. t.day .. "--" .. t.hour .. ":" .. t.min)
-        PrintDebugMessage("GetApp2", tostring(cl_size), res)
-        PrintDebugMessage("GetApp3", a, b1, b2, (index - CentreLines.Indexes[cl_size]))
-    end  
-
-    -- return CentreLines.Values[cl_size] + (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1]) / (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1]) * (index - CentreLines.Indexes[cl_size])
-    return res
-
+        return CentreLines.Values[cl_size] + (CentreLines.Values[cl_size] - CentreLines.Values[cl_size-1]) / (CentreLines.Indexes[cl_size] - CentreLines.Indexes[cl_size-1]) * (index - CentreLines.Indexes[cl_size])
     end
 
     return nil
