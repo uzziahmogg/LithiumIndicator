@@ -12,6 +12,8 @@
 --todo remake all error handling to exceptions in functional programming
 --todo make 3-candle cross event fucntion
 --todo make candle+count itterator in separate States structure
+--todo remove all chart labels keep only last 30
+--todo remove all prices and inds array, kepp only last three
 
 -- if function make something - return number maked things, or 0 if nothing todo, or -1 if error
 -- if function return string or number or boolean - return string or number or boolean if success or return nil if error. todo nothing return nil
@@ -254,7 +256,29 @@ function OnCalculate(index_candle)
     end ]]
     --#endregion
 
-    --#region II.3. Elementary Stoch Signal: Signals[Down/Up].Stochs.VSteamer
+    --#region II.3. Signal: Signals[Down/Up].Stochs.Uturn3
+    --              Functions: SignalOscUturn3
+    --              Terminates by signals: -
+    --              Terminates by duration: Signals.Params.Duration
+    --              Enter: Signals[Down/Up].Price.EnterUturn3
+
+    -- check slow stoch uturn 3 candles up
+    if (SignalOscUturn3(index_candle, Directions.Up, Stochs, Signals.Params.Devs.Stoch)) then
+        SetSignal((index_candle-1), Directions.Up, Stochs.Name, "Uturn3")
+
+        -- set chart label
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Up, Stochs.Name, "Uturn3", ChartIcons.Triangle, ChartPermissions[1])
+    end
+
+    -- check slow stoch uturn 3 candles down
+    if (SignalOscUturn3(index_candle, Directions.Down, Stochs, Signals.Params.Devs.Stoch)) then
+        SetSignal((index_candle-1), Directions.Down, Stochs.Name, "Uturn3")
+
+        -- set chart label
+        ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Uturn3", ChartIcons.Triangle, ChartPermissions[1])
+    end 
+
+    --#region II.4. Elementary Stoch Signal: Signals[Down/Up].Stochs.VSteamer
     --              Enter Signal: Signals[Down/Up]["TrendOn"]/Uturn
     --              Depends on signal: SignalOscVSteamer
     --              Terminates by signals: Reverse self-signal
@@ -276,7 +300,7 @@ function OnCalculate(index_candle)
         ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "VSteamer", ChartIcons.Point, ChartPermissions[1], DealStages.Start)
     end
 
-    --#region II.4. Elementary Stoch Signal: Signals[Down/Up].Stochs.HSteamer
+    --#region II.5. Elementary Stoch Signal: Signals[Down/Up].Stochs.HSteamer
     --              Enter Signal: Signals[Down/Up]["TrendOn"]/Uturn
     --              Depends on signal: SignalOscHSteamer
     --              Terminates by signals: Reverse self-signal
