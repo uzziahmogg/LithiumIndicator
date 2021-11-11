@@ -292,7 +292,7 @@ function OnCalculate(index_candle)
             Signals[Directions.Up][Stochs.Name]["Uturn3"].Candle = 0
 
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel(index_candle-1, Directions.Up, Stochs.Name, "Uturn3", ChartIcons.Cross, ChartPermissions[1], GetMessage(DealStages.End, "Duration", duration))
+            ChartLabels[Stochs.Name][index_candle] = SetChartLabel(index_candle, Directions.Up, Stochs.Name, "Uturn3", ChartIcons.Cross, ChartPermissions[1], GetMessage(DealStages.End, duration))
         end
     end -- up presence
 
@@ -313,7 +313,7 @@ function OnCalculate(index_candle)
             Signals[Directions.Down][Stochs.Name]["Uturn3"].Candle = 0
 
             -- set chart label
-            ChartLabels[Stochs.Name][index_candle-1] =  SetChartLabel(index_candle-1, Directions.Down, Stochs.Name, "Uturn3", ChartIcons.Cross, ChartPermissions[1], GetMessage(DealStages.End, "Duration", duration))
+            ChartLabels[Stochs.Name][index_candle] =  SetChartLabel(index_candle, Directions.Down, Stochs.Name, "Uturn3", ChartIcons.Cross, ChartPermissions[1], GetMessage(DealStages.End, duration))
         end
     end -- down presence
     --#endregion
@@ -1217,13 +1217,19 @@ function SignalOscUturn3(index, direction, oscs, dev)
 
         dev = dev or 0
 
-        -- true or false
-        return ( -- deltas uturn
-            EventUturn(index, Directions.Up, oscs.Deltas, dev) and
-            -- fastosc/slowosc uturn
-            EventUturn(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and
+        local condition = 
+            -- fastosc uturn
+            EventUturn(index, direction, oscs.Fasts, dev) and 
+            -- deltas uturn
+            EventUturn(index, direction, oscs.Deltas, dev) and
+            -- slowosc move pro-trend 3 last candles
+            (EventMove(index, direction, oscs.Slows, dev) and EventMove(index-1, direction, oscs.Slows, dev)) and
             -- fastosc over slowosc all 3 candles
-            (ConditionRelate(direction, oscs.Fasts[index-3], oscs.Slows[index-3], dev) and ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev)))
+            (ConditionRelate(direction, oscs.Fasts[index-3], oscs.Slows[index-3], dev) and ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev))
+
+        return (condition and
+            -- strength condition
+            ConditionRelate(direction, oscs.Slows[index-1], oscs.Slows[index-3], dev))
 
     -- not enough data
     else
@@ -1281,41 +1287,27 @@ function SignalPriceUturn3(index, direction, prices, mas, dev)
 
         dev = dev or 0
 
-        if (index == 7744 or index == 7743 or index == 7742 or index == 7741) then
-            PrintDebugMessage("===", "Uturn3", index, T(index).month, T(index).day, T(index).hour, T(index).min, direction, "===")
-            PrintDebugMessage("   candle-3 or -2 contr-trend", (ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev)), "   candle pro-trend-1", ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev))
-            PrintDebugMessage("   closes0 uturn", EventUturn(index, direction, prices.Closes, dev), "   delta0 uturn", EventUturn(index, direction, mas.Deltas, dev))
-            PrintDebugMessage("    ma deltas", mas.Deltas[index-3], mas.Deltas[index-2], mas.Deltas[index-1])
-            PrintDebugMessage("   ma move pro-trend-0", EventMove(index, direction, mas.Centres, dev), EventFlat(index, mas.Centres, dev))
-            PrintDebugMessage("   ma move pro-trend-1", EventMove((index-1), direction, mas.Centres, dev), EventFlat((index-1), mas.Centres, dev))
-            PrintDebugMessage("   strength up3", (prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))),
-            "   strength up2", (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2]))), 
-            "   strength down3", ((prices.Highs[index-3] - 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3])) > prices.Closes[index-1]),
-            "   strength down2", ((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index-1]))
-        end
-
         local condition = 
             -- one first candle contr-trend, one last candle pro-trend
             (ConditionRelate(Reverse(direction), prices.Closes[index-3], prices.Opens[index-3], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev)) and ConditionRelate(direction, prices.Closes[index-1], prices.Opens[index-1], dev) and
             -- prices.Closes uturn
             EventUturn(index, direction, prices.Closes, dev) and
-            -- delta uturn with delta min at uturn top
+            -- delta uturn 
             EventUturn(index, direction, mas.Deltas, dev) and
             -- ma move pro-trend 3 last candles
             (EventMove(index, direction, mas.Centres, dev) or EventFlat(index, mas.Centres, dev)) and (EventMove((index-1), direction, mas.Centres, dev) or EventFlat((index-1), mas.Centres, dev))
+            -- strength condition
+            -- and ConditionRelate(direction, prices.Closes[index-1], prices.Closes[index-3], dev)
 
         if (direction == Directions.Up) then
             return (condition and
                 -- strength condition
-                -- (prices.Closes[index-1] >= prices.Closes[index-2]) and (prices.Closes[index-1] >= prices.Closes[index-3]))
                 ((prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))) or
 			    (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])))))
 
         elseif (direction == Directions.Down) then
             return (condition and
                 -- strength condition
-                -- (prices.Closes[index-2] >= prices.Closes[index-1]) and (prices.Closes[index-3] >= prices.Closes[index-1]))
-
                 (((prices.Highs[index-3] - 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3])) > prices.Closes[index-1]) or
 			    ((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index-1])))
         end
