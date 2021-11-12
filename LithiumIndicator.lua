@@ -105,10 +105,10 @@ end
 --==========================================================================
 function OnCalculate(index_candle)
     -- debuglog
-    --[[ if (index_candle > 7200) then
+    if (index_candle > 10860) then
         local t = T(index_candle)
         PrintDebugMessage("OnCalc", index_candle, t.month, t.day, t.hour, t.min)
-    end ]]
+    end
 
     -- set initial values on first candle
     if (index_candle == 1) then
@@ -273,7 +273,6 @@ function OnCalculate(index_candle)
         -- set chart label
         ChartLabels[Stochs.Name][index_candle-1] = SetChartLabel((index_candle-1), Directions.Down, Stochs.Name, "Uturn3", ChartIcons.Triangle, ChartPermissions[1])
     end 
-
     
     -- check presence signal up
     if (Signals[Directions.Up][Stochs.Name]["Uturn3"].Candle > 0) then
@@ -673,8 +672,8 @@ function OnCalculate(index_candle)
 
     --PrintDebugSummary(index_candle, 7314)
 
-    return PCs.Tops[index_candle], PCs.Centre[index_candle], PCs.Bottoms[index_candle]
-    -- return Stochs.Slows[index_candle], Stochs.Fasts[index_candle]
+    -- return PCs.Tops[index_candle], PCs.Centres[index_candle], PCs.Bottoms[index_candle]
+    return Stochs.Slows[index_candle], Stochs.Fasts[index_candle]
     -- return RSIs.Slows[index_candle], RSIs.Fasts[index_candle]
 end
 
@@ -1217,9 +1216,14 @@ function SignalOscUturn3(index, direction, oscs, dev)
 
         dev = dev or 0
 
+        if (index > 10860) then
+            PrintDebugMessage("Uturn3-1", index, direction, oscs.Name)
+        end
+
         local condition = 
             -- fastosc uturn
-            EventUturn(index, direction, oscs.Fasts, dev) and 
+            (EventUturn(index, direction, oscs.Fasts, dev) or
+            (EventFlat(index-1, oscs.Fasts, dev) and EventMove(index, direction, oscs.Fasts, dev))) and 
             -- deltas uturn
             EventUturn(index, direction, oscs.Deltas, dev) and
             -- slowosc move pro-trend 3 last candles
@@ -1227,9 +1231,18 @@ function SignalOscUturn3(index, direction, oscs, dev)
             -- fastosc over slowosc all 3 candles
             (ConditionRelate(direction, oscs.Fasts[index-3], oscs.Slows[index-3], dev) and ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev))
 
-        return (condition and
-            -- strength condition
-            ConditionRelate(direction, oscs.Slows[index-1], oscs.Slows[index-3], dev))
+
+        -- strength condition
+        local result = ConditionRelate(direction, oscs.Slows[index-1], oscs.Slows[index-3], dev)
+
+        if (index > 10860) then
+            PrintDebugMessage("Uturn3-2", EventUturn(index, direction, oscs.Fasts, dev), EventUturn(index, direction, oscs.Deltas, dev), oscs.Deltas[index-3], oscs.Deltas[index-2], oscs.Deltas[index-1])
+            PrintDebugMessage("Uturn3-3", EventMove(index, direction, oscs.Slows, dev), EventMove(index-1, direction, oscs.Slows, dev))
+            PrintDebugMessage("Uturn3-4", ConditionRelate(direction, oscs.Fasts[index-3], oscs.Slows[index-3], dev), ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev), ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev))
+            PrintDebugMessage("Uturn3-5", index, condition, result)
+        end
+
+        return (condition and result)
 
     -- not enough data
     else
