@@ -173,13 +173,13 @@ function OnCalculate(index)
     --          State: States[Down/Up].Price.StateTrend
 
     -- check start signal price cross ma up
-    --[[ if (SignalPriceCrossMA((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
+    if (SignalPriceCrossMA((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
 
         -- set signal
         SetSignal((index-1), Directions.Long, Prices, Signals.CrossMA)
 
         -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.CrossMA, ChartIcons.Triangle, ChartPermissions.Event)
+        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.CrossMA, ChartIcons.Arrow, ChartPermissions.Event)
     end
 
     -- check start signal price cross ma down
@@ -189,8 +189,8 @@ function OnCalculate(index)
         SetSignal((index-1), Directions.Short, Prices, Signals.CrossMA)
 
         -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.CrossMA, ChartIcons.Triangle, ChartPermissions.Event)
-    end ]]
+        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.CrossMA, ChartIcons.Arrow, ChartPermissions.Event)
+    end 
     --#endregion
 
     --#region   I.2. Signal: Signals[Down/Up].Price.Uturn3
@@ -226,7 +226,7 @@ function OnCalculate(index)
     --          State: Signals[Down/Up].Stochs.StateImpulse
 
     -- check fast stoch cross slow stoch up
-    --[[ if (SignalOscCross((index-1), Directions.Long, Stochs)) then
+    if (SignalOscCross((index-1), Directions.Long, Stochs)) then
 
         -- set signal
         SetSignal((index-1), Directions.Long, Stochs, Signals.Cross)
@@ -243,7 +243,7 @@ function OnCalculate(index)
 
         -- set chart label
         ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
-    end ]]
+    end
     --#endregion
 
     --#region II.2. Signal: Signals[Down/Up].Stochs.Cross50
@@ -253,7 +253,7 @@ function OnCalculate(index)
     --              State: Signals[Down/Up].Prices.StateTrend
 
     -- check slow stoch cross lvl50 up
-    --[[ if (SignalOscCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
+    if (SignalOscCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
 
         -- set signal
         SetSignal((index-1), Directions.Long, Stochs, Signals.Cross50)
@@ -270,7 +270,7 @@ function OnCalculate(index)
 
         -- set chart label
         ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross50, ChartIcons.Triangle, ChartPermissions.Event)
-    end ]]
+    end
     --#endregion
 
     --#region II.3. Signal: Signals[Down/Up].Stochs.Uturn3
@@ -394,13 +394,13 @@ function OnCalculate(index)
     --               State: Signals[Down/Up].Stochs.StateImpulse
 
     -- check fast rsi cross slow rsi up
-    --[[ if (SignalOscCross((index-1), Directions.Long, RSIs)) then
+    if (SignalOscCross((index-1), Directions.Long, RSIs)) then
 
         --set signal
         SetSignal((index-1), Directions.Long, RSIs, Signals.Cross)
 
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross, ChartIcons.Point, ChartPermissions.Signal)
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
     end
 
     -- check fast rsi cross slow rsi down
@@ -410,8 +410,8 @@ function OnCalculate(index)
         SetSignal((index-1), Directions.Short, RSIs, Signals.Cross)
 
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross, ChartIcons.Point, ChartPermissions.Signal)
-    end ]]
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
+    end
 
     --#endregion
 
@@ -422,7 +422,7 @@ function OnCalculate(index)
     --               State: States[Down/Up].Prices.StateTrend
 
     -- check slow rsi cross lvl50 up
-    --[[ if (SignalOscCrossLevel((index-1), Directions.Long, RSIs.Slows, RSIs.HLines.Centre)) then
+    if (SignalOscCrossLevel((index-1), Directions.Long, RSIs.Slows, RSIs.HLines.Centre)) then
 
         --set signal
         SetSignal((index-1), Directions.Long, RSIs, Signals.Cross50)
@@ -437,7 +437,7 @@ function OnCalculate(index)
 
         -- set chart label
         ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross50, ChartIcons.Triangle, ChartPermissions.Signal)
-    end ]]
+    end
     --#endregion
 
     --#region III.3. Elementary RSI Signal: Signals[Down/Up].RSIs["TrendOn"]
@@ -446,17 +446,14 @@ function OnCalculate(index)
     --               Terminates by signals: Reverse self-signal, SignalOscTrendOff, SignalOscCross
     --               Terminates by duration: Signals.Params.Duration
 
---[[     -- debuglog
-    if (index >= 10660) then
+    -- debuglog
+    if (index >= 10630) then
         local t = T(index)
         PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
-    end ]]
-
+    end
 
     -- check start signal up trendon - slow rsi enter on uptrend zone
     if (SignalOscTrendOn((index-1), Directions.Long, RSIs)) then
-
-        PrintDebugMessage("RSITrendOnUp", index-1)
 
         -- set signal on
         SetSignal((index-1), Directions.Long, RSIs, Signals.TrendOn)
@@ -495,7 +492,7 @@ function OnCalculate(index)
             -- process continuation signal up
             else
                 -- set chart label
-                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Asterix, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Plus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
             end
 
         -- check termination by duration signal up
@@ -511,8 +508,6 @@ function OnCalculate(index)
 
     -- check start signal down trendon - slow rsi enter on down trend zone
     if (SignalOscTrendOn((index-1), Directions.Short, RSIs)) then
-
-        PrintDebugMessage("RSITrendOnDown", index-1)
 
         SetSignal((index-1), Directions.Short, RSIs, Signals.TrendOn)
 
@@ -550,7 +545,7 @@ function OnCalculate(index)
             -- process continuation signal down
             else
                 -- set chart label
-                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Asterix, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Plus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
             end
 
         -- check termination by duration signal down
@@ -1111,7 +1106,7 @@ end
 -- Signal Osc Cross Level
 ----------------------------------------------------------------------------
 function SignalOscCrossLevel(index, direction, osc, level, dev)
-    PrintDebugMessage("OscCrossLevel1", index, direction, osc, level)
+
     if (CheckDataExist(index, 2, osc)) then
 
         dev = dev or 0
@@ -1119,12 +1114,7 @@ function SignalOscCrossLevel(index, direction, osc, level, dev)
         local levels = {[index-1] = level, [index] = level}
 
         -- osc cross level up/down
-        PrintDebugMessage("OscCrossLevel2", index, direction, osc, levels)
-
-        local result = EventCross(index, direction, osc, levels, dev)
-
-        PrintDebugMessage("OscCrossLevel3", index, levels[index-1], levels[index], result)
-        return result
+        return EventCross(index, direction, osc, levels, dev)
 
     -- not enough data
     else
@@ -1176,8 +1166,6 @@ function SignalOscTrendOn(index, direction, oscs, dev)
         end
     end
 
-PrintDebugMessage("OscTrendOn", index, direction, osc, level)
-
     return SignalOscCrossLevel(index, direction, osc, level, dev)
 end
 
@@ -1224,8 +1212,6 @@ function SignalOscTrendOff(index, direction, oscs, dev)
             return false
         end
     end
-
-    PrintDebugMessage("OscTrendOff", index, direction, osc, level)
 
     return SignalOscCrossLevel(index, direction, osc, level, dev)
 end
@@ -1387,12 +1373,6 @@ end
 -- Event Value1 cross Value2 up and down
 ----------------------------------------------------------------------------
 function EventCross(index, direction, value1, value2, dev)
-    if (index >= 10660) then
-        PrintDebugMessage("EventCross1", index, direction, value1, value2)
-        PrintDebugMessage("EventCross2", index, value1[index-1], value1[index])
-        PrintDebugMessage("EventCross3", index, value2[index-1], value2[index])
-    end
-
     return (ConditionRelate(direction, value2[index-1], value1[index-1], dev) and ConditionRelate(direction, value1[index], value2[index], dev))
 end
 
@@ -1530,10 +1510,6 @@ end
 -- function CheckDataExist return true if number values from index back exist
 ----------------------------------------------------------------------------
 function CheckDataExist(index, number, value)
-
-    if (type(value) ~= "table") then
-        PrintDebugMessage("CheckDataExist0", index, number, tostring(value))
-    end
 
     -- if index under required number return false
     if (index <= number) then
