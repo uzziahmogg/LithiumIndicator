@@ -82,7 +82,7 @@ function Init()
     end
 
     -- chart label icons
-    ChartIcons = { Arrow = "arrow", Point = "point", Triangle = "triangle", Cross = "cross", Romb = "romb", Plus = "plus", Flash = "flash", Asterix = "asterix", BigArrow = "big_arrow", BigPoint = "big_point", BigTriangle = "big_triangle", BigCross = "big_cross", BigRomb = "big_romb", BigPlus = "big_plus" }
+    ChartIcons = { Arrow = "arrow", Point = "point", Triangle = "triangle", Cross = "cross", Romb = "romb", Plus = "plus", Flash = "flash", Asterix = "asterix", BigArrow = "big_arrow", BigPoint = "big_point", BigTriangle = "big_triangle", BigCross = "big_cross", BigRomb = "big_romb", BigPlus = "big_plus", Minus = "minus" }
 
     -- stages of deals for chart labels text only
     DealStages = { Start = "Start", Continue = "Continue", End = "End" }
@@ -116,7 +116,7 @@ function Init()
                     [Directions.Long] = { [Stochs.Name] = { Count, Candle },
                                         [RSIs.Name] = { Count, Candle }},
                     [Directions.Short] = { [Stochs.Name] = { Count, Candle },
-                                        [RSIs.Name] = { Count, Candle }}}, Duration = 4 }
+                                        [RSIs.Name] = { Count, Candle }}}, Duration = 2 }
 
     return #Settings.line
 end
@@ -440,17 +440,21 @@ function OnCalculate(index)
     end
     --#endregion
 
-    --#region III.3. Elementary RSI Signal: Signals[Down/Up].RSIs["TrendOn"]
-    --               Enter Signals: Signals[Down/Up]["TrendOn"]
-    --               Depends on signal: SignalOscTrendOn
+    --#region III.3. Elementary RSI Signal: Signals[Down/Up].RSIs["TrendOff"]
+    --               Enter Signals: Signals[Down/Up]["TrendOff"]
+    --               Depends on signal: SignalOscTrendOff
     --               Terminates by signals: Reverse self-signal, SignalOscTrendOff, SignalOscCross
     --               Terminates by duration: Signals.Params.Duration
 
     -- debuglog
-    if (index >= 10630) then
+    --[[ if (index >= 10630) then
         local t = T(index)
-        PrintDebugMessage("OnCalc", index, t.month, t.day, t.hour, t.min)
-    end
+        PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
+    end ]]
+
+--[[if (index == 10660) or (index == 10659) or (index == 10658) or (index == 10657) then
+        PrintDebugMessage("---", RSIs.Slows[index-2], RSIs.Slows[index-1], RSIs.Slows[index])
+    end ]]
 
     -- check start signal up trendon - slow rsi enter on uptrend zone
     if (SignalOscTrendOn((index-1), Directions.Long, RSIs)) then
@@ -472,7 +476,7 @@ function OnCalculate(index)
         if (duration <= Signals.Duration) then
 
             -- check termination by slow rsi left off uptrend zone
-            if (SignalOscTrendOff(index, Directions.Short, RSIs)) then
+            if (SignalOscTrendOff((index-1), Directions.Short, RSIs)) then
 
                 -- set signal up off
                 Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
@@ -481,7 +485,7 @@ function OnCalculate(index)
                 ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "TrendOffDown", duration))
 
             -- check termination by fast rsi cross slow rsi down
-            elseif (SignalOscCross(index, Directions.Short, RSIs)) then
+            elseif (SignalOscCross((index-1), Directions.Short, RSIs)) then
 
                 -- set signal up off
                 Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
@@ -492,7 +496,7 @@ function OnCalculate(index)
             -- process continuation signal up
             else
                 -- set chart label
-                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Plus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
             end
 
         -- check termination by duration signal up
@@ -525,7 +529,7 @@ function OnCalculate(index)
         if (duration <= Signals.Duration) then
 
             -- check termination by slow rsi left off downtrend zone
-            if (SignalOscTrendOff(index, Directions.Long, RSIs)) then
+            if (SignalOscTrendOff((index-1), Directions.Long, RSIs)) then
 
                 -- set signal down off
                 Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
@@ -534,7 +538,7 @@ function OnCalculate(index)
                 ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End,  "TrendOffUp", duration))
 
                 -- check termination by fast rsi cross slow rsi up
-            elseif (SignalOscCross(index, Directions.Long, RSIs)) then
+            elseif (SignalOscCross((index-1), Directions.Long, RSIs)) then
 
                 -- set signal down off
                 Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
@@ -545,7 +549,7 @@ function OnCalculate(index)
             -- process continuation signal down
             else
                 -- set chart label
-                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Plus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
             end
 
         -- check termination by duration signal down
