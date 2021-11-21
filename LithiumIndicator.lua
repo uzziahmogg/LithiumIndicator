@@ -112,7 +112,7 @@ function Init()
                 Steamer = { Name = "Steamer",
                     [Directions.Long] = { [Stochs.Name] = { Count, Candle }},
                     [Directions.Short] = { [Stochs.Name] = { Count, Candle }}},
-                TrendOn = { Name = "TrendOn",
+                TrendOff = { Name = "TrendOff",
                     [Directions.Long] = { [Stochs.Name] = { Count, Candle },
                                         [RSIs.Name] = { Count, Candle }},
                     [Directions.Short] = { [Stochs.Name] = { Count, Candle },
@@ -457,111 +457,23 @@ function OnCalculate(index)
     end ]]
 
     -- check start signal up trendon - slow rsi enter on uptrend zone
-    if (SignalOscTrendOn((index-1), Directions.Long, RSIs)) then
+    if SignalOscTrendOff((index-1), Directions.Short, RSIs) then
 
         -- set signal on
-        SetSignal((index-1), Directions.Long, RSIs, Signals.TrendOn)
+        SetSignal((index-1), Directions.Short, RSIs, Signals.TrendOff)
 
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Arrow, ChartPermissions.Event)
-    end -- up start
-
-    -- check signal up exist
-    if (Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle > 0) then
-
-        -- set duration signal up
-        local duration = index - Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle
-
-        -- check continuation signal up
-        if (duration <= Signals.Duration) then
-
-            -- check termination by slow rsi left off uptrend zone
-            if (SignalOscTrendOff((index-1), Directions.Short, RSIs)) then
-
-                -- set signal up off
-                Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
-
-                -- set chart label
-                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "TrendOffDown", duration))
-
-            -- check termination by fast rsi cross slow rsi down
-            elseif (SignalOscCross((index-1), Directions.Short, RSIs)) then
-
-                -- set signal up off
-                Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
-
-                -- set chart label
-                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "CrossDown", duration))
-
-            -- process continuation signal up
-            else
-                -- set chart label
-                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
-            end
-
-        -- check termination by duration signal up
-        elseif (duration > Signals.Duration) then
-
-            -- set signal up off
-            Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "Duration", duration))
-        end
-    end -- up presence
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOff, ChartIcons.Triangle, ChartPermissions.Event)
+    end -- up 
 
     -- check start signal down trendon - slow rsi enter on down trend zone
-    if (SignalOscTrendOn((index-1), Directions.Short, RSIs)) then
+    if SignalOscTrendOff((index-1), Directions.Long, RSIs) then
 
-        SetSignal((index-1), Directions.Short, RSIs, Signals.TrendOn)
+        SetSignal((index-1), Directions.Long, RSIs, Signals.TrendOff)
 
         -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Arrow, ChartPermissions.Event, DealStages.Start)
-    end -- down start
-
-    -- check presence signal down
-    if (Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle > 0) then
-
-        -- set duration signal down
-        local duration = index - Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle
-
-        -- check continuation signal down
-        if (duration <= Signals.Duration) then
-
-            -- check termination by slow rsi left off downtrend zone
-            if (SignalOscTrendOff((index-1), Directions.Long, RSIs)) then
-
-                -- set signal down off
-                Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
-
-                -- set chart label
-                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End,  "TrendOffUp", duration))
-
-                -- check termination by fast rsi cross slow rsi up
-            elseif (SignalOscCross((index-1), Directions.Long, RSIs)) then
-
-                -- set signal down off
-                Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
-
-                -- set chart label
-                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "CrossUp", duration))
-
-            -- process continuation signal down
-            else
-                -- set chart label
-                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
-            end
-
-        -- check termination by duration signal down
-        elseif (duration > Signals.Duration) then
-
-            -- set signal down off
-            Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "Duration", duration))
-        end
-    end -- down presence
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOff, ChartIcons.Arrow, ChartPermissions.Event, DealStages.Start)
+    end -- down 
     --#endregion
 
     ----------------------------------------------------------------------------
@@ -1678,15 +1590,15 @@ function SetInitialCounts()
     Signals.Cross50[Directions.Short][Stochs.Name].Candle = 0
     Signals.Steamer[Directions.Short][Stochs.Name].Count = 0
     Signals.Steamer[Directions.Short][Stochs.Name].Candle = 0
-    Signals.TrendOn[Directions.Short][Stochs.Name].Count = 0
-    Signals.TrendOn[Directions.Short][Stochs.Name].Candle = 0
+    Signals.TrendOff[Directions.Short][Stochs.Name].Count = 0
+    Signals.TrendOff[Directions.Short][Stochs.Name].Candle = 0
 
     Signals.Cross[Directions.Short][RSIs.Name].Count = 0
     Signals.Cross[Directions.Short][RSIs.Name].Candle = 0
     Signals.Cross50[Directions.Short][RSIs.Name].Count = 0
     Signals.Cross50[Directions.Short][RSIs.Name].Candle = 0
-    Signals.TrendOn[Directions.Short][RSIs.Name].Count = 0
-    Signals.TrendOn[Directions.Short][RSIs.Name].Candle = 0
+    Signals.TrendOff[Directions.Short][RSIs.Name].Count = 0
+    Signals.TrendOff[Directions.Short][RSIs.Name].Candle = 0
 
     -- up signals
     Signals.CrossMA[Directions.Long][Prices.Name].Count = 0
@@ -1698,15 +1610,15 @@ function SetInitialCounts()
     Signals.Cross50[Directions.Long][Stochs.Name].Candle = 0
     Signals.Steamer[Directions.Long][Stochs.Name].Count = 0
     Signals.Steamer[Directions.Long][Stochs.Name].Candle = 0
-    Signals.TrendOn[Directions.Long][Stochs.Name].Count = 0
-    Signals.TrendOn[Directions.Long][Stochs.Name].Candle = 0
+    Signals.TrendOff[Directions.Long][Stochs.Name].Count = 0
+    Signals.TrendOff[Directions.Long][Stochs.Name].Candle = 0
 
     Signals.Cross[Directions.Long][RSIs.Name].Count = 0
     Signals.Cross[Directions.Long][RSIs.Name].Candle = 0
     Signals.Cross50[Directions.Long][RSIs.Name].Count = 0
     Signals.Cross50[Directions.Long][RSIs.Name].Candle = 0
-    Signals.TrendOn[Directions.Long][RSIs.Name].Count = 0
-    Signals.TrendOn[Directions.Long][RSIs.Name].Candle = 0
+    Signals.TrendOff[Directions.Long][RSIs.Name].Count = 0
+    Signals.TrendOff[Directions.Long][RSIs.Name].Candle = 0
 end
 
 ----------------------------------------------------------------------------
