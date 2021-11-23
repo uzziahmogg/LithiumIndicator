@@ -925,7 +925,7 @@ end
 --#region OSCILATOR SIGNALS
 --==========================================================================
 ----------------------------------------------------------------------------
--- Signal Osc Vertical Steamer
+-- Signal Osc Steamer
 ----------------------------------------------------------------------------
 function SignalOscSteamer(index, direction, oscs, diff, dev)
     if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts)) then
@@ -937,22 +937,18 @@ function SignalOscSteamer(index, direction, oscs, diff, dev)
             PrintDebugMessage("--ms", index, direction, EventMove(index, direction, oscs.Slows, dev))
             PrintDebugMessage("--mf", EventMove(index-1, direction, oscs.Fasts, dev), EventMove(index, direction, oscs.Fasts, dev))
             PrintDebugMessage("--c",  ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev), ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
-            PrintDebugMessage("--d",  ConditionEqual(oscs.Fasts[index-2], oscs.Slows[index-2], diff), ConditionEqual(oscs.Fasts[index-1], oscs.Slows[index-1], diff), ConditionEqual(oscs.Fasts[index], oscs.Slows[index], diff))
+            PrintDebugMessage("--d",  ConditionFlat(oscs.Fasts[index-2], oscs.Slows[index-2], diff), ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff), ConditionFlat(oscs.Fasts[index], oscs.Slows[index], diff))
         end
 
         -- true or false
-        return (-- oscs move in direction last 3 candles
-        (EventMove(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and 
-        EventMove(index-1, direction, oscs.Fasts, dev)) and 
-        --[[ EventMove(index-1, direction, oscs.Slows, dev)) and ]]
+        return (-- oscs move in direction last 2 candles
+        (EventMove(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev)) and 
 
         -- fast osc ralate slow osc in direction last 3 candles
-        (ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and 
-        ConditionRelate(direction, oscs.Fasts[index-1], oscs.Slows[index-1], dev)) and 
-        --[[ ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev)) and ]]
+        ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and 
 
         -- delta beetwen osc fast and slow osc less then dev last 3 candles
-        (ConditionEqual(oscs.Fasts[index], oscs.Slows[index], diff) and ConditionEqual(oscs.Fasts[index-1], oscs.Slows[index-1], diff) and ConditionEqual(oscs.Fasts[index-2], oscs.Slows[index-2], diff))) 
+        ConditionFlat(oscs.Fasts[index], oscs.Slows[index], diff))
     else
         return false
     end
@@ -967,7 +963,8 @@ function SignalOscCross(index, direction, oscs, dev)
         local dev = dev or Signals.MinDeviation
 
         -- cross fast osc over/under slow osc
-        return EventCross(index, direction, oscs.Fasts, oscs.Slows, dev)
+        -- return EventCross(index, direction, oscs.Fasts, oscs.Slows, dev)
+        return ((ConditionFlat(oscs.Slows[index-1], oscs.Fasts[index-1], dev) or ConditionRelate(direction, oscs.Slows[index-1], oscs.Fasts[index-1], dev)) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
 
     -- not enough data
     else
@@ -982,10 +979,11 @@ function SignalOscCrossLevel(index, direction, osc, level, dev)
     if (CheckDataExist(index, 2, osc)) then
 
         local dev = dev or Signals.MinDeviation
-        local levels = {[index-1] = level, [index] = level}
-
+        
         -- osc cross level up/down
-        return EventCross(index, direction, osc, levels, dev)
+        --[[ local levels = {[index-1] = level, [index] = level}
+        return EventCross(index, direction, osc, levels, dev) ]]
+        return ((ConditionFlat(level, osc[index-1], dev) or ConditionRelate(direction, level, osc[index-1], dev)) and ConditionRelate(direction, osc[index], level, dev))
 
     -- not enough data
     else
@@ -1116,7 +1114,7 @@ function SignalOscUturn3(index, direction, oscs, dev)
 end
 
 ----------------------------------------------------------------------------
--- Signal Osc Uturn with 4 candles
+--! Signal Osc Uturn with 4 candles
 ----------------------------------------------------------------------------
 function SignalOscUturn4(index, direction, oscs, dev)
     if (CheckDataExist(index, 4, oscs.Slows) and CheckDataExist(index, 4, oscs.Fasts) and CheckDataExist(index, 4, oscs.Deltas)) then
@@ -1150,7 +1148,8 @@ function SignalPriceCrossMA(index, direction, price, ma, dev)
         local dev = dev or Signals.MinDeviation
 
         -- close cross ma up/down
-        return EventCross(index, direction, price, ma, dev)
+        -- return EventCross(index, direction, price, ma, dev)
+        return ((ConditionFlat(ma[index-1], price[index-1], dev) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and ConditionRelate(direction, price[index], ma[index], dev))
 
     -- not enough data
     else
@@ -1198,7 +1197,7 @@ function SignalPriceUturn3(index, direction, prices, mas, dev)
 end
 
 ----------------------------------------------------------------------------
--- Signal Price Uturn with 4 candles
+--! Signal Price Uturn with 4 candles
 ----------------------------------------------------------------------------
 function SignalPriceUturn4(index, direction, prices, mas, dev)
     if (CheckDataExist(index, 4, prices.Opens) and CheckDataExist(index, 4, prices.Closes) and CheckDataExist(index, 4, prices.Highs) and CheckDataExist(index, 4, prices.Lows) and CheckDataExist(index, 4, mas.Centres) and CheckDataExist(index, 4, mas.Deltas)) then
@@ -1280,7 +1279,7 @@ end
 ----------------------------------------------------------------------------
 -- Condition Is Value1 equal Value2
 ----------------------------------------------------------------------------
-function ConditionEqual(value1, value2, dev)
+function ConditionFlat(value1, value2, dev)
     return (math.abs(GetDelta(value1, value2)) <= dev)
 end
 --#endregion
