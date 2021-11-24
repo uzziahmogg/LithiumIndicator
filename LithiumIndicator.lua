@@ -8,6 +8,9 @@
 --// make same func for text concate in PrintDebugMessage and GetChartLabelText
 --// remove Params levels
 --// merge IndArrays and ChartParams - chart is collection of indicators
+--// recode all SignalCross to more soft strenth condition - first leg may be equal second leg only different so moveing statrted
+--// recode SignalSteamer to osc slow move on index osc flat move on index and can be flat or contr moveing on index-1
+
 --todo create func CheckElementarySignal
 --todo make code for CheckComplexSignals
 --todo move long/short checking signals to diferent branch
@@ -17,23 +20,24 @@
 --todo remove all chart labels keep only last 30
 --todo remove all prices and inds array, kepp only last three
 --todo recode SetInitValues and PrintDebugSummary to cycles over all pairs
---todo recode all SignalCross to more soft strenth condition - first leg may be equal second leg only different so moveing statrted
---todo recode SignalSteamer to osc slow move on index osc flat move on index and can be flat or contr moveing on index-1
 --todo check DataExist for functions
---
+--todo make shift uturn slow and fast lines
+--todo remove rsicross50
+--todo recode priceuturn3
+
 --? move error checking data checking args checking from signal functions to lowest event functions
---
---! if function make something - return number maked things, or 0 if nothing todo, or nil if error
---! if function return something - if success return string or number or boolean or if error/todo nothing return nil
---! rememebr about strength critery in prciecross/osccross signals - now there have most strength criter where different sides of cross have different not equal values
---
---! events -> signals -> states -> enters
---! events/conditions is elementary signals like fast oscilator cross up slow oscilator, price cross up ma  and all there are in period 2-3 candles
---! several events and conditions consist signal like uturn, spring, cross, cross50 etc
---! functions responsible for cantching signals counting requested events and conditions
---! several signals consist states like trend, impulse etc
---! several states and signals consist enters like Leg1ZigZagSpring, Uturn50 etc
---! signals is cleat signals , all streng conditions must be in states/enters
+
+--* if function make something - return number maked things, or 0 if nothing todo, or nil if error
+--* if function return something - if success return string or number or boolean or if error/todo nothing return nil
+--* rememebr about strength critery in prciecross/osccross signals - now there have most strength criter where different sides of cross have different not equal values
+
+--* events -> signals -> states -> enters
+--* events/conditions is elementary signals like fast oscilator cross up slow oscilator, price cross up ma  and all there are in period 2-3 candles
+--* several events and conditions consist signal like uturn, spring, cross, cross50 etc
+--* functions responsible for cantching signals counting requested events and conditions
+--* several signals consist states like trend, impulse etc
+--* several states and signals consist enters like Leg1ZigZagSpring, Uturn50 etc
+--* signals is clear signals , all strengh conditions must be in states/enters
 --==========================================================================
 ----------------------------------------------------------------------------
 --#region Settings
@@ -940,7 +944,7 @@ function SignalOscSteamer(index, direction, oscs, diff, dev)
         ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and 
 
         -- delta beetwen osc fast and slow osc less then dev last 3 candles
-        ConditionRange(oscs.Fasts[index], oscs.Slows[index], diff))
+        ConditionFlat(oscs.Fasts[index], oscs.Slows[index], diff))
     else
         return false
     end
@@ -956,7 +960,8 @@ function SignalOscCross(index, direction, oscs, dev)
 
         -- cross fast osc over/under slow osc
         -- return EventCross(index, direction, oscs.Fasts, oscs.Slows, dev)
-        return ((ConditionRange(oscs.Slows[index-1], oscs.Fasts[index-1], dev) or ConditionRelate(direction, oscs.Slows[index-1], oscs.Fasts[index-1], dev)) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
+
+        return ((ConditionFlat(oscs.Slows[index-1], oscs.Fasts[index-1], dev) or ConditionRelate(direction, oscs.Slows[index-1], oscs.Fasts[index-1], dev)) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
 
     -- not enough data
     else
@@ -975,7 +980,8 @@ function SignalOscCrossLevel(index, direction, osc, level, dev)
         -- osc cross level up/down
         --[[ local levels = {[index-1] = level, [index] = level}
         return EventCross(index, direction, osc, levels, dev) ]]
-        return ((ConditionRange(level, osc[index-1], dev) or ConditionRelate(direction, level, osc[index-1], dev)) and ConditionRelate(direction, osc[index], level, dev))
+
+        return ((ConditionFlat(level, osc[index-1], dev) or ConditionRelate(direction, level, osc[index-1], dev)) and ConditionRelate(direction, osc[index], level, dev))
 
     -- not enough data
     else
@@ -1072,7 +1078,7 @@ function SignalPriceCrossMA(index, direction, price, ma, dev)
 
         -- close cross ma up/down
         -- return EventCross(index, direction, price, ma, dev)
-        return ((ConditionRange(ma[index-1], price[index-1], dev) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and ConditionRelate(direction, price[index], ma[index], dev))
+        return ((ConditionFlat(ma[index-1], price[index-1], dev) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and ConditionRelate(direction, price[index], ma[index], dev))
 
     -- not enough data
     else
@@ -1165,7 +1171,7 @@ end
 ----------------------------------------------------------------------------
 -- Condition Is Value1 equal Value2
 ----------------------------------------------------------------------------
-function ConditionRange(value1, value2, dev)
+function ConditionFlat(value1, value2, dev)
     return (math.abs(GetDelta(value1, value2)) <= dev)
 end
 --#endregion

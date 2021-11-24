@@ -1,0 +1,37 @@
+☐ create func CheckElementarySignal
+☐ make code for CheckComplexSignals
+☐ move long/short checking signals to diferent branch
+☐ remake all error handling to exceptions in functional programming
+☐ make 3-candle cross event fucntion
+☐ make candle+count itterator in separate States structure
+☐ remove all chart labels keep only last 30
+☐ remove all prices and inds array, kepp only last three
+☐ recode SetInitValues and PrintDebugSummary to cycles over all pairs
+☐ check DataExist for functions
+☐ make shift uturn slow and fast lines
+
+move error checking data checking args checking from signal functions to lowest event functions
+--
+if function make something - return number maked things, or 0 if nothing todo, or nil if error
+if function return something - if success return string or number or boolean or if error/todo nothing return nil
+rememebr about strength critery in prciecross/osccross signals - now there have most strength criter where different sides of cross have different not equal values
+
+events -> signals -> states -> enters
+events/conditions is elementary signals like fast oscilator cross up slow oscilator, price cross up ma  and all there are in period 2-3 candles
+several events and conditions consist signal like uturn, spring, cross, cross50 etc
+functions responsible for cantching signals counting requested events and conditions
+several signals consist states like trend, impulse etc
+several states and signals consist enters like Leg1ZigZagSpring, Uturn50 etc
+signals is cleat signals , all streng conditions must be in states/enters
+
+Archive:
+  ✔ convert RoundScale(..., SecInfo.scale) to RoundScale(..., values_after_point) @done(21-11-24 13:46)
+  ✔ func AddLabel use Labels array @done(21-11-24 13:46)
+  ✔ check price/osc events uturn3/4 @done(21-11-24 13:46)
+  ✔ make code for signal price/osc uturin3/4 @done(21-11-24 13:46)
+  ✔ make same func for text concate in PrintDebugMessage and GetChartLabelText @done(21-11-24 13:46)
+  ✔ remove Params levels @done(21-11-24 13:46)
+  ✔ merge IndArrays and ChartParams - chart is collection of indicators @done(21-11-24 13:46)
+  ✔ recode all SignalCross to more soft strenth condition - first leg may be equal second leg only different so moveing statrted @done(21-11-24 13:46)
+  ✔ recode SignalSteamer to osc slow move on index osc flat move on index and can be flat or contr moveing on index-1 @done(21-11-24 13:46)
+  ✔ make frame @started(21-11-24 13:32) @done(21-11-24 13:32) @lasted(34s)
