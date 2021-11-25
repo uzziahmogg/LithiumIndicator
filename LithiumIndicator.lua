@@ -1038,16 +1038,10 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
-function SignalOscUturn3(index, direction, oscs, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 3, oscs.Deltas)) then
-
-        local dev = dev or Signals.MinDeviation
-
+function SignalOscUturn3(index, direction, oscs, dev)    
+    local function Uturn3Fast(index)
         return -- fastosc uturn
-            (EventUturn3(index, direction, oscs.Fasts, dev) and
-
-            -- slowosc uturn
-            (EventUturn3(index, direction, oscs.Slows, dev) or  (EventMove((index-1), direction, oscs.Slows, dev) and EventMove(index, direction, oscs.Slows, dev)) or (EventFlat((index-1), oscs.Slows, dev) and EventMove(index, direction, oscs.Slows, dev))) and
+            (EventUturn3(index, direction, oscs.Fasts, dev) and            
 
             -- deltas uturn
             (EventUturn3(index, direction, oscs.Deltas, dev) or (EventFlat((index-1), oscs.Deltas, dev) and EventMove(index, direction, oscs.Deltas, dev))) and
@@ -1057,7 +1051,17 @@ function SignalOscUturn3(index, direction, oscs, dev)
 
             -- strength condition
             (ConditionRelate(direction, oscs.Slows[index-1], oscs.Slows[index-3], dev) and ConditionRelate(direction, oscs.Fasts[index-1], oscs.Fasts[index-3], dev)))
+    end
 
+    local function Uturn3Slow(index)
+        -- slowosc uturn
+        (EventUturn3(index, direction, oscs.Slows, dev) or  (EventMove((index-1), direction, oscs.Slows, dev) and EventMove(index, direction, oscs.Slows, dev)) or (EventFlat((index-1), oscs.Slows, dev) and EventMove(index, direction, oscs.Slows, dev))) and
+    end
+
+    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 3, oscs.Deltas)) then
+        local dev = dev or Signals.MinDeviation
+
+        return Uturn3
     -- not enough data
     else
         return false
