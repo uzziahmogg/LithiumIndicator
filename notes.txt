@@ -35,3 +35,126 @@ todo:
 ☐ rewrite SignalOscTrendOn and SignalOscTrendOff @timestamp(2021-09-29 13:16)
 ☐ add shrinking delta to SignalOscUturn3 @timestamp(2021-09-30 13:33)
 ☐ add SignalPriceCrossLevel for price cross PriceChannel Top/Botom @timestamp(2021-09-29 13:18)
+
+--#region III.3. Elementary RSI Signal: Signals[Down/Up].RSIs["TrendOff"]
+    --               Enter Signals: Signals[Down/Up]["TrendOff"]
+    --               Depends on signal: SignalOscTrendOff
+    --               Terminates by signals: Reverse self-signal, SignalOscTrendOff, SignalOscCross
+    --               Terminates by duration: Signals.Params.Duration
+
+    -- debuglog
+    --[[ if (index >= 10630) then
+        local t = T(index)
+        PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
+    end ]]
+
+--[[if (index == 10660) or (index == 10659) or (index == 10658) or (index == 10657) then
+        PrintDebugMessage("---", RSIs.Slows[index-2], RSIs.Slows[index-1], RSIs.Slows[index])
+    end ]]
+
+    -- check start signal up trendon - slow rsi enter on uptrend zone
+    if (SignalOscTrendOn((index-1), Directions.Long, RSIs)) then
+
+        -- set signal on
+        SetSignal((index-1), Directions.Long, RSIs, Signals.TrendOn)
+
+        -- set chart label
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Arrow, ChartPermissions.Event)
+    end -- up start
+
+    -- check signal up exist
+    if (Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle > 0) then
+
+        -- set duration signal up
+        local duration = index - Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle
+
+        -- check continuation signal up
+        if (duration <= Signals.Duration) then
+
+            -- check termination by slow rsi left off uptrend zone
+            if (SignalOscTrendOff((index-1), Directions.Short, RSIs)) then
+
+                -- set signal up off
+                Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "TrendOffDown", duration))
+
+            -- check termination by fast rsi cross slow rsi down
+            elseif (SignalOscCross((index-1), Directions.Short, RSIs)) then
+
+                -- set signal up off
+                Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "CrossDown", duration))
+
+            -- process continuation signal up
+            else
+                -- set chart label
+                ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+            end
+
+        -- check termination by duration signal up
+        elseif (duration > Signals.Duration) then
+
+            -- set signal up off
+            Signals[Signals.TrendOn.Name][Directions.Long][RSIs.Name].Candle = 0
+
+            -- set chart label
+            ChartLabels[RSIs.Name][index] = SetChartLabel(index, Directions.Long, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "Duration", duration))
+        end
+    end -- up presence
+
+    -- check start signal down trendon - slow rsi enter on down trend zone
+    if (SignalOscTrendOn((index-1), Directions.Short, RSIs)) then
+
+        SetSignal((index-1), Directions.Short, RSIs, Signals.TrendOn)
+
+        -- set chart label
+        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Arrow, ChartPermissions.Event, DealStages.Start)
+    end -- down start
+
+    -- check presence signal down
+    if (Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle > 0) then
+
+        -- set duration signal down
+        local duration = index - Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle
+
+        -- check continuation signal down
+        if (duration <= Signals.Duration) then
+
+            -- check termination by slow rsi left off downtrend zone
+            if (SignalOscTrendOff((index-1), Directions.Long, RSIs)) then
+
+                -- set signal down off
+                Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End,  "TrendOffUp", duration))
+
+                -- check termination by fast rsi cross slow rsi up
+            elseif (SignalOscCross((index-1), Directions.Long, RSIs)) then
+
+                -- set signal down off
+                Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "CrossUp", duration))
+
+            -- process continuation signal down
+            else
+                -- set chart label
+                ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Minus, ChartPermissions.Event, GetMessage(DealStages.Continue, duration))
+            end
+
+        -- check termination by duration signal down
+        elseif (duration > Signals.Duration) then
+
+            -- set signal down off
+            Signals[Signals.TrendOn.Name][Directions.Short][RSIs.Name].Candle = 0
+
+            -- set chart label
+            ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "Duration", duration))
+        end
+    end -- down presence
