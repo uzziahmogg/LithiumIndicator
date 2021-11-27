@@ -1084,7 +1084,7 @@ end
 --#region UTILITIES
 --==========================================================================
 ----------------------------------------------------------------------------
--- function Reverse return reverse of direction
+-- function Reverse() return reverse of direction
 ----------------------------------------------------------------------------
 function Reverse(direction)
     if (direction == Directions.Long) then
@@ -1095,7 +1095,7 @@ function Reverse(direction)
 end
 
 ----------------------------------------------------------------------------
--- function GetDelta return abs difference between values
+-- function GetDelta() return abs difference between values
 ----------------------------------------------------------------------------
 function GetDelta(value1, value2)
     if ((value1 == nil) or (value2 == nil)) then
@@ -1108,14 +1108,14 @@ function GetDelta(value1, value2)
 end
 
 ----------------------------------------------------------------------------
--- function Squeeze return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
+-- function Squeeze() return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
 ----------------------------------------------------------------------------
 function CyclicPointer(index, period)
     return math.fmod(index - 1, period + 1)
 end
 
 ----------------------------------------------------------------------------
--- function RoundScale return value with requred numbers after digital point
+-- function RoundScale() return value with requred numbers after digital point
 ----------------------------------------------------------------------------
 function RoundScale(value, scale)
     if ((value == nil) or (scale == nil)) then
@@ -1133,14 +1133,14 @@ function RoundScale(value, scale)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartTag     return chart tag from Robot name and Indicator name
+-- function GetChartTag() return chart tag from Robot name and Indicator name
 ----------------------------------------------------------------------------
 function GetChartTag(indicator_name)
     return (Settings.Name .. indicator_name)
 end
 
 ----------------------------------------------------------------------------
--- function SetSignal
+-- function SetSignal() set signal variables and state
 ----------------------------------------------------------------------------
 function SetSignal(index, direction, indicator, signal)
     -- set signal up/down off
@@ -1151,27 +1151,8 @@ function SetSignal(index, direction, indicator, signal)
     Signals[signal.Name][direction][indicator.Name].Candle = index
 end
 
-----------------------------------------------------------------------------
--- function SetStates
-----------------------------------------------------------------------------
-function SetState(index, direction, signal_name)
-    local indicator_name
-    if (signal_name == "StateTrend") then
-        indicator_name = Prices.Name
-    elseif (signal_name == "StateImpulse") then
-        indicator_name = Stochs.Name
-    end
-
-    -- set signal up/down off
-    Signals[Reverse(direction)][indicator_name][signal_name].Candle = 0
-
-    -- set signal down/up on
-    Signals[direction][indicator_name][signal_name].Count = Signals[direction][indicator_name][signal_name].Count + 1
-    Signals[direction][indicator_name][signal_name].Candle = index
-end
-
 --------------------------------------------------------------------------
--- function CheckDataExist return true if number values from index back exist
+-- function CheckDataExist() return true if number values from index back exist
 ----------------------------------------------------------------------------
 function CheckDataExist(index, number, value)
     -- if index under required number return false
@@ -1192,13 +1173,13 @@ function CheckDataExist(index, number, value)
 end
 
 ----------------------------------------------------------------------------
--- function CheckChartPermission
+-- function CheckChartPermission() Returns the truth if signal permission is alowed by permissions of chart
 ----------------------------------------------------------------------------
 function CheckChartPermission(indicator, signal_permission)
     return (((signal_permission == ChartPermissions.Event) and ((indicator.Permission & ChartPermissions.Event) > 0)) or ((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0))  or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
 end
 ----------------------------------------------------------------------------
--- function GetMessage(...) return messages as one string separated by symbol
+-- function GetMessage(...) Returns messages separated by the symbol as one string 
 ----------------------------------------------------------------------------
 function GetMessage(...)
     local args = { n = select("#",...), ... }
@@ -1222,7 +1203,7 @@ function GetMessage(...)
 end
 
 ----------------------------------------------------------------------------
--- function PrintDebugMessage(message1, message2, ...) print messages as one string separated by symbol in message window and debug utility
+-- function PrintDebugMessage(message1, message2, ...) print messages as one string separated by symbol in message window and debug console
 ----------------------------------------------------------------------------
 function PrintDebugMessage(...)
     local smessage = GetMessage(...)
@@ -1242,14 +1223,14 @@ function PrintDebugMessage(...)
 end
 
 -----------------------------------------------------------------------------
--- function GetChartLabelXPos
+-- function GetChartLabelXPos() returns x position for chart label
 -----------------------------------------------------------------------------
 function GetChartLabelXPos(t)
     return tostring(10000 * t.year + 100 * t.month + t.day), tostring(10000 * t.hour + 100 * t.min + t.sec)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartLabelYPos
+-- function GetChartLabelYPos() returns y position for chart label
 --todo make cyclic variable for several levels of y position
 ----------------------------------------------------------------------------
 function GetChartLabelYPos(index, direction, indicator)
@@ -1270,7 +1251,7 @@ function GetChartLabelYPos(index, direction, indicator)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartIcon
+-- function GetChartIcon() returns icon path for chart label
 ----------------------------------------------------------------------------
 function GetChartIcon(direction, icon)
     icon = icon or ChartIcons.Triangle
@@ -1279,7 +1260,7 @@ function GetChartIcon(direction, icon)
 end
 
 ----------------------------------------------------------------------------
--- function SetChartLabel
+-- function SetChartLabel() set chart label
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
 
@@ -1323,7 +1304,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 end
 
 ----------------------------------------------------------------------------
--- function SetInitialCounts()    init Signals Candles and Counts
+-- function SetInitialCounts() init Signals Candles and Counts
 ----------------------------------------------------------------------------
 function SetInitialValues()
     -- crossma signals
