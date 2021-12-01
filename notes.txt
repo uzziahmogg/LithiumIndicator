@@ -158,3 +158,57 @@ todo:
             ChartLabels[RSIs.Name][index] =  SetChartLabel(index, Directions.Short, RSIs, Signals.TrendOn, ChartIcons.Cross, ChartPermissions.Event, GetMessage(DealStages.End, "Duration", duration))
         end
     end -- down presence
+    ===========================================================================
+    function SignalOscUturn4(osc, index, direction)	
+	if (CheckDataSufficiency(index, 4, oscs.Slow) and CheckDataSufficiency(index, 4, oscs.Fast) and 
+		CheckDataSufficiency(index, 4, oscs.Delta)) then
+		-- return true or false
+		return ( -- deltas uturn
+			(SignalMove(osc.Delta, index-2, Directions.Down) and SignalMove(osc.Delta, index, Directions.Up)) and
+			-- fastosc/slowosc uturn
+			(SignalMove(osc.Fast, index-2, Reverse(direction)) and SignalMove(osc.Fast, index, direction) and SignalMove(osc.Slow, index, direction)) and
+			-- fastosc over slowosc all 4 candles
+			(SignalIsRelate(osc.Fast[index-4], osc.Slow[index-4], direction) and
+			SignalIsRelate(osc.Fast[index-3], osc.Slow[index-3], direction) and
+			SignalIsRelate(osc.Fast[index-2], osc.Slow[index-2], direction) and
+			SignalIsRelate(osc.Fast[index-1], osc.Slow[index-1], direction)))
+	else
+		return false
+	end
+end
+
+--
+-- Signal Price Uturn4
+--
+function SignalPriceUturn4(price, ma, index, direction)
+	direction = string.upper(string.sub(direction, 1, 1))
+
+	if (direction == Directions.Up) then
+		-- first 2 candles down, last candle up
+		return ((((price.Open[index-4] > price.Close[index-4]) or (price.Open[index-3] > price.Close[index-3])) and
+			(price.Close[index-1] > price.Open[index-1])) and
+			-- price.close uturn
+			(SignalMove(price.Close, index-2, Reverse(direction)) and SignalMove(price.Close, index, direction)) and
+			-- delta min at top uturn
+			(SignalMove(ma.Delta, index-2, Directions.Down) and SignalMove(ma.Delta, index, Directions.Up)) and
+			-- ma move up
+			(SignalMove(ma, (index-2), direction) and SignalMove(ma, index, direction))  and
+			-- strength condition
+			((price.Close[index-1] > (price.Low[index-3] + 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3]))) or
+			(price.Close[index-1] > (price.Low[index-2] + 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])))))
+
+	elseif (direction == Directions.Down) then
+		-- one or two of 2 first candles are down, last 1 candle is up
+		return ((((price.Close[index-4] > price.Open[index-4]) or (price.Close[index-3] > price.Open[index-3])) and
+			(price.Open[index-1] > price.Close[index-1])) and
+			-- price.close uturn
+			(SignalMove(price.Close, index-2, Reverse(direction)) and SignalMove(price.Close, index, direction)) and
+			-- delta min at top uturn
+			(SignalMove(ma.Delta, index-2, Directions.Down) and SignalMove(ma.Delta, index, Directions.Up)) and
+			-- ma move down
+			(SignalMove(ma, (index-2), direction) and SignalMove(ma, index, direction)) and
+			-- strength condition
+			(((price.High[index-3] - 2.0 / 3.0 * (price.High[index-3] - price.Low[index-3])) > price.Close[index-1]) or
+			((price.High[index-2] - 2.0 / 3.0 * (price.High[index-2] - price.Low[index-2])) > price.Close[index-1])))
+	end
+end
