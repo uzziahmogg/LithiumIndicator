@@ -14,15 +14,20 @@
 --// move TrendOff to Stoch
 --// recode priceuturn3
 --// check DataExist for functions
+--// recode SetInitValues and PrintDebugSummary to cycles over all pairs
 
 --todo create func CheckElementarySignal
---todo make code for CheckComplexSignals
 --todo remake all error handling to exceptions in functional programming
 --todo remove all chart labels keep only last 30
 --todo remove all prices and inds array, kepp only last three
---todo recode SetInitValues and PrintDebugSummary to cycles over all pairs
 --todo make shift uturn slow and fast lines
+--todo remove SochCross from Signals
+--todo make enter for Trendoff
+--todo check signals in realtime
+--todo make combinations of enter
+--todo make enter for Uturn3
 
+--? make code for CheckComplexSignals
 --? move long/short checking signals to diferent branch
 --? make candle+count itterator in separate States structure
 --? make 3-candle cross event fucntion
@@ -50,7 +55,6 @@ Settings = { Name = "FEK_LITHIUM", line = {{ Name = "Top", Type = TYPE_LINE, Col
 --#region Init
 -----------------------------------------------------------------------------
 function Init()
-
     -- permissions to show labels on charts
     ChartPermissions = { Event = 1, Signal = 2, State = 4, Enter = 8 }
 
@@ -161,7 +165,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region I.1. Signals.CrossMA[Down/Up].Price
     -------------------------------------------------------------------------
-
     -- check start signal price cross ma up
     if (SignalPriceCrossMA((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
 
@@ -186,7 +189,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region I.2. Signals.Uturn3[Down/Up].Price
     -------------------------------------------------------------------------
-
     -- check start signal uturn3 up
     if (SignalPriceUturn3(index, Directions.Long, Prices, PCs)) then
 
@@ -214,7 +216,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region II.1. Signals.Cross[Down/Up].Stochs
     -------------------------------------------------------------------------
-
     -- check fast stoch cross slow stoch up
     if (SignalOscCross((index-1), Directions.Long, Stochs)) then
 
@@ -239,7 +240,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region II.2. Signals.Cross50[Down/Up].Stochs
     -------------------------------------------------------------------------
-
     -- check slow stoch cross lvl50 up
     if (SignalOscCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
 
@@ -264,7 +264,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region II.3. Signals.Steamer[Down/Up].Stochs
     -------------------------------------------------------------------------
-
     -- check stoch steamer up
     if (SignalOscSteamer((index-1), Directions.Long, Stochs)) then
 
@@ -299,7 +298,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region II.4. Signals.Uturn3[Down/Up].Stochs
     -------------------------------------------------------------------------
-
     -- check slow stoch uturn 3 candles up
     if (SignalOscUturn3((index-1), Directions.Long, Stochs)) then
 
@@ -324,7 +322,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region III.5. Signals.TrendOff[Down/Up].Stochs
     -------------------------------------------------------------------------
-
     -- check start signal up trendon - slow rsi enter on uptrend zone
     if SignalOscTrendOff((index-1), Directions.Short, Stochs) then
 
@@ -351,7 +348,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region III.1. Signals.Cross[Down/Up].RSIs
     -------------------------------------------------------------------------
-
     -- check fast rsi cross slow rsi up
     if (SignalOscCross((index-1), Directions.Long, RSIs)) then
 
@@ -376,7 +372,6 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region III.2. Signals.Uturn3[Down/Up].RSIs
     -------------------------------------------------------------------------
-
         -- check slow RSI uturn 3 candles up
         if (SignalOscUturn3((index-1), Directions.Long, RSIs)) then
 
