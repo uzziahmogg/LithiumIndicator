@@ -20,12 +20,20 @@
 --todo remake all error handling to exceptions in functional programming
 --todo remove all chart labels keep only last 30
 --todo remove all prices and inds array, kepp only last three
---todo make shift uturn slow and fast lines
+--todo shift uturn slow and fast lines
 --todo remove SochCross from Signals
---todo make enter for Trendoff
+--todo enter for Trendoff
 --todo check signals in realtime
---todo make combinations of enter
---todo make enter for Uturn3
+--todo enter for Uturn3
+--todo all variants for StochSlow in Uturn3
+--todo 2 signals with 2nd leg zigzag near lvl50
+-- todo 1st leg zigzag with divergence
+--todo combinations of enter
+
+--todo loging to CSV
+--todo transaction
+--todo make stoploss to nearest ext
+--todo position menegement
 
 --? make code for CheckComplexSignals
 --? move long/short checking signals to diferent branch
@@ -110,8 +118,8 @@ function Init()
     Cross50 = { Name = "Cross50", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }},[Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
     Steamer = { Name = "Steamer", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
     TrendOff = { Name = "TrendOff", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
-    Uturn3 = { Name = "Uturn3", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}}, 
-    Enter = { Name = "Enter", Count = 0, Candle = 0}, 
+    Uturn3 = { Name = "Uturn3", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
+    Enter = { Name = "Enter", Count = 0, Candle = 0},
     MaxDuration = 2, MaxDifference = 30, MinDeviation = 0 }
 
     return #Settings.line
@@ -284,7 +292,7 @@ function OnCalculate(index)
         ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
     end -- short
     --#endregion
-        
+
     -- debuglog
     --[[ if (index > 11600) and (index < 11700) then
         local t = T(index)
@@ -377,17 +385,17 @@ function OnCalculate(index)
 
             -- set signal on
             SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn3)
-    
+
             -- set chart label
             ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn3, ChartIcons.Triangle, ChartPermissions.Event)
         end -- long
-    
+
         -- check slow RSI uturn 3 candles down
         if (SignalOscUturn3((index-1), Directions.Short, RSIs)) then
-    
+
             -- set signal on
             SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn3)
-    
+
             -- set chart label
             ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn3, ChartIcons.Triangle, ChartPermissions.Event)
         end -- short
@@ -413,7 +421,7 @@ function OnCalculate(index)
     end -- long
 
     -- check signals short
-    if ((Signals[Signals.Enter.Name][Directions.Short].Candle == 0) and --? 
+    if ((Signals[Signals.Enter.Name][Directions.Short].Candle == 0) and --?
     (Signals[Signals.CrossMA.Name][Directions.Short][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle > 0)and (Signals[Signals.Steamer.Name][Directions.Short][RSIs.Name].Candle > 0)) then
 
         -- set enter short signal on
@@ -423,7 +431,7 @@ function OnCalculate(index)
         ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter, DealStages.Start)
     end -- short
 
-    -- check enter long 
+    -- check enter long
     if (Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle > 0) then
 
         -- set enter duration
@@ -489,7 +497,7 @@ function OnCalculate(index)
             -- set enter short signal off
             Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
         end -- short
-    end 
+    end
     --#endregion
 
 --[[     if (index == 20000) then
@@ -817,10 +825,10 @@ function SignalOscSteamer(index, direction, oscs, diff, dev)
         local diff = diff or Signals.MaxDifference
 
         return (-- osc fast and slow move in direction last 2 candles
-            (EventMove(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev)) and 
+            (EventMove(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev)) and
 
             -- osc fast ralate osc slow in direction last 1 candle
-            ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and 
+            ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and
 
             -- delta beetwen osc fast and slow osc less then diff last 1 candle
             ConditionFlat(oscs.Fasts[index], oscs.Slows[index], diff))
@@ -844,7 +852,7 @@ function SignalOscCross(index, direction, oscs, diff, dev)
         -- return EventCross(index, direction, oscs.Fasts, oscs.Slows, dev)
 
         return ( -- first candle of two is equal or different like in cross
-            (ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff) or ConditionRelate(Reverse(direction), oscs.Fasts[index-1], oscs.Slows[index-1], dev)) and 
+            (ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff) or ConditionRelate(Reverse(direction), oscs.Fasts[index-1], oscs.Slows[index-1], dev)) and
 
             -- osc fast over/under osc slow in second candle of two
             ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
@@ -930,25 +938,26 @@ end
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
 function SignalOscUturn3(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 3, oscs.Deltas)) then
+    if (CheckDataExist(index, 4, oscs.Slows) and CheckDataExist(index, 4, oscs.Fasts) and CheckDataExist(index, 1, oscs.Deltas)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        return -- fastosc uturn3: normal fast osc uturn3
-            (EventUturn3(index, direction, oscs.Fasts, dev) and
+        return (-- fastosc uturn3
+            EventUturn3(index, direction, oscs.Fasts, dev) and
 
-            -- slowosc uturn3: normal uturn3 or equal oscslows at first and second candles and move at third candle from second to third candles of uturn3 or move all three candles of uturn3
-            (EventUturn3(index, direction, oscs.Slows, dev) or ((EventFlat((index-1), oscs.Slows, diff) and EventMove(index, direction, oscs.Slows, dev)) or (EventMove((index-1), direction, oscs.Slows, dev) and EventMove(index, direction, oscs.Slows, dev)))) and
+            -- slowosc uturn3
+            (EventUturn3(index, direction, oscs.Slows, dev) or not EventMove(index, Reverse(direction), oscs.Slows, dev)) and
 
-            -- deltas uturn3: uturn3 or equal oscdeltas at first and second candles and move at third candle from second to third candles of uturn3 or move all three candles of uturn3
-            (EventUturn3(index, direction, oscs.Deltas, dev) or ((EventFlat((index-1), oscs.Deltas, diff) and EventMove(index, direction, oscs.Deltas, dev)) or (EventMove((index-1), direction, oscs.Deltas, dev) and EventMove(index, direction, oscs.Deltas, dev)))) and
+            -- deltas uturn3
+            (EventUturn3(index, direction, oscs.Deltas, dev) or not EventMove(index, Reverse(direction), oscs.Deltas, dev)) and
 
-            -- relation: fastosc over slowosc at first and third candles of uturn3 only
+            -- relation
             (ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev)) and
 
-            -- strength: fastosc and slowosc at third candle greater or equal then ones at first candle of uturn3
-            ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff))))
+            -- strength
+            ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
+        )
 
     -- not enough data
     else
@@ -973,7 +982,7 @@ function SignalPriceCrossMA(index, direction, price, ma, diff, dev)
         -- return EventCross(index, direction, price, ma, dev)
 
         return (-- first candle of two is equal or different like in cross
-            (ConditionFlat(ma[index-1], price[index-1], diff) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and 
+            (ConditionFlat(ma[index-1], price[index-1], diff) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and
 
             -- osc fast over/under osc slow in second candle of two
             ConditionRelate(direction, price[index], ma[index], dev))
@@ -993,21 +1002,23 @@ function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        local condition = -- prices.Closes uturn3:
-            (EventUturn3(index, direction, prices.Closes, dev) and
+        local condition = ( -- closes uturn3
+            (EventUturn3(index, direction, prices.Closes, dev) and 
+            (ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-1], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Opens[index], dev))
 
-            -- mas uturn3: uturn3 or equal oscslows at first and second candles and move at third candle from second to third candles of uturn3 or move all three candles of uturn3
-            -- (EventMove(index, direction, mas.Centres, dev) or EventFlat(index, mas.Centres, diff)) and (EventMove((index-1), direction, mas.Centres, dev) or EventFlat((index-1), mas.Centres, diff))
-            (EventUturn3(index, direction, mas.Centres, dev) or ((EventFlat((index-1), mas.Centres, diff) and EventFlat(index, mas.Centres, diff)) or (EventFlat((index-1), mas.Centres, diff) and EventMove(index, direction, mas.Centres, dev)) or (EventMove((index-1), direction, mas.Centres, dev) and EventMove(index, direction, mas.Centres, dev)))) and
+            -- mas uturn3
+            (EventUturn3(index, direction, mas.Centres, dev) or not EventMove(index, Reverse(direction), mas.Centres, dev)) and
 
-            -- delta uturn3: uturn3 or equal oscdeltas at first and second candles and move at third candle from second to third candles of uturn3 or move all three candles of uturn3
-            (EventUturn3(index, direction, mas.Deltas, dev) or ((EventFlat((index-1), mas.Deltas, diff) and EventMove(index, direction, mas.Deltas, dev)) or (EventMove((index-1), direction, mas.Deltas, dev) and EventMove(index, direction, mas.Deltas, dev)))) and
+            -- delta uturn3
+            (EventUturn3(index, direction, mas.Deltas, dev) or not EventMove(index, Reverse(direction), mas.Deltas, dev)) and
 
-            -- relation: first two candle contr-trend, one last candle pro-trend
-            (((ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-1], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Opens[index], dev)) and (ConditionRelate(direction, prices.Open[index-2], mas.Centres[index-2], dev) and (ConditionRelate(direction, prices.Opens[index-1], mas.Centres[index-1], dev) or ConditionRelate(direction, prices.Closes[index-1], mas.Centres[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], mas.Centres[index], dev))))
-            
-            -- strength condition
-            -- and (ConditionRelate(direction, prices.Closes[index], prices.Opens[index-2], dev) or ConditionRelate(direction, prices.Closes[index], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Closes[index-2], dev)
+            -- relation
+            ((ConditionRelate(direction, prices.Opens[index-2], mas.Centres[index-2], dev) or 
+            ConditionRelate(direction, prices.Opens[index-1], mas.Centres[index-1], dev)) and (ConditionRelate(direction, prices.Closes[index-1], mas.Centres[index-1], dev) or 
+            ConditionRelate(direction, prices.Closes[index], mas.Centres[index], dev))))
+
+        -- strength condition
+        -- and (ConditionRelate(direction, prices.Closes[index], prices.Opens[index-2], dev) or ConditionRelate(direction, prices.Closes[index], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Closes[index-2], dev)
 
         if (direction == Directions.Long) then
             return (condition and
@@ -1176,7 +1187,7 @@ function CheckChartPermission(indicator, signal_permission)
     return (((signal_permission == ChartPermissions.Event) and ((indicator.Permission & ChartPermissions.Event) > 0)) or ((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0))  or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
 end
 ----------------------------------------------------------------------------
--- function GetMessage(...) Returns messages separated by the symbol as one string 
+-- function GetMessage(...) Returns messages separated by the symbol as one string
 ----------------------------------------------------------------------------
 function GetMessage(...)
     local args = { n = select("#",...), ... }
@@ -1307,8 +1318,8 @@ function SetInitialValues(t)
     local k, v
     for k, v in pairs(t) do
         if (type(v) == "table") then
-            foo(v)
-        else 
+            SetInitialValues(v)
+        else
             t[k] = 0
         end
     end
@@ -1319,10 +1330,10 @@ end
 ----------------------------------------------------------------------------
 function PrintDebugSummary(t)
     local k, v
-    for k, v in pairs(t) do		
+    for k, v in pairs(t) do
         if (type(v) == "table") then
-            foo(v)
-        else 
+            PrintDebugSummary(v)
+        else
             PrintDebugMessage(tostring(k), tostring(t[k]))
         end
     end
