@@ -27,13 +27,14 @@
 --todo enter for Uturn3
 --todo all variants for StochSlow in Uturn3
 --todo 2 signals with 2nd leg zigzag near lvl50
--- todo 1st leg zigzag with divergence
+--todo 1st leg zigzag with divergence
 --todo combinations of enter
 
 --todo loging to CSV
 --todo transaction
 --todo make stoploss to nearest ext
 --todo position menegement
+--todo risk menegement
 
 --? make code for CheckComplexSignals
 --? move long/short checking signals to diferent branch
@@ -938,7 +939,7 @@ end
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
 function SignalOscUturn3(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 4, oscs.Slows) and CheckDataExist(index, 4, oscs.Fasts) and CheckDataExist(index, 1, oscs.Deltas)) then
+    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 1, oscs.Deltas)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
@@ -947,10 +948,10 @@ function SignalOscUturn3(index, direction, oscs, diff, dev)
             EventUturn3(index, direction, oscs.Fasts, dev) and
 
             -- slowosc uturn3
-            (EventUturn3(index, direction, oscs.Slows, dev) or not EventMove(index, Reverse(direction), oscs.Slows, dev)) and
+            (EventUturn3(index, direction, oscs.Slows, dev) or not (EventMove(index, Reverse(direction), oscs.Slows, dev) or EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
 
             -- deltas uturn3
-            (EventUturn3(index, direction, oscs.Deltas, dev) or not EventMove(index, Reverse(direction), oscs.Deltas, dev)) and
+            (EventUturn3(index, direction, oscs.Deltas, dev) or EventMove(index, direction, oscs.Deltas, dev)) and
 
             -- relation
             (ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev)) and
@@ -1007,10 +1008,10 @@ function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
             (ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-1], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Opens[index], dev))
 
             -- mas uturn3
-            (EventUturn3(index, direction, mas.Centres, dev) or not EventMove(index, Reverse(direction), mas.Centres, dev)) and
+            (EventUturn3(index, direction, mas.Centres, dev) or not (EventMove(index, Reverse(direction), mas.Centres, dev) or EventMove((index-1), Reverse(direction), mas.Centres, dev))) and
 
             -- delta uturn3
-            (EventUturn3(index, direction, mas.Deltas, dev) or not EventMove(index, Reverse(direction), mas.Deltas, dev)) and
+            (EventUturn3(index, direction, mas.Deltas, dev) or EventMove(index, direction, mas.Deltas, dev)) and
 
             -- relation
             ((ConditionRelate(direction, prices.Opens[index-2], mas.Centres[index-2], dev) or 
