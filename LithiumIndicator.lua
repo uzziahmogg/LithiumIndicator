@@ -21,7 +21,8 @@
 --todo remove all chart labels keep only last 30
 --todo remove all prices and inds array, kepp only last three
 --todo shift uturn slow and fast lines
---todo remove SochCross from Signals
+--todo remove SochCross from Signals -> remove relation in uturn3
+--todo remove delta in uturn3
 --todo enter for Trendoff
 --todo check signals in realtime
 --todo enter for Uturn3
@@ -939,22 +940,22 @@ end
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
 function SignalOscUturn3(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 1, oscs.Deltas)) then
+    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 3, oscs.Deltas)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
         return (-- fastosc uturn3
-            EventUturn3(index, direction, oscs.Fasts, dev) and
+            (EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and
 
             -- slowosc uturn3
-            (EventUturn3(index, direction, oscs.Slows, dev) or not (EventMove(index, Reverse(direction), oscs.Slows, dev) or EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
+            (EventUturn3(index, direction, oscs.Slows, dev) or (EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
 
             -- deltas uturn3
             (EventUturn3(index, direction, oscs.Deltas, dev) or EventMove(index, direction, oscs.Deltas, dev)) and
 
-            -- relation
-            (ConditionRelate(direction, oscs.Fasts[index-2], oscs.Slows[index-2], dev) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev)) and
+            -- relation - osc cross
+            --ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and
 
             -- strength
             ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
@@ -1008,15 +1009,14 @@ function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
             (ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-1], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Opens[index], dev))
 
             -- mas uturn3
-            (EventUturn3(index, direction, mas.Centres, dev) or not (EventMove(index, Reverse(direction), mas.Centres, dev) or EventMove((index-1), Reverse(direction), mas.Centres, dev))) and
+            (EventUturn3(index, direction, mas.Centres, dev) or (EventMove(index, direction, mas.Centres, dev) and not EventMove((index-1), Reverse(direction), mas.Centres, dev))) and
 
             -- delta uturn3
-            (EventUturn3(index, direction, mas.Deltas, dev) or EventMove(index, direction, mas.Deltas, dev)) and
+            (EventUturn3(index, direction, mas.Deltas, dev) or EventMove(index, direction, mas.Deltas, dev)) 
 
             -- relation
-            ((ConditionRelate(direction, prices.Opens[index-2], mas.Centres[index-2], dev) or 
-            ConditionRelate(direction, prices.Opens[index-1], mas.Centres[index-1], dev)) and (ConditionRelate(direction, prices.Closes[index-1], mas.Centres[index-1], dev) or 
-            ConditionRelate(direction, prices.Closes[index], mas.Centres[index], dev))))
+            --((ConditionRelate(direction, prices.Opens[index-2], mas.Centres[index-2], dev) or ConditionRelate(direction, prices.Opens[index-1], mas.Centres[index-1], dev)) and (ConditionRelate(direction, prices.Closes[index-1], mas.Centres[index-1], dev) or ConditionRelate(direction, prices.Closes[index], mas.Centres[index], dev)))
+        )
 
         -- strength condition
         -- and (ConditionRelate(direction, prices.Closes[index], prices.Opens[index-2], dev) or ConditionRelate(direction, prices.Closes[index], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Closes[index-2], dev)
