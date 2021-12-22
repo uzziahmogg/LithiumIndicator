@@ -30,6 +30,8 @@
 --todo 2 signals with 2nd leg zigzag near lvl50
 --todo 1st leg zigzag with divergence
 --todo combinations of enter
+--todo functions Uturn, Spring for RSI Uturn3
+--todo functions Place for Stoch Uturn3
 
 --todo loging to CSV
 --todo transaction
@@ -940,22 +942,16 @@ end
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
 function SignalOscUturn3(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 3, oscs.Fasts) and CheckDataExist(index, 3, oscs.Deltas)) then
+    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 5, oscs.Fasts)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        return (-- fastosc uturn3
-            (EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and
+        return (-- model 1 - fast and slow oscs uturn3
+            (((EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and EventUturn3(index, direction, oscs.Slows, dev)) or
 
-            -- slowosc uturn3
-            (EventUturn3(index, direction, oscs.Slows, dev) or (EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
-
-            -- deltas uturn3
-            (EventUturn3(index, direction, oscs.Deltas, dev) or EventMove(index, direction, oscs.Deltas, dev)) and
-
-            -- relation - osc cross
-            --ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev) and
+            -- model 2 - fast osc uturn3 and slow osc flat or move
+            (EventUturn3(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
 
             -- strength
             ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
@@ -1005,26 +1001,16 @@ function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
         local diff = diff or 0
 
         local condition = ( -- closes uturn3
-            (EventUturn3(index, direction, prices.Closes, dev) and 
-            (ConditionRelate(Reverse(direction), prices.Closes[index-2], prices.Opens[index-2], dev) or ConditionRelate(Reverse(direction), prices.Closes[index-1], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Opens[index], dev))
+            ((EventUturn3(index, direction, prices.Closes, dev) or EventUturn3((index-1), direction, prices.Closes, dev) or EventUturn3((index-2), direction, prices.Closes, dev)) and EventUturn3(index, direction, mas.Centres, dev)) or
 
             -- mas uturn3
-            (EventUturn3(index, direction, mas.Centres, dev) or (EventMove(index, direction, mas.Centres, dev) and not EventMove((index-1), Reverse(direction), mas.Centres, dev))) and
-
-            -- delta uturn3
-            (EventUturn3(index, direction, mas.Deltas, dev) or EventMove(index, direction, mas.Deltas, dev)) 
-
-            -- relation
-            --((ConditionRelate(direction, prices.Opens[index-2], mas.Centres[index-2], dev) or ConditionRelate(direction, prices.Opens[index-1], mas.Centres[index-1], dev)) and (ConditionRelate(direction, prices.Closes[index-1], mas.Centres[index-1], dev) or ConditionRelate(direction, prices.Closes[index], mas.Centres[index], dev)))
+            (EventUturn3(index, direction, prices.Closes, dev) and EventMove(index, direction, mas.Centres, dev) and not EventMove((index-1), Reverse(direction), mas.Centres, dev))
         )
-
-        -- strength condition
-        -- and (ConditionRelate(direction, prices.Closes[index], prices.Opens[index-2], dev) or ConditionRelate(direction, prices.Closes[index], prices.Opens[index-1], dev)) and ConditionRelate(direction, prices.Closes[index], prices.Closes[index-2], dev)
 
         if (direction == Directions.Long) then
             return (condition and
                 -- strength condition
-                ((prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))) or  (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])))))
+                ((prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))) or (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])))))
 
         elseif (direction == Directions.Short) then
             return (condition and
