@@ -995,27 +995,27 @@ end
 -- Signal Price Uturn with 3 candles
 ----------------------------------------------------------------------------
 function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
-    if (CheckDataExist(index, 3, prices.Opens) and CheckDataExist(index, 3, prices.Closes) and CheckDataExist(index, 3, prices.Highs) and CheckDataExist(index, 3, prices.Lows) and CheckDataExist(index, 3, mas.Centres) and CheckDataExist(index, 3, mas.Deltas)) then
+    if (CheckDataExist(index, 5, prices.Closes) and CheckDataExist(index, 3, prices.Highs) and CheckDataExist(index, 3, prices.Lows) and CheckDataExist(index, 3, mas.Centres)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        local condition = ( -- closes uturn3
+        local condition = ( -- model 1
             ((EventUturn3(index, direction, prices.Closes, dev) or EventUturn3((index-1), direction, prices.Closes, dev) or EventUturn3((index-2), direction, prices.Closes, dev)) and EventUturn3(index, direction, mas.Centres, dev)) or
 
-            -- mas uturn3
+            -- model 2
             (EventUturn3(index, direction, prices.Closes, dev) and EventMove(index, direction, mas.Centres, dev) and not EventMove((index-1), Reverse(direction), mas.Centres, dev))
         )
 
         if (direction == Directions.Long) then
             return (condition and
                 -- strength condition
-                ((prices.Closes[index-1] > (prices.Lows[index-3] + 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3]))) or (prices.Closes[index-1] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])))))
+                ((prices.Closes[index] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2]))) or (prices.Closes[index] > (prices.Lows[index-1] + 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])))))
 
         elseif (direction == Directions.Short) then
             return (condition and
                 -- strength condition
-                (((prices.Highs[index-3] - 2.0 / 3.0 * (prices.Highs[index-3] - prices.Lows[index-3])) > prices.Closes[index-1]) or ((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index-1])))
+                (((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index]) or ((prices.Highs[index-1] - 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])) > prices.Closes[index])))
         end
 
     -- not enough data
