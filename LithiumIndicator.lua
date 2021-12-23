@@ -124,7 +124,7 @@ function Init()
     TrendOff = { Name = "TrendOff", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
     Uturn3 = { Name = "Uturn3", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
     Enter = { Name = "Enter", Count = 0, Candle = 0},
-    MaxDuration = 2, MaxDifference = 30, MinDeviation = 0 }
+    MaxDuration = 2, MaxDifference = 30, MinDifference = 0, MinDeviation = 0 }
 
     return #Settings.line
 end
@@ -822,7 +822,7 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc Steamer
 ----------------------------------------------------------------------------
-function SignalOscSteamer(index, direction, oscs, diff, dev)
+function SignalSteamer(index, direction, oscs, diff, dev)
     if (CheckDataExist(index, 2, oscs.Slows) and CheckDataExist(index, 2, oscs.Fasts)) then
 
         local dev = dev or Signals.MinDeviation
@@ -846,11 +846,11 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc Fast Cross Osc Slow
 ----------------------------------------------------------------------------
-function SignalOscCross(index, direction, oscs, diff, dev)
+function SignalCross(index, direction, oscs, diff, dev)
     if (CheckDataExist(index, 2, oscs.Slows) and CheckDataExist(index, 2, oscs.Fasts)) then
 
         local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
+        local diff = diff or Signals.MinDifference
 
         return ( -- two first candle is equal, two last candles is different
             (ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev)) or
@@ -866,11 +866,11 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc Cross Level
 ----------------------------------------------------------------------------
-function SignalOscCrossLevel(index, direction, osc, level, diff, dev)
+function SignalCrossLevel(index, direction, osc, level, diff, dev)
     if (CheckDataExist(index, 2, osc)) then
 
         local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
+        local diff = diff or Signals.MinDifference
 
         return ( -- two first candle is equal, two last candles is different
             (ConditionFlat(osc[index-1], level, diff) and ConditionRelate(direction, osc[index], level, dev)) or
@@ -886,7 +886,7 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc TrendOff
 ----------------------------------------------------------------------------
-function SignalOscTrendOff(index, direction, oscs, dev)
+function SignalTrendOff(index, direction, oscs, dev)
     local level, osc
 
     -- check for rsi
@@ -926,76 +926,22 @@ function SignalOscTrendOff(index, direction, oscs, dev)
         end
     end
 
-    return SignalOscCrossLevel(index, direction, osc, level, dev)
+    return SignalCrossLevel(index, direction, osc, level, dev)
 end
 
 ----------------------------------------------------------------------------
--- Signal Osc Uturn with 3 candles
+-- Signal Uturn with 3 candles model 1 - fast uturn3 with shifts and slow uturn3
 ----------------------------------------------------------------------------
---
--- model 1 - fast and slow oscs uturn3
---
-function SignalOscUturn3Mod1(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 5, oscs.Fasts)) then
-
-        local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
-
-        return ( -- osc uturn
-            ((EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and EventUturn3(index, direction, oscs.Slows, dev)) and
-
-            -- strength
-            ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
-        )
-
-    -- not enough data
-    else
-        return false
-    end
+function SignalUturn3Mod1(index, direction, oscs, dev)
+    SignalUturnMod1(index, direction, oscs.Fasts, oscs.Slows, dev)
 end
 
---
--- model 2 - fast osc uturn3 and slow osc flat or move
---
-function SignalOscUturn3Mod2(index, direction, oscs, diff, dev)
-    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 5, oscs.Fasts)) then
-
-        local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
-
-        return ( -- osc uturn
-            (EventUturn3(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev)) and
-
-            -- strength
-            ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
-        )
-
-    -- not enough data
-    else
-        return false
-    end
-end
---#endregion
-
---==========================================================================
---#region Price Signals
---==========================================================================
 ----------------------------------------------------------------------------
--- Signal Price	CrossMA
-----------------------------------------------------------------------------
-function SignalPriceCrossMA(index, direction, price, ma, diff, dev)
-    if (CheckDataExist(index, 2, price) and CheckDataExist(index, 2, ma)) then
-
+function SignalUturnMod1(index, direction, values1, values2, dev)
+    if (CheckDataExist(index, 5, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
 
-        -- close cross ma up/down
-        -- return 
-
-        return (-- first candles of two is equal, two last candles is different
-            (ConditionFlat(ma[index-1], price[index-1], diff) and ConditionRelate(direction, price[index], ma[index], dev)) or
-            -- cross price over/under ma
-            EventCross(index, direction, price, ma, dev))
+        return ((EventUturn3(index, direction, values1, dev) or EventUturn3((index-1), direction, values1, dev) or EventUturn3((index-2), direction, values1, dev)) and EventUturn3(index, direction, values2, dev))
 
     -- not enough data
     else
@@ -1004,35 +950,50 @@ function SignalPriceCrossMA(index, direction, price, ma, diff, dev)
 end
 
 ----------------------------------------------------------------------------
--- Signal Price Uturn with 3 candles
+-- Signal Uturn with 3 candles model 2 - fast  uturn3 and slow flat or move 
 ----------------------------------------------------------------------------
-function SignalPriceUturn3(index, direction, prices, mas, diff, dev)
-    if (CheckDataExist(index, 5, prices.Closes) and CheckDataExist(index, 3, prices.Highs) and CheckDataExist(index, 3, prices.Lows) and CheckDataExist(index, 3, mas.Centres)) then
+function SignalUturn3Mod2(index, direction, oscs, dev)
+    SignalUturnMod2(index, direction, oscs.Fasts, oscs.Slows, dev)
+end
 
+----------------------------------------------------------------------------
+function SignalUturnMod2(index, direction, values1, values2, dev)
+    if (CheckDataExist(index, 3, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
-        local diff = diff or 0
 
-        local condition = ( -- model 1
-            ((EventUturn3(index, direction, prices.Closes, dev) or EventUturn3((index-1), direction, prices.Closes, dev) or EventUturn3((index-2), direction, prices.Closes, dev)) and EventUturn3(index, direction, mas.Centres, dev)) or
+        return (EventUturn3(index, direction, values1, dev) and EventMove(index, direction, values2, dev) and not EventMove((index-1), Reverse(direction), values2, dev))
 
-            -- model 2
-            (EventUturn3(index, direction, prices.Closes, dev) and EventMove(index, direction, mas.Centres, dev) and not EventMove((index-1), Reverse(direction), mas.Centres, dev))
-        )
+    -- not enough data
+    else
+        return false
+    end
+end
+
+----------------------------------------------------------------------------
+-- Signal Strength model 1 - value1 and value2 at index greater or equal then ones at index-2
+----------------------------------------------------------------------------
+function SignalStrength3Mod1(index, direction, values1, values2, diff, dev)
+    if (CheckDataExist(index, 3, values1) and CheckDataExist(index, 3, values2))then
+        local dev = dev or Signals.MinDeviation
+        local diff = diff or Signals.MinDifference
+
+        return ((ConditionRelate(direction, values1[index], values1[index-2], dev) or ConditionFlat(values1[index], values1[index-2], diff)) and (ConditionRelate(direction, values2[index], values2[index-2], dev) or ConditionFlat(values2[index], values2[index-2], diff)))
+    end
+end
+
+----------------------------------------------------------------------------
+-- Signal Stregth model 2 - priceclose at index greater then 2/3 range of candles at index-1 or index-2
+----------------------------------------------------------------------------
+function SignalStrengthMod2(index, direction, prices, dev)
+    if (CheckDataExist(index, 3, prices.Closes) and CheckDataExist(index, 3,  prices.Highs) and CheckDataExist(index, 3,  prices.Lows)) then
+        local dev = dev or Signals.MinDeviation
 
         if (direction == Directions.Long) then
-            return (condition and
-                -- strength condition
-                ((prices.Closes[index] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2]))) or (prices.Closes[index] > (prices.Lows[index-1] + 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])))))
+            return ((prices.Closes[index] > (prices.Lows[index-2] + 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2]) + dev)) or (prices.Closes[index] > (prices.Lows[index-1] + 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1]) + dev)))
 
         elseif (direction == Directions.Short) then
-            return (condition and
-                -- strength condition
-                (((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index]) or ((prices.Highs[index-1] - 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])) > prices.Closes[index])))
+            return (((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index] + dev) or ((prices.Highs[index-1] - 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])) > prices.Closes[index] + dev))
         end
-
-    -- not enough data
-    else
-        return false
     end
 end
 --#endregion
