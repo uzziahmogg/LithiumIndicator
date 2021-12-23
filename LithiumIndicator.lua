@@ -852,14 +852,10 @@ function SignalOscCross(index, direction, oscs, diff, dev)
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        -- cross fast osc over/under slow osc
-        -- return EventCross(index, direction, oscs.Fasts, oscs.Slows, dev)
-
-        return ( -- first candle of two is equal or different like in cross
-            (ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff) or ConditionRelate(Reverse(direction), oscs.Fasts[index-1], oscs.Slows[index-1], dev)) and
-
-            -- osc fast over/under osc slow in second candle of two
-            ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev))
+        return ( -- two first candle is equal, two last candles is different
+            (ConditionFlat(oscs.Fasts[index-1], oscs.Slows[index-1], diff) and ConditionRelate(direction, oscs.Fasts[index], oscs.Slows[index], dev)) or
+            -- cross fast osc over/under slow osc
+            EventCross(index, direction, oscs.Fasts, oscs.Slows, dev))
 
     -- not enough data
     else
@@ -876,15 +872,10 @@ function SignalOscCrossLevel(index, direction, osc, level, diff, dev)
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        -- osc cross level up/down
-        --[[ local levels = {[index-1] = level, [index] = level}
-        return EventCross(index, direction, osc, levels, dev) ]]
-
-        return ( -- first candle of two is equal or different like in cross
-            (ConditionFlat(osc[index-1], level, diff) or ConditionRelate(Reverse(direction), osc[index-1], level, dev)) and
-
-            -- osc fast over/under osc slow in second candle of two
-            ConditionRelate(direction, osc[index], level, dev))
+        return ( -- two first candle is equal, two last candles is different
+            (ConditionFlat(osc[index-1], level, diff) and ConditionRelate(direction, osc[index], level, dev)) or
+            -- cross fast osc over/under level
+            EventCross(index, direction, osc, {[index-1] = level, [index] = level}, dev))
 
     -- not enough data
     else
@@ -941,17 +932,39 @@ end
 ----------------------------------------------------------------------------
 -- Signal Osc Uturn with 3 candles
 ----------------------------------------------------------------------------
-function SignalOscUturn3(index, direction, oscs, diff, dev)
+--
+-- model 1 - fast and slow oscs uturn3
+--
+function SignalOscUturn3Mod1(index, direction, oscs, diff, dev)
     if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 5, oscs.Fasts)) then
 
         local dev = dev or Signals.MinDeviation
         local diff = diff or 0
 
-        return (-- model 1 - fast and slow oscs uturn3
-            (((EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and EventUturn3(index, direction, oscs.Slows, dev)) or
+        return ( -- osc uturn
+            ((EventUturn3(index, direction, oscs.Fasts, dev) or EventUturn3((index-1), direction, oscs.Fasts, dev) or EventUturn3((index-2), direction, oscs.Fasts, dev)) and EventUturn3(index, direction, oscs.Slows, dev)) and
 
-            -- model 2 - fast osc uturn3 and slow osc flat or move
-            (EventUturn3(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev))) and
+            -- strength
+            ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
+        )
+
+    -- not enough data
+    else
+        return false
+    end
+end
+
+--
+-- model 2 - fast osc uturn3 and slow osc flat or move
+--
+function SignalOscUturn3Mod2(index, direction, oscs, diff, dev)
+    if (CheckDataExist(index, 3, oscs.Slows) and CheckDataExist(index, 5, oscs.Fasts)) then
+
+        local dev = dev or Signals.MinDeviation
+        local diff = diff or 0
+
+        return ( -- osc uturn
+            (EventUturn3(index, direction, oscs.Fasts, dev) and EventMove(index, direction, oscs.Slows, dev) and not EventMove((index-1), Reverse(direction), oscs.Slows, dev)) and
 
             -- strength
             ((ConditionRelate(direction, oscs.Slows[index], oscs.Slows[index-2], dev) or ConditionFlat(oscs.Slows[index], oscs.Slows[index-2], diff)) and (ConditionRelate(direction, oscs.Fasts[index], oscs.Fasts[index-2], dev) or ConditionFlat(oscs.Fasts[index], oscs.Fasts[index-2], diff)))
@@ -977,13 +990,12 @@ function SignalPriceCrossMA(index, direction, price, ma, diff, dev)
         local diff = diff or 0
 
         -- close cross ma up/down
-        -- return EventCross(index, direction, price, ma, dev)
+        -- return 
 
-        return (-- first candle of two is equal or different like in cross
-            (ConditionFlat(ma[index-1], price[index-1], diff) or ConditionRelate(direction, ma[index-1], price[index-1], dev)) and
-
-            -- osc fast over/under osc slow in second candle of two
-            ConditionRelate(direction, price[index], ma[index], dev))
+        return (-- first candles of two is equal, two last candles is different
+            (ConditionFlat(ma[index-1], price[index-1], diff) and ConditionRelate(direction, price[index], ma[index], dev)) or
+            -- cross price over/under ma
+            EventCross(index, direction, price, ma, dev))
 
     -- not enough data
     else
