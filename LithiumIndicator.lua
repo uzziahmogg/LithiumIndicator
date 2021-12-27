@@ -75,9 +75,9 @@ function Init()
 
     -- chart params and indicators it consist
     -- price data arrays and params
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Signal } -- FEK_LITHIUMPrice
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Event } -- FEK_LITHIUMPrice
     -- stochastic data arrays and params
-    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Event } -- FEK_LITHIUMStoch
+    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Signal } -- FEK_LITHIUMStoch
     -- RSI data arrays and params
     RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Dev = 0, Step = 5, Permission = ChartPermissions.Signal } -- FEK_LITHIUMRSI
     -- price channel data arrays and params
@@ -120,8 +120,8 @@ function Init()
     PC = PriceChannel()
 
     -- signals names, counts, start cansles
-    Signals = { Cross = { Name = "Cross", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
-    Cross50 = { Name = "Cross50", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }},[Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
+    Signals = { Cross = { Name = "Cross", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
+    Cross50 = { Name = "Cross50", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }}},
     Steamer = { Name = "Steamer", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
     TrendOff = { Name = "TrendOff", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }}},
     Uturn31 = { Name = "Uturn31", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
@@ -142,6 +142,7 @@ function OnCalculate(index)
         DataSource = getDataSourceInfo()
         SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
 
+        Nesting = 1
         SetInitialValues(Signals)
     end
 
@@ -177,22 +178,26 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     --#region I.1. Signals.CrossMA[Down/Up].Price
     -------------------------------------------------------------------------
+    -- debuglog
+    local t = T(index)
+    PrintDebugMessage("I.Check", index, t.month, t.day, t.hour, t.min)
+
     -- check start signal price cross ma up
     if (Signal2Cross((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
         -- set signal
-        SetSignal((index-1), Directions.Long, Prices, Signals.Cross)
+        SetSignal((index-1), Directions.Long, Prices, Signals.Cross50)
 
         -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Cross, ChartIcons.Arrow, ChartPermissions.Event)
+        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Event)
     end -- long
 
     -- check start signal price cross ma down
     if (Signal2Cross(index-1, Directions.Short, Prices.Closes, PCs.Centres)) then
         -- set signal
-        SetSignal((index-1), Directions.Short, Prices, Signals.Cross)
+        SetSignal((index-1), Directions.Short, Prices, Signals.Cross50)
 
         -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Cross, ChartIcons.Arrow, ChartPermissions.Event)
+        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Event)
     end -- short
     --#endregion
 
@@ -200,7 +205,7 @@ function OnCalculate(index)
     --#region I.2. Signals.Uturn31[Down/Up].Price
     -------------------------------------------------------------------------
     -- check start signal uturn3 up
-    if (Signal2Uturn31(index, Directions.Long, Prices.Closes, PCs.Centres)) then
+    --[[ if (Signal2Uturn31(index, Directions.Long, Prices.Closes, PCs.Centres)) then
         -- set signal on
         SetSignal((index-1), Directions.Long, Prices, Signals.Uturn31)
 
@@ -312,14 +317,14 @@ function OnCalculate(index)
     --#endregion
 
     -- debuglog
-    --[[ if (index > 11600) and (index < 11700) then
+    if (index > 11600) and (index < 11700) then
         local t = T(index)
         PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
 
         PrintDebugMessage("-s", Stochs.Slows[index-2], Stochs.Slows[index-1], Stochs.Slows[index])
         PrintDebugMessage("-f", Stochs.Fasts[index-2], Stochs.Fasts[index-1], Stochs.Fasts[index])
         PrintDebugMessage("-d", math.abs(GetDelta(Stochs.Slows[index-2], Stochs.Fasts[index-2])), math.abs(GetDelta(Stochs.Slows[index-1], Stochs.Fasts[index-1])), math.abs(GetDelta(Stochs.Slows[index], Stochs.Fasts[index])))
-    end  ]]
+    end  
 
     -------------------------------------------------------------------------
     --#region II.4. Signals.Uturn31[Down/Up].Stochs
@@ -458,13 +463,12 @@ function OnCalculate(index)
     --=======================================================================
     -- IV. Enters
     --=======================================================================
-
     -------------------------------------------------------------------------
     --#region IV.1. States.Enter[Down/Up]
     -------------------------------------------------------------------------
 
     -- check signals long
-    --[[ if ((Signals[Signals.Enter.Name][Directions.Long].Candle == 0) and --?
+    if ((Signals[Signals.Enter.Name][Directions.Long].Candle == 0) and --?
     (Signals[Signals.CrossMA.Name][Directions.Long][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle > 0) and (Signals[Signals.Steamer.Name][Directions.Long][RSIs.Name].Candle > 0)) then
 
         -- set enter long signal on
@@ -906,8 +910,13 @@ function Signal2Cross(index, direction, values1, values2, diff, dev)
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
 
+        PrintDebugMessage("SignalCross2", index, direction)
+        PrintDebugMessage(index-1, values1[index-1], values2[index-1], index, values1[index], values2[index])
+        PrintDebugMessage(CheckRelate(direction, values1[index-1], values2[index-1], dev), CheckFlat(values1[index], values2[index], diff), "|", EventCross(index, direction, values1, values2, dev))
+  
+
         return ( -- two first candle is equal, two last candles is different
-            (CheckFlat(values1[index-1], values2[index-1], diff) and CheckRelate(direction, values1[index], values2[index], dev)) or
+            (CheckFlat(values1[index], values2[index], diff) and CheckRelate(Reverse(direction), values1[index-1], values2[index-1], dev)) or
             -- cross fast osc over/under slow osc
             EventCross(index, direction, values1, values2, dev))
 
@@ -1329,26 +1338,30 @@ end
 -- function SetInitialCounts() init Signals Candles and Counts
 ----------------------------------------------------------------------------
 function SetInitialValues(t)
-    local k, v
-    for k, v in pairs(t) do
-        if (type(v) == "table") then
-            SetInitialValues(v)
+    local key, value
+    for key, value in pairs(t) do
+        if (type(value) == "table") then
+            Nesting = Nesting + 1
+            SetInitialValues(value)
         else
-            t[k] = 0
+            if (Nesting == 4) then 
+                t[key] = 0
+            end
         end
     end
+    Nesting = Nesting - 1
 end
 
 ----------------------------------------------------------------------------
 --
 ----------------------------------------------------------------------------
 function PrintDebugSummary(t)
-    local k, v
-    for k, v in pairs(t) do
-        if (type(v) == "table") then
-            PrintDebugSummary(v)
+    local key, value
+    for key, value in pairs(t) do
+        if (type(value) == "table") then
+            PrintDebugSummary(value)
         else
-            PrintDebugMessage(tostring(k), tostring(t[k]))
+            PrintDebugMessage(tostring(key) .. ":" .. tostring(value))
         end
     end
 end
