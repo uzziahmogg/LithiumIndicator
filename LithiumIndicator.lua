@@ -180,7 +180,7 @@ function OnCalculate(index)
     -------------------------------------------------------------------------
     -- debuglog
     local t = T(index)
-    PrintDebugMessage("I.Check", index, t.month, t.day, t.hour, t.min)
+    PrintDebugMessage("==I.1==", index, t.month, t.day, t.hour, t.min)
 
     -- check start signal price cross ma up
     if (Signal2Cross((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
@@ -324,7 +324,7 @@ function OnCalculate(index)
         PrintDebugMessage("-s", Stochs.Slows[index-2], Stochs.Slows[index-1], Stochs.Slows[index])
         PrintDebugMessage("-f", Stochs.Fasts[index-2], Stochs.Fasts[index-1], Stochs.Fasts[index])
         PrintDebugMessage("-d", math.abs(GetDelta(Stochs.Slows[index-2], Stochs.Fasts[index-2])), math.abs(GetDelta(Stochs.Slows[index-1], Stochs.Fasts[index-1])), math.abs(GetDelta(Stochs.Slows[index], Stochs.Fasts[index])))
-    end  
+    end
 
     -------------------------------------------------------------------------
     --#region II.4. Signals.Uturn31[Down/Up].Stochs
@@ -437,7 +437,7 @@ function OnCalculate(index)
             ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
         end -- short
 
-        
+
     -------------------------------------------------------------------------
     --#region III.3. Signals.Uturn32[Down/Up].RSIs
     -------------------------------------------------------------------------
@@ -910,10 +910,9 @@ function Signal2Cross(index, direction, values1, values2, diff, dev)
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
 
-        PrintDebugMessage("SignalCross2", index, direction)
-        PrintDebugMessage(index-1, values1[index-1], values2[index-1], index, values1[index], values2[index])
-        PrintDebugMessage(CheckRelate(direction, values1[index-1], values2[index-1], dev), CheckFlat(values1[index], values2[index], diff), "|", EventCross(index, direction, values1, values2, dev))
-  
+        PrintDebugMessage("-=SignalCross2", index, direction)
+        PrintDebugMessage("--1", index-1, values1[index-1], values2[index-1], index, values1[index], values2[index])
+        PrintDebugMessage("--2", CheckRelate(direction, values1[index-1], values2[index-1], dev), CheckFlat(values1[index], values2[index], diff), "|", EventCross(index, direction, values1, values2, dev))
 
         return ( -- two first candle is equal, two last candles is different
             (CheckFlat(values1[index], values2[index], diff) and CheckRelate(Reverse(direction), values1[index-1], values2[index-1], dev)) or
@@ -1013,7 +1012,7 @@ function Signal2Uturn31(index, direction, values1, values2, dev)
 end
 
 ----------------------------------------------------------------------------
--- Signal Uturn with 3 candles model 2 - fast  uturn3 and slow flat or move 
+-- Signal Uturn with 3 candles model 2 - fast  uturn3 and slow flat or move
 ----------------------------------------------------------------------------
 function SignalUturn32(index, direction, oscs, dev)
     Signal2Uturn32(index, direction, oscs.Fasts, oscs.Slows, dev)
@@ -1321,7 +1320,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
         end
 
         -- set text
-        ChartLabels.Params.TEXT = GetMessage(direction, signal.Name, Signals[signal.Name][direction][indicator.Name].Count)
+        ChartLabels.Params.TEXT = GetMessage(direction, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, index)
 
         ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
 
@@ -1344,7 +1343,7 @@ function SetInitialValues(t)
             Nesting = Nesting + 1
             SetInitialValues(value)
         else
-            if (Nesting == 4) then 
+            if (Nesting == 4) then
                 t[key] = 0
             end
         end
