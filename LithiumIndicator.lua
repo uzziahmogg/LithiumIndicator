@@ -144,6 +144,8 @@ function OnCalculate(index)
 
         Nesting = 1
         SetInitialValues(Signals)
+        
+        ProcessedIndex = 0
     end
 
     --#region set prices and indicators for current candle
@@ -173,392 +175,401 @@ function OnCalculate(index)
     --#endregion
 
     local t = T(index)
+    PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
 
-    --=======================================================================
-    -- I. Price Signals
-    --=======================================================================
-    -------------------------------------------------------------------------
-    --#region I.1. Signals.CrossMA[Down/Up].Price
-    -------------------------------------------------------------------------
-    -- PrintDebugMessage("I.1.PriceCross50", index, t.month, t.day, t.hour, t.min)
+    if (ProcessedIndex ~= index) then
 
-    -- check start signal price cross ma up
-    if (Signal2Cross((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
-        -- set signal
-        SetSignal((index-1), Directions.Long, Prices, Signals.Cross50)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- long
-
-    -- check start signal price cross ma down
-    if (Signal2Cross(index-1, Directions.Short, Prices.Closes, PCs.Centres)) then
-        -- set signal
-        SetSignal((index-1), Directions.Short, Prices, Signals.Cross50)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region I.2. Signals.Uturn31[Down/Up].Price
-    -------------------------------------------------------------------------
-    PrintDebugMessage("I.2.PriceUturn31", index, t.month, t.day, t.hour, t.min)
-
-    -- check start signal uturn3 up
-    if (Signal2Uturn31((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Long, Prices, Signals.Uturn31)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Uturn31, ChartIcons.Arrow, ChartPermissions.Event)
-    end -- long
-
-    -- check start signal price cross ma down
-    if (Signal2Uturn31((index-1), Directions.Short, Prices.Closes, PCs.Centres)) then
-
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Prices, Signals.Uturn31)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Uturn31, ChartIcons.Arrow, ChartPermissions.Event)
-    end -- short
-
-    -------------------------------------------------------------------------
-    --#region I.3. Signals.Uturn33[Down/Up].Price
-    -------------------------------------------------------------------------
-    -- check start signal uturn3 up
-    --[[if (Signal2Uturn32((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Long, Prices, Signals.Uturn32)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Uturn32, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- long
-
-    -- check start signal price cross ma down
-    if (Signal2Uturn32((index-1), Directions.Short, Prices.Closes, PCs.Centres)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Prices, Signals.Uturn32)
-
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Uturn32, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    --=======================================================================
-    -- II. Stoch Signals
-    --=======================================================================
-    -------------------------------------------------------------------------
-    --#region II.1. Signals.Cross[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check fast stoch cross slow stoch up
-    if (SignalCross((index-1), Directions.Long, Stochs)) then
-        -- set signal
-        SetSignal((index-1), Directions.Long, Stochs, Signals.Cross)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-    end -- long
-
-    -- check fast stoch cross slow stoch down
-    if (SignalCross((index-1), Directions.Short, Stochs)) then
-        -- set signal
-        SetSignal((index-1), Directions.Short, Stochs, Signals.Cross)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region II.2. Signals.Cross50[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check slow stoch cross lvl50 up
-    if (SignalCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
-        -- set signal
-        SetSignal((index-1), Directions.Long, Stochs, Signals.Cross50)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- long
-
-    -- check slow stoch cross lvl50 down
-    if (SignalCrossLevel((index-1), Directions.Short, Stochs.Slows, Stochs.HLines.Centre)) then
-        -- set signal
-        SetSignal((index-1), Directions.Short, Stochs, Signals.Cross50)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region II.3. Signals.Steamer[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check stoch steamer up
-    if (SignalSteamer((index-1), Directions.Long, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Long, Stochs, Signals.Steamer)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
-    end -- long
-
-    -- check stoch steamer down
-    if (SignalSteamer((index-1), Directions.Short, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Stochs, Signals.Steamer)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -- debuglog
-    if (index > 11600) and (index < 11700) then
-        local t = T(index)
-        PrintDebugMessage(index, t.month, t.day, t.hour, t.min)
-
-        PrintDebugMessage("-s", Stochs.Slows[index-2], Stochs.Slows[index-1], Stochs.Slows[index])
-        PrintDebugMessage("-f", Stochs.Fasts[index-2], Stochs.Fasts[index-1], Stochs.Fasts[index])
-        PrintDebugMessage("-d", math.abs(GetDelta(Stochs.Slows[index-2], Stochs.Fasts[index-2])), math.abs(GetDelta(Stochs.Slows[index-1], Stochs.Fasts[index-1])), math.abs(GetDelta(Stochs.Slows[index], Stochs.Fasts[index])))
-    end  
-
-    -------------------------------------------------------------------------
-    --#region II.4. Signals.Uturn31[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check slow stoch uturn 3 candles up
-    if (SignalUturn31((index-1), Directions.Long, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn31)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-    end -- long
-
-    -- check slow stoch uturn 3 candles down
-    if (SignalUturn31((index-1), Directions.Short, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn31)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region II.5. Signals.Uturn32[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check slow stoch uturn 3 candles up
-    if (SignalUturn32((index-1), Directions.Long, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn32)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-    end -- long
-
-    -- check slow stoch uturn 3 candles down
-    if (SignalUturn32((index-1), Directions.Short, Stochs)) then
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn32)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region III.6. Signals.TrendOff[Down/Up].Stochs
-    -------------------------------------------------------------------------
-    -- check start signal up trendoff - slow osc enter off uptrend zone
-    if SignalTrendOff((index-1), Directions.Short, Stochs) then
-        -- set signal on
-        SetSignal((index-1), Directions.Short, Stochs, Signals.TrendOff)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
-    end -- long
-
-    -- check start signal down trendoff - slow osc enter off down trend zone
-    if SignalTrendOff((index-1), Directions.Long, Stochs) then
-        SetSignal((index-1), Directions.Long, Stochs, Signals.TrendOff)
-
-        -- set chart label
-        ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
-    end -- short
-    --#endregion
-
-    --=======================================================================
-    -- III. RSI Signals
-    --=======================================================================
-    -------------------------------------------------------------------------
-    --#region III.1. Signals.Cross[Down/Up].RSIs
-    -------------------------------------------------------------------------
-    -- check fast rsi cross slow rsi up
-    if (SignalCross((index-1), Directions.Long, RSIs)) then
-        --set signal on
-        SetSignal((index-1), Directions.Long, RSIs, Signals.Cross)
-
-        -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
-    end -- long
-
-    -- check fast rsi cross slow rsi down
-    if (SignalCross((index-1), Directions.Short, RSIs)) then
-        -- set signals on
-        SetSignal((index-1), Directions.Short, RSIs, Signals.Cross)
-
-        -- set chart label
-        ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
-    end -- short
-    --#endregion
-
-    -------------------------------------------------------------------------
-    --#region III.2. Signals.Uturn31[Down/Up].RSIs
-    -------------------------------------------------------------------------
-        -- check slow RSI uturn 3 candles up
-        if (SignalUturn31((index-1), Directions.Long, RSIs)) then
-            -- set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow RSI uturn 3 candles down
-        if (SignalUturn31((index-1), Directions.Short, RSIs)) then
-            -- set signal on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- short
-
+        --=======================================================================
+        -- I. Price Signals
+        --=======================================================================
+        -------------------------------------------------------------------------
+        --#region I.1. Signals.CrossMA[Down/Up].Price
+        -------------------------------------------------------------------------
+        -- check start signal price cross ma up
+        if (Signal2Cross((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
+        PrintDebugMessage("I1-Price-Cross50-Long", (index-1), t.month, t.day, t.hour, t.min)
         
-    -------------------------------------------------------------------------
-    --#region III.3. Signals.Uturn32[Down/Up].RSIs
-    -------------------------------------------------------------------------
-        -- check slow RSI uturn 3 candles up
-        if (SignalUturn32((index-1), Directions.Long, RSIs)) then
-            -- set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn32)
+            -- set signal
+            SetSignal((index-1), Directions.Long, Prices, Signals.Cross50)
 
             -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
         end -- long
 
-        -- check slow RSI uturn 3 candles down
-        if (SignalUturn32((index-1), Directions.Short, RSIs)) then
+        -- check start signal price cross ma down
+        if (Signal2Cross(index-1, Directions.Short, Prices.Closes, PCs.Centres)) then
+            PrintDebugMessage("I1-Price-Cross50-Short", (index-1), t.month, t.day, t.hour, t.min)
+            
+            -- set signal
+            SetSignal((index-1), Directions.Short, Prices, Signals.Cross50)
+
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region I.2. Signals.Uturn31[Down/Up].Price
+        -------------------------------------------------------------------------
+        -- check start signal uturn31 up
+        if (Signal2Uturn31((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
+            PrintDebugMessage("I2-Price-Uturn31-Long", (index-1), t.month, t.day, t.hour, t.min)
+            
             -- set signal on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn32)
+            SetSignal((index-1), Directions.Long, Prices, Signals.Uturn31)
 
             -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Uturn31, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- long
+
+        -- check start signal uturn31 down
+        if (Signal2Uturn31((index-1), Directions.Short, Prices.Closes, PCs.Centres)) then
+            PrintDebugMessage("I2-Price-Uturn31-Short", (index-1), t.month, t.day, t.hour, t.min)
+
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Prices, Signals.Uturn31)
+
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Uturn31, ChartIcons.Arrow, ChartPermissions.Signal)
         end -- short
-    --#endregion
 
-    --=======================================================================
-    -- IV. Enters
-    --=======================================================================
-    -------------------------------------------------------------------------
-    --#region IV.1. States.Enter[Down/Up]
-    -------------------------------------------------------------------------
+        -------------------------------------------------------------------------
+        --#region I.3. Signals.Uturn32[Down/Up].Price
+        -------------------------------------------------------------------------
+        -- check start signal uturn32 up
+        if (Signal2Uturn32((index-1), Directions.Long, Prices.Closes, PCs.Centres)) then
+            PrintDebugMessage("I3-Price-Uturn32-Long", (index-1), t.month, t.day, t.hour, t.min)
 
-    -- check signals long
-    if ((Signals[Signals.Enter.Name][Directions.Long].Candle == 0) and --?
-    (Signals[Signals.CrossMA.Name][Directions.Long][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle > 0) and (Signals[Signals.Steamer.Name][Directions.Long][RSIs.Name].Candle > 0)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Long, Prices, Signals.Uturn32)
 
-        -- set enter long signal on
-        SetState((index-1), Directions.Long, Signals.Enter)
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Uturn32, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- long
 
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter, DealStages.Start)
-    end -- long
+        -- check start signal uturn32 down
+        if (Signal2Uturn32((index-1), Directions.Short, Prices.Closes, PCs.Centres)) then
+            PrintDebugMessage("I3-Price-Uturn32-Short", (index-1), t.month, t.day, t.hour, t.min)
 
-    -- check signals short
-    if ((Signals[Signals.Enter.Name][Directions.Short].Candle == 0) and --?
-    (Signals[Signals.CrossMA.Name][Directions.Short][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle > 0)and (Signals[Signals.Steamer.Name][Directions.Short][RSIs.Name].Candle > 0)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Prices, Signals.Uturn32)
 
-        -- set enter short signal on
-        SetState((index-1), Directions.Short, Signals.Enter)
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Uturn32, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- short
+        --#endregion
 
-        -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter, DealStages.Start)
-    end -- short
+        --=======================================================================
+        -- II. Stoch Signals
+        --=======================================================================
+        -------------------------------------------------------------------------
+        --#region II.1. Signals.Cross[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check fast stoch cross slow stoch up
+        if (SignalCross((index-1), Directions.Long, Stochs)) then
+            PrintDebugMessage("II1-Stoch-Cross-Long", (index-1), t.month, t.day, t.hour, t.min)
 
-    -- check enter long
-    if (Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle > 0) then
+            -- set signal
+            SetSignal((index-1), Directions.Long, Stochs, Signals.Cross)
 
-        -- set enter duration
-        local duration = index - Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
+        end -- long
 
-        -- check continuation enter long
-        if (duration <= Signals.Duration) then
+        -- check fast stoch cross slow stoch down
+        if (SignalCross((index-1), Directions.Short, Stochs)) then
+            PrintDebugMessage("II1-Stoch-Cross-Short", (index-1), t.month, t.day, t.hour, t.min)
 
-            -- enter long terminates by end one of long signals
-            if ((Signals[Signals.CrossMA.Name][Directions.Long][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle == 0)) then
+            -- set signal
+            SetSignal((index-1), Directions.Short, Stochs, Signals.Cross)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region II.2. Signals.Cross50[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check slow stoch cross lvl50 up
+        --[[if (SignalCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
+            -- set signal
+            SetSignal((index-1), Directions.Long, Stochs, Signals.Cross50)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- long
+
+        -- check slow stoch cross lvl50 down
+        if (SignalCrossLevel((index-1), Directions.Short, Stochs.Slows, Stochs.HLines.Centre)) then
+            -- set signal
+            SetSignal((index-1), Directions.Short, Stochs, Signals.Cross50)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region II.3. Signals.Steamer[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check stoch steamer up
+        if (SignalSteamer((index-1), Directions.Long, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Long, Stochs, Signals.Steamer)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
+        end -- long
+
+        -- check stoch steamer down
+        if (SignalSteamer((index-1), Directions.Short, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Stochs, Signals.Steamer)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region II.4. Signals.Uturn31[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check slow stoch uturn 3 candles up
+        if (SignalUturn31((index-1), Directions.Long, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn31)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
+        end -- long
+
+        -- check slow stoch uturn 3 candles down
+        if (SignalUturn31((index-1), Directions.Short, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn31)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region II.5. Signals.Uturn32[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check slow stoch uturn 3 candles up
+        if (SignalUturn32((index-1), Directions.Long, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn32)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+        end -- long
+
+        -- check slow stoch uturn 3 candles down
+        if (SignalUturn32((index-1), Directions.Short, Stochs)) then
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn32)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region III.6. Signals.TrendOff[Down/Up].Stochs
+        -------------------------------------------------------------------------
+        -- check start signal up trendoff - slow osc enter off uptrend zone
+        if SignalTrendOff((index-1), Directions.Short, Stochs) then
+            -- set signal on
+            SetSignal((index-1), Directions.Short, Stochs, Signals.TrendOff)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
+        end -- long
+
+        -- check start signal down trendoff - slow osc enter off down trend zone
+        if SignalTrendOff((index-1), Directions.Long, Stochs) then
+            SetSignal((index-1), Directions.Long, Stochs, Signals.TrendOff)
+
+            -- set chart label
+            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
+        end -- short
+        --#endregion
+
+        --=======================================================================
+        -- III. RSI Signals
+        --=======================================================================
+        -------------------------------------------------------------------------
+        --#region III.1. Signals.Cross[Down/Up].RSIs
+        -------------------------------------------------------------------------
+        -- check fast rsi cross slow rsi up
+        if (SignalCross((index-1), Directions.Long, RSIs)) then
+            --set signal on
+            SetSignal((index-1), Directions.Long, RSIs, Signals.Cross)
+
+            -- set chart label
+            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
+        end -- long
+
+        -- check fast rsi cross slow rsi down
+        if (SignalCross((index-1), Directions.Short, RSIs)) then
+            -- set signals on
+            SetSignal((index-1), Directions.Short, RSIs, Signals.Cross)
+
+            -- set chart label
+            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Event)
+        end -- short
+        --#endregion
+
+        -------------------------------------------------------------------------
+        --#region III.2. Signals.Uturn31[Down/Up].RSIs
+        -------------------------------------------------------------------------
+            -- check slow RSI uturn 3 candles up
+            if (SignalUturn31((index-1), Directions.Long, RSIs)) then
+                -- set signal on
+                SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn31)
 
                 -- set chart label
-                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
+            end -- long
 
-                -- set enter long off
+            -- check slow RSI uturn 3 candles down
+            if (SignalUturn31((index-1), Directions.Short, RSIs)) then
+                -- set signal on
+                SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn31)
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
+            end -- short
+
+            
+        -------------------------------------------------------------------------
+        --#region III.3. Signals.Uturn32[Down/Up].RSIs
+        -------------------------------------------------------------------------
+            -- check slow RSI uturn 3 candles up
+            if (SignalUturn32((index-1), Directions.Long, RSIs)) then
+                -- set signal on
+                SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn32)
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+            end -- long
+
+            -- check slow RSI uturn 3 candles down
+            if (SignalUturn32((index-1), Directions.Short, RSIs)) then
+                -- set signal on
+                SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn32)
+
+                -- set chart label
+                ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
+            end -- short
+        --#endregion
+
+        --=======================================================================
+        -- IV. Enters
+        --=======================================================================
+        -------------------------------------------------------------------------
+        --#region IV.1. States.Enter[Down/Up]
+        -------------------------------------------------------------------------
+
+        -- check signals long
+        if ((Signals[Signals.Enter.Name][Directions.Long].Candle == 0) and --?
+        (Signals[Signals.CrossMA.Name][Directions.Long][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle > 0) and (Signals[Signals.Steamer.Name][Directions.Long][RSIs.Name].Candle > 0)) then
+
+            -- set enter long signal on
+            SetState((index-1), Directions.Long, Signals.Enter)
+
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter, DealStages.Start)
+        end -- long
+
+        -- check signals short
+        if ((Signals[Signals.Enter.Name][Directions.Short].Candle == 0) and --?
+        (Signals[Signals.CrossMA.Name][Directions.Short][Prices.Name].Candle > 0) and (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle > 0)and (Signals[Signals.Steamer.Name][Directions.Short][RSIs.Name].Candle > 0)) then
+
+            -- set enter short signal on
+            SetState((index-1), Directions.Short, Signals.Enter)
+
+            -- set chart label
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter, DealStages.Start)
+        end -- short
+
+        -- check enter long
+        if (Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle > 0) then
+
+            -- set enter duration
+            local duration = index - Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle
+
+            -- check continuation enter long
+            if (duration <= Signals.Duration) then
+
+                -- enter long terminates by end one of long signals
+                if ((Signals[Signals.CrossMA.Name][Directions.Long][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle == 0)) then
+
+                    -- set chart label
+                    ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+
+                    -- set enter long off
+                    Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
+
+                -- process continuation enter long
+                else
+                    -- set chart label
+                    ChartLabels[Prices.Name][index] = SetChartLabel(index, Directions.Long, Prices, Signals.Enter, ChartIcons.Minus, ChartPermissions.Enter, GetMessage(DealStages.Continue, duration))
+                end
+
+            -- enter long terminates by end of duration
+            elseif (duration > Signals.Duration) then
+                -- set chart label
+                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
+
+                -- set enter short signal off
                 Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
-
-            -- process continuation enter long
-            else
-                -- set chart label
-                ChartLabels[Prices.Name][index] = SetChartLabel(index, Directions.Long, Prices, Signals.Enter, ChartIcons.Minus, ChartPermissions.Enter, GetMessage(DealStages.Continue, duration))
             end
+        end -- long
 
-        -- enter long terminates by end of duration
-        elseif (duration > Signals.Duration) then
-            -- set chart label
-            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
+        -- check enter short
+        if (Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle > 0) then
 
-            -- set enter short signal off
-            Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
-        end
-    end -- long
+            -- set duration
+            local duration = index - Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle
 
-    -- check enter short
-    if (Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle > 0) then
+            -- check continuation enter long
+            if (duration <= Signals.Duration) then
 
-        -- set duration
-        local duration = index - Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle
+                -- enter long terminates by end one of long signals
+                if ((Signals[Signals.CrossMA.Name][Directions.Short][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle == 0)) then
 
-        -- check continuation enter long
-        if (duration <= Signals.Duration) then
+                    -- set chart label
+                    ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
 
-            -- enter long terminates by end one of long signals
-            if ((Signals[Signals.CrossMA.Name][Directions.Short][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle == 0)) then
+                    -- set enter long off
+                    Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
 
+                -- process continuation enter long
+                else
+                    -- set chart label
+                    ChartLabels[Prices.Name][index] = SetChartLabel(index, Directions.Short, Prices, Signals.Enter, ChartIcons.Minus, ChartPermissions.Enter, GetMessage(DealStages.Continue, duration))
+                end
+
+            -- enter long terminates by end of duration
+            elseif (duration > Signals.Duration) then
                 -- set chart label
-                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by offsignal")
+                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
 
-                -- set enter long off
+                -- set enter short signal off
                 Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
+            end -- short
+        end ]]
+        --#endregion
 
-            -- process continuation enter long
-            else
-                -- set chart label
-                ChartLabels[Prices.Name][index] = SetChartLabel(index, Directions.Short, Prices, Signals.Enter, ChartIcons.Minus, ChartPermissions.Enter, GetMessage(DealStages.Continue, duration))
-            end
+        ProcessedIndex = index
+    end
 
-        -- enter long terminates by end of duration
-        elseif (duration > Signals.Duration) then
-            -- set chart label
-            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, tostring(index-1) .. "|" .. tostring(duration) .. "|" .. DealStages.End .. " by duration")
-
-            -- set enter short signal off
-            Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
-        end -- short
-    end ]]
-    --#endregion
-
-    if (index == 3875) then
+    -- debuglog    
+    PrintDebugMessage(index,ProcessedIndex)
+    if (index == 5816) then
         PrintDebugSummary()
     end
 
@@ -998,12 +1009,6 @@ end
 function Signal2Uturn31(index, direction, values1, values2, dev)
     if (CheckDataExist(index, 5, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
-
-        PrintDebugMessage("Signal2Uturn31", index, direction)
-        PrintDebugMessage("Signal2Uturn31-a", EventUturn3(index, direction, values1, dev))
-        PrintDebugMessage("Signal2Uturn31-b", EventUturn3((index-1), direction, values1, dev))
-        PrintDebugMessage("Signal2Uturn31-c",  EventUturn3((index-2), direction, values1, dev)) 
-        PrintDebugMessage("Signal2Uturn31-d", EventUturn3(index, direction, values2, dev))
         
         return ((EventUturn3(index, direction, values1, dev) or EventUturn3((index-1), direction, values1, dev) or EventUturn3((index-2), direction, values1, dev)) and EventUturn3(index, direction, values2, dev))
 
@@ -1083,11 +1088,6 @@ end
 -- Event 3 last candles Value uturn up or down
 ----------------------------------------------------------------------------
 function EventUturn3(index, direction, value, dev)
-
-    PrintDebugMessage("EventUturn3-1", index, direction)
-    PrintDebugMessage("EventUturn3-2", index-2, value[index-2], index-1, value[index-1], index, value[index])
-    PrintDebugMessage("EventUturn3-3", CheckRelate(direction, value[index-2], value[index-1], dev), CheckRelate(direction, value[index], value[index-1], dev))
-
     return (CheckRelate(direction, value[index-2], value[index-1], dev) and CheckRelate(direction, value[index], value[index-1], dev))
 end
 
@@ -1300,10 +1300,8 @@ end
 -- function SetChartLabel() set chart label
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
-
     -- check signal level and chart levels
     if CheckChartPermission(indicator, signal_permission) then
-
         -- delete label duplicates
         local chart_tag = GetChartTag(indicator.Name)
 
@@ -1336,7 +1334,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
     -- nothing todo
     else
-        return nil
+        return ChartLabels[indicator.Name][index]
     end
 end
 
@@ -1366,16 +1364,22 @@ end
 function PrintDebugSummary()
     PrintDebugMessage("===Summary===")
 
+    PrintDebugMessage("Signal-Direction-Stoch-RSI")
     PrintDebugMessage(Signals.Cross.Name, Directions.Long, Signals.Cross[Directions.Long][Stochs.Name].Count, Signals.Cross[Directions.Long][RSIs.Name].Count, Directions.Short, Signals.Cross[Directions.Short][Stochs.Name].Count, Signals.Cross[Directions.Short][RSIs.Name].Count)
 
+    PrintDebugMessage("Signal-Direction-Price-Stoch")
     PrintDebugMessage(Signals.Cross50.Name, Directions.Long, Signals.Cross50[Directions.Long][Prices.Name].Count, Signals.Cross50[Directions.Long][Stochs.Name].Count, Directions.Short, Signals.Cross50[Directions.Short][Prices.Name].Count, Signals.Cross50[Directions.Short][Stochs.Name].Count)
 
+    PrintDebugMessage("Signal-Direction-Stoch")
     PrintDebugMessage(Signals.Steamer.Name, Directions.Long,  Signals.Steamer[Directions.Long][Stochs.Name].Count, Directions.Short,  Signals.Steamer[Directions.Short][Stochs.Name].Count)
 
+    PrintDebugMessage("Signal-Direction-Stoch")
     PrintDebugMessage(Signals.TrendOff.Name, Directions.Long, Signals.TrendOff[Directions.Long][Stochs.Name].Count, Directions.Short, Signals.TrendOff[Directions.Short][Stochs.Name].Count)
 
+    PrintDebugMessage("Signal-Direction-Price-Stoch-RSI")
     PrintDebugMessage(Signals.Uturn31.Name, Directions.Long, Signals.Uturn31[Directions.Long][Prices.Name].Count, Signals.Uturn31[Directions.Long][Stochs.Name].Count,Signals.Uturn31[Directions.Long][RSIs.Name].Count, Directions.Short, Signals.Uturn31[Directions.Short][Prices.Name].Count, Signals.Uturn31[Directions.Short][Stochs.Name].Count,Signals.Uturn31[Directions.Short][RSIs.Name].Count)
 
+    PrintDebugMessage("Signal-Direction-Price-Stoch-RSI")
     PrintDebugMessage(Signals.Uturn32.Name, Directions.Long, Signals.Uturn32[Directions.Long][Prices.Name].Count, Signals.Uturn32[Directions.Long][Stochs.Name].Count,Signals.Uturn32[Directions.Long][RSIs.Name].Count, Directions.Short, Signals.Uturn32[Directions.Short][Prices.Name].Count, Signals.Uturn32[Directions.Short][Stochs.Name].Count,Signals.Uturn32[Directions.Short][RSIs.Name].Count)
 end
 
