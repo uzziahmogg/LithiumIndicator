@@ -21,18 +21,23 @@
 --// all variants for StochSlow in Uturn3
 --// check new signal functions and add strength signals
 --// enter for Uturn3
+--// create func CheckElementarySignal
+--// separate enter forn uturn31 and uturn32
+--// turn off signal for duration
 
 --todo check signals in realtime
---todo create func CheckElementarySignal
 --todo remake all error handling to exceptions in functional programming
 --todo remove all chart labels keep only last 30
 --todo remove all prices and inds array, kepp only last three
---todo separate enter forn uturn31 and uturn32
---todo enter for Trendoff
+--todo enter for Trendoff+Diver
 --todo 1st leg zigzag with divergence
 --todo 2 signals with 2nd leg zigzag near lvl50
 --todo functions Place for Stoch Uturn3
---todo turn off signal for duration
+--todo made signal turn off by opposite signal on
+--todo separate signal start and stop by opposite signal/duration
+--todo seoarate enters for combination price uturn31/32 and stoch uturn31/32 and rsi uturn31/32
+--todo states: CheckState...
+--todo icon property signal
 
 --todo loging to CSV
 --todo transaction
@@ -76,13 +81,13 @@ function Init()
 
     -- chart params and indicators it consist
     -- price data arrays and params
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Enter } -- FEK_LITHIUMPrice
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Signal + ChartPermissions.Enter } -- FEK_LITHIUMPrice
 
     -- stochastic data arrays and params
-    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Enter } -- FEK_LITHIUMStoch
+    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Signal } -- FEK_LITHIUMStoch
     
     -- RSI data arrays and params
-    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Dev = 0, Step = 5, Permission = ChartPermissions.Enter } -- FEK_LITHIUMRSI
+    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Dev = 0, Step = 5, Permission = ChartPermissions.Signal } -- FEK_LITHIUMRSI
 
     -- price channel data arrays and params
     PCs = { Name = "PC", Tops = {}, Bottoms = {}, Centres = {}, Period = 20 }
@@ -136,13 +141,13 @@ function Init()
 
     Uturn32 = { Name = "Uturn32", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }, [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
 
-    Strength1 = { Name = "Strength1", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
+    StrengthOsc = { Name = "StrengthOsc", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
 
-    Strength2 = { Name = "Strength2", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }}},
+    StrengthPrice = { Name = "StrengthPrice", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }}},
 
     Enter = { Name = "Enter", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }}}, 
     
-    MaxDuration = 2, MaxDifference = 30, MinDifference = 0, MinDeviation = 0 }
+    MaxDuration = 2, MaxDifference = 10, MinDifference = 0, MinDeviation = 0 }
 
     return #Settings.line
 end
@@ -197,332 +202,74 @@ function OnCalculate(index)
         -- I. Price Signals
         -------------------------------------------------------------------------
         -- check signal price cross ma 
-        --[[ CheckSignal(index, Directions.Long, Prices, Signals.Cross50)
-        CheckSignal(index, Directions.Short, Prices, Signals.Cross50) ]]
+        CheckSignal(index, Directions.Long, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Prices, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.State) 
 
         -- check signal uturn31 
-        --[[ CheckSignal(index, Directions.Long, Prices, Signals.Uturn31)
-        CheckSignal(index, Directions.Short, Prices, Signals.Uturn31) ]]
+        CheckSignal(index, Directions.Long, Prices, Signals.Uturn31, ChartIcons.Romb, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Prices, Signals.Uturn31, ChartIcons.Romb, ChartPermissions.State)
 
         -- check signal uturn32 
-        --[[ CheckSignal(index, Directions.Long, Prices, Signals.Uturn32)
-        CheckSignal(index, Directions.Short, Prices, Signals.Uturn32) ]]
+        CheckSignal(index, Directions.Long, Prices, Signals.Uturn32, ChartIcons.Point, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Prices, Signals.Uturn32, ChartIcons.Point, ChartPermissions.State) 
 
-        -- check start signal Strength2
-        CheckSignal(index, Directions.Long, Prices, Signals.Strength2)
-        CheckSignal(index, Directions.Short, Prices, Signals.Strength2)
+        -- check start signal strengthPrice
+        CheckSignal(index, Directions.Long, Prices, Signals.StrengthPrice, ChartIcons.Romb, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Prices, Signals.StrengthPrice, ChartIcons.Romb, ChartPermissions.State)
 
-        --=======================================================================
+        -------------------------------------------------------------------------
         -- II. Stoch Signals
-        --=======================================================================
         -------------------------------------------------------------------------
-        --#region II.1. Signals.Cross[Down/Up].Stochs
+        -- check signal stoch fast cross slow 
+        CheckSignal(index, Directions.Long, Stochs, Signals.Cross, ChartIcons.Asterix, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.Cross, ChartIcons.Asterix, ChartPermissions.State)
+
+        -- check signal stoch slow cross lvl50 
+        CheckSignal(index, Directions.Long, Stochs, Signals.Cross50, ChartIcons.Asterix, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.Cross50, ChartIcons.Asterix, ChartPermissions.State)
+
+        -- check signal stoch steamer
+        CheckSignal(index, Directions.Long, Stochs, Signals.Steamer, ChartIcons.Asterix, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.Steamer, ChartIcons.Asterix, ChartPermissions.State)
+
+        -- check signal stoch uturn31
+        CheckSignal(index, Directions.Long, Stochs, Signals.Uturn31, ChartIcons.Asterix, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.Uturn31, ChartIcons.Asterix, ChartPermissions.State)
+
+        -- check signal stoch uturn32
+        CheckSignal(index, Directions.Long, Stochs, Signals.Uturn32, ChartIcons.Asterix, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.Uturn32, ChartIcons.Asterix, ChartPermissions.State)
+
+        -- check signal stoch StrengthOsc
+        CheckSignal(index, Directions.Long, Stochs, Signals.StrengthOsc, ChartIcons.Romb, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.StrengthOsc, ChartIcons.Romb, ChartPermissions.State)
+
+        -- check signal stoch TrendOff
+        CheckSignal(index, Directions.Long, Stochs, Signals.TrendOff, ChartIcons.Romb, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, Stochs, Signals.TrendOff, ChartIcons.Romb, ChartPermissions.State)
+    
         -------------------------------------------------------------------------
-        --[[PrintDebugMessage("II1", Stochs.Name, Signals.Cross.Name, index)
-
-        -- check fast stoch cross slow stoch up
-        if (SignalCross((index-1), Directions.Long, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Cross.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal
-            SetSignal((index-1), Directions.Long, Stochs, Signals.Cross)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-        end -- long
-
-        -- check fast stoch cross slow stoch down
-        if (SignalCross((index-1), Directions.Short, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Cross.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal
-            SetSignal((index-1), Directions.Short, Stochs, Signals.Cross)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region II.2. Signals.Cross50[Down/Up].Stochs
-        -------------------------------------------------------------------------
-        PrintDebugMessage("II2", Stochs.Name, Signals.Cross50.Name, index)
-
-        -- check slow stoch cross lvl50 up
-        if (SignalCrossLevel((index-1), Directions.Long, Stochs.Slows, Stochs.HLines.Centre)) then
-            PrintDebugMessage(Stochs.Name, Signals.Cross50.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal
-            SetSignal((index-1), Directions.Long, Stochs, Signals.Cross50)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow stoch cross lvl50 down
-        if (SignalCrossLevel((index-1), Directions.Short, Stochs.Slows, Stochs.HLines.Centre)) then
-            PrintDebugMessage(Stochs.Name, Signals.Cross50.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal
-            SetSignal((index-1), Directions.Short, Stochs, Signals.Cross50)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region II.3. Signals.Steamer[Down/Up].Stochs
-        -------------------------------------------------------------------------
-        PrintDebugMessage("II3", Stochs.Name, Signals.Steamer.Name, index)
-
-        -- check stoch steamer up
-        if (SignalSteamer((index-1), Directions.Long, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Steamer.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, Stochs, Signals.Steamer)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
-        end -- long
-
-        -- check stoch steamer down
-        if (SignalSteamer((index-1), Directions.Short, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Steamer.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, Stochs, Signals.Steamer)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Steamer, ChartIcons.Plus, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region II.4. Signals.Uturn31[Down/Up].Stochs
-        -------------------------------------------------------------------------
-        PrintDebugMessage("II4", Stochs.Name, Signals.Uturn31.Name, index)
-
-        -- check slow stoch uturn 3 candles up
-        if (SignalUturn31((index-1), Directions.Long, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Uturn31.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow stoch uturn 3 candles down
-        if (SignalUturn31((index-1), Directions.Short, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Uturn31.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region II.5. Signals.Uturn32[Down/Up].Stochs
-        -------------------------------------------------------------------------
-        PrintDebugMessage("II5", Stochs.Name, Signals.Uturn32.Name, index)
-
-        -- check slow stoch uturn 3 candles up
-        if (SignalUturn32((index-1), Directions.Long, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Uturn32.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, Stochs, Signals.Uturn32)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow stoch uturn 3 candles down
-        if (SignalUturn32((index-1), Directions.Short, Stochs)) then
-            PrintDebugMessage(Stochs.Name, Signals.Uturn32.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, Stochs, Signals.Uturn32)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region III.6. Signals.TrendOff[Down/Up].Stochs
-        -------------------------------------------------------------------------
-        PrintDebugMessage("II6", Stochs.Name, Signals.TrendOff.Name, index)
-
-        -- check start signal up trendoff - slow osc enter off uptrend zone
-        if SignalTrendOff((index-1), Directions.Short, Stochs) then
-            PrintDebugMessage(Stochs.Name, Signals.TrendOff.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, Stochs, Signals.TrendOff)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Short, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
-        end -- long
-
-        -- check start signal down trendoff - slow osc enter off down trend zone
-        if SignalTrendOff((index-1), Directions.Long, Stochs) then
-            PrintDebugMessage(Stochs.Name, Signals.TrendOff.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, Stochs, Signals.TrendOff)
-
-            -- set chart label
-            ChartLabels[Stochs.Name][index-1] = SetChartLabel((index-1), Directions.Long, Stochs, Signals.TrendOff, ChartIcons.Point, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        --=======================================================================
         -- III. RSI Signals--NOTE: rsisignals
-        --=======================================================================
         -------------------------------------------------------------------------
-        --#region III.1. Signals.Cross[Down/Up].RSIs--NOTE: rsicross
-        -------------------------------------------------------------------------
-        PrintDebugMessage("III1", RSIs.Name, Signals.Cross.Name, index)
+        -- check signal stoch cross
+        CheckSignal(index, Directions.Long, RSIs, Signals.Cross, ChartIcons.Triangle, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, RSIs, Signals.Cross, ChartIcons.Triangle, ChartPermissions.State)
 
-        -- check fast rsi cross slow rsi up
-        if (SignalCross((index-1), Directions.Long, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Cross.Name, Directions.Long, (index-1), DealStages.Start)
-            
-            --set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Cross)
+        -- check signal stoch cross50
+        CheckSignal(index, Directions.Long, RSIs, Signals.Cross50, ChartIcons.Triangle, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, RSIs, Signals.Cross50, ChartIcons.Triangle, ChartPermissions.State)
 
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-        end -- long
+        -- check signal stoch uturn31
+        CheckSignal(index, Directions.Long, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, RSIs, Signals.Uturn31, ChartIcons.Triangle, ChartPermissions.State)
 
-        -- check fast rsi cross slow rsi down
-        if (SignalCross((index-1), Directions.Short, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Cross.Name, Directions.Short, (index-1), DealStages.Start)
-          
-            -- set signals on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Cross)
+        -- check signal stoch uturn32
+        CheckSignal(index, Directions.Long, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.State)
+        CheckSignal(index, Directions.Short, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.State)
 
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross, ChartIcons.Romb, ChartPermissions.Signal)
-        end -- short
-        --#endregion
-
-        -------------------------------------------------------------------------
-        --#region III.2. Signals.Cross50[Down/Up].RSIs--NOTE: rsicross50
-        -------------------------------------------------------------------------
-        PrintDebugMessage("III2", RSIs.Name, Signals.Cross50.Name, index)
-        
-        -- check fast rsi cross slow rsi up
-        if SignalCrossLevel((index-1), Directions.Long, RSIs.Slows, RSIs.HLines.Centre) then
-            PrintDebugMessage(RSIs.Name, Signals.Cross50.Name, Directions.Long, (index-1), DealStages.Start)
-            
-            --set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Cross50)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-        end -- long
-
-        -- check fast rsi cross slow rsi down
-        if SignalCrossLevel((index-1), Directions.Short, RSIs.Slows, RSIs.HLines.Centre) then
-            PrintDebugMessage(RSIs.Name, Signals.Cross50.Name, Directions.Short, (index-1), DealStages.Start)
-          
-            -- set signals on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Cross50)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Cross50, ChartIcons.Arrow, ChartPermissions.Signal)
-        end -- short 
-        --#endregion
-        
-        -------------------------------------------------------------------------
-        --#region III.3. Signals.Uturn31[Down/Up].RSIs--NOTE: rsiuturn31
-        -------------------------------------------------------------------------
-        PrintDebugMessage("III3", RSIs.Name, Signals.Uturn31.Name, index)
-
-        -- check slow RSI uturn 3 candles up
-        if (SignalUturn31((index-1), Directions.Long, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Uturn31.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn31, ChartIcons.Point, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow RSI uturn 3 candles down
-        if (SignalUturn31((index-1), Directions.Short, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Uturn31.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn31)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn31, ChartIcons.Point, ChartPermissions.Signal)
-        end -- short
-
-        -------------------------------------------------------------------------
-        --#region III.4. Signals.Uturn32[Down/Up].RSIs--NOTE: rsiuturn32
-        -------------------------------------------------------------------------
-        PrintDebugMessage("III4", RSIs.Name, Signals.Uturn32.Name, index)
-
-        -- check slow RSI uturn 3 candles up
-        if (SignalUturn32((index-1), Directions.Long, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Uturn32.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Uturn32)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow RSI uturn 3 candles down
-        if (SignalUturn32((index-1), Directions.Short, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Uturn32.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Uturn32)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Uturn32, ChartIcons.Triangle, ChartPermissions.Signal)
-        end -- short
-
-        -------------------------------------------------------------------------
-        --#region III.5. Signals.Strength1[Down/Up].RSIs--NOTE: rsistrength1
-        -------------------------------------------------------------------------
-        PrintDebugMessage("III5", RSIs.Name, Signals.Strength1.Name, index)
-
-        -- check slow RSI uturn 3 candles up
-        if (SignalStrength1((index-1), Directions.Long, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Strength1.Name, Directions.Long, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Long, RSIs, Signals.Strength1)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Long, RSIs, Signals.Strength1, ChartIcons.Flash, ChartPermissions.Signal)
-        end -- long
-
-        -- check slow RSI uturn 3 candles down
-        if (SignalStrength1((index-1), Directions.Short, RSIs)) then
-            PrintDebugMessage(RSIs.Name, Signals.Strength1.Name, Directions.Short, (index-1), DealStages.Start)
-
-            -- set signal on
-            SetSignal((index-1), Directions.Short, RSIs, Signals.Strength1)
-
-            -- set chart label
-            ChartLabels[RSIs.Name][index-1] = SetChartLabel((index-1), Directions.Short, RSIs, Signals.Strength1, ChartIcons.Flash, ChartPermissions.Signal)
-        end -- short
-        --#endregion
+        -- check signal stoch uturn32
+        CheckSignal(index, Directions.Long, RSIs, Signals.StrengthOsc, ChartIcons.Triangle, ChartPermissions.Signal)
+        CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc, ChartIcons.Triangle, ChartPermissions.Signal)
 
         --=======================================================================
         -- IV. Enters
@@ -538,19 +285,19 @@ function OnCalculate(index)
         ((Signals[Signals.Cross50.Name][Directions.Long][Prices.Name].Candle > 0) and 
         (Signals[Signals.Uturn31.Name][Directions.Long][Prices.Name].Candle > 0) and
         (Signals[Signals.Uturn32.Name][Directions.Long][Prices.Name].Candle > 0) and
-        (Signals[Signals.Strength2.Name][Directions.Long][Prices.Name].Candle > 0)) and
+        (Signals[Signals.StrengthPrice.Name][Directions.Long][Prices.Name].Candle > 0)) and
 
         ((Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle > 0) and 
         (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle > 0) and 
         (Signals[Signals.Steamer.Name][Directions.Long][Stochs.Name].Candle > 0) and
         (Signals[Signals.Uturn31.Name][Directions.Long][Stochs.Name].Candle > 0) and
         (Signals[Signals.Uturn32.Name][Directions.Long][Stochs.Name].Candle > 0) and
-        (Signals[Signals.Strength1.Name][Directions.Long][Stochs.Name].Candle > 0)) and
+        (Signals[Signals.StrengthOsc.Name][Directions.Long][Stochs.Name].Candle > 0)) and
         
         ((Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle > 0) and 
         (Signals[Signals.Uturn31.Name][Directions.Long][RSIs.Name].Candle > 0) and
         (Signals[Signals.Uurn32.Name][Directions.Long][RSIs.Name].Candle > 0) and
-        (Signals[Signals.Strength1.Name][Directions.Long][RSIs.Name].Candle > 0))) then
+        (Signals[Signals.StrengthOsc.Name][Directions.Long][RSIs.Name].Candle > 0))) then
 
             -- set enter long signal on
             SetState((index-1), Directions.Long, Prices, Signals.Enter)
@@ -565,19 +312,19 @@ function OnCalculate(index)
         ((Signals[Signals.Cross50.Name][Directions.Short][Prices.Name].Candle > 0) and 
         (Signals[Signals.Uturn31.Name][Directions.Short][Prices.Name].Candle > 0) and
         (Signals[Signals.Uturn32.Name][Directions.Short][Prices.Name].Candle > 0) and
-        (Signals[Signals.Strength2.Name][Directions.Short][Prices.Name].Candle > 0)) and
+        (Signals[Signals.StrengthPrice.Name][Directions.Short][Prices.Name].Candle > 0)) and
 
         ((Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle > 0) and 
         (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle > 0) and 
         (Signals[Signals.Steamer.Name][Directions.Short][Stochs.Name].Candle > 0) and
         (Signals[Signals.Uturn31.Name][Directions.Short][Stochs.Name].Candle > 0) and
         (Signals[Signals.Uturn32.Name][Directions.Short][Stochs.Name].Candle > 0) and
-        (Signals[Signals.Strength1.Name][Directions.Short][Stochs.Name].Candle > 0)) and
+        (Signals[Signals.StrengthOsc.Name][Directions.Short][Stochs.Name].Candle > 0)) and
         
         ((Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle > 0) and 
         (Signals[Signals.Uturn31.Name][Directions.Short][RSIs.Name].Candle > 0) and
         (Signals[Signals.Uurn32.Name][Directions.Short][RSIs.Name].Candle > 0) and
-        (Signals[Signals.Strength1.Name][Directions.Short][RSIs.Name].Candle > 0))) then
+        (Signals[Signals.StrengthOsc.Name][Directions.Short][RSIs.Name].Candle > 0))) then
 
             -- set enter short signal on
             SetState((index-1), Directions.Short, Prices, Signals.Enter)
@@ -974,9 +721,10 @@ end
 --==========================================================================
 --#region SIGNALS
 --==========================================================================
-function CheckSignal(index, direction, indicator, signal)
+function CheckSignal(index, direction, indicator, signal, chart_icon, chart_permission)
     local values1, values2, signal_function
 
+    -- set indicators
     if (indicator.Name == Prices.Name) then
         values1 = Prices.Closes
         values2 = PCs.Centres        
@@ -988,30 +736,40 @@ function CheckSignal(index, direction, indicator, signal)
         values2 = RSIs.Slows
     end
 
+    -- set signal function
     if (signal.Name == Signals.Cross50.Name ) then
-        signal_function = Signal2Cross
+        signal_function = SignalCross
         if (indicator.Name == Stochs.Name) then
+            values1 = Stochs.Slows
             values2 = {[index-2] = Stochs.HLines.Centre, [index-1] = Stochs.HLines.Centre}
         elseif (indicator.Name == RSIs.Name) then
+            values1 = RSIs.Slows
             values2 = {[index-2] = RSIs.HLines.Centre, [index-1] = RSIs.HLines.Centre}
         end
+
     elseif (signal.Name == Signals.Cross.Name ) then
-        signal_function = Signal2Cross
+        signal_function = SignalCross
+
     elseif (signal.Name == Signals.Steamer.Name ) then
         signal_function = SignalSteamer
+
     elseif (signal.Name == Signals.Uturn31.Name ) then
-        signal_function = Signal2Uturn31
+        signal_function = SignalUturn31
+
     elseif (signal.Name == Signals.Uturn32.Name ) then
-        signal_function = Signal2Uturn32
+        signal_function = SignalUturn32
+
     elseif (signal.Name == Signals.TrendOff.Name ) then
-        signal_function = Signal2Cross        
+        signal_function = SignalCross        
         if (indicator.Name == Stochs.Name) then
+            values1 = Stochs.Slows
             if (direction == Directions.Long) then
                 values2 = {[index-2] = Stochs.HLines.TopExtreme, [index-1] = Stochs.HLines.TopExtreme}
             elseif (direction == Directions.Short) then
                 values2 = {[index-2] = Stochs.HLines.BottomExtreme, [index-1] = Stochs.HLines.BottomExtreme}
             end
         elseif (indicator.Name == RSIs.Name) then
+            values1 = RSIs.Slows
             if (direction == Directions.Long) then
                 values2 = {[index-2] = RSIs.HLines.TopTrend, [index-1] = RSIs.HLines.TopTrend}
             elseif (direction == Directions.LShortong) then
@@ -1019,13 +777,16 @@ function CheckSignal(index, direction, indicator, signal)
             end
         end
         direction = Reverse(direction)
-    elseif (signal.Name == Signals.Strength1.Name ) then
-        signal_function = Signal2Strength1
-    elseif (signal.Name == Signals.Strength2.Name ) then
+
+    elseif (signal.Name == Signals.StrengthOsc.Name ) then
+        signal_function = SignalStrengthOsc
+
+    elseif (signal.Name == Signals.StrengthPrice.Name ) then
         if (indicator.Name == Prices.Name) then
             values1 = Prices
         end
-        signal_function = Signal2Strength2
+        signal_function = SignalStrengthPrice
+
     elseif (signal.Name == Signals.Enter.Name ) then 
         signal_function = SignalEnter
     end
@@ -1038,7 +799,7 @@ function CheckSignal(index, direction, indicator, signal)
         SetSignal((index-1), direction, indicator, signal)
 
         -- set chart label
-        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, indicator, signal, ChartIcons.Triangle, ChartPermissions.Enter, DealStages.Start)
+        ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, indicator, signal, chart_icon, chart_permission, DealStages.Start)
     end
 
     -- check signal existence/end
@@ -1051,14 +812,14 @@ function CheckSignal(index, direction, indicator, signal)
             PrintDebugMessage(indicator.Name, signal.Name, direction, index, duration, DealStages.Continue)
 
             -- set chart label
-            ChartLabels[Prices.Name][index] = SetChartLabel(index, direction, indicator, signal, ChartIcons.Minus, ChartPermissions.Enter, GetMessage(duration, DealStages.Continue))
+            ChartLabels[Prices.Name][index] = SetChartLabel(index, direction, indicator, signal, ChartIcons.Minus, chart_permission, GetMessage(duration, DealStages.Continue))
 
         -- signal terminates by end of duration
         elseif (duration > Signals.MaxDuration) then
             PrintDebugMessage(indicator.Name, signal.Name, direction, (index-1), (duration-1), DealStages.End)
 
             -- set chart label
-            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1),direction, indicator, signal, ChartIcons.Cross, ChartPermissions.Enter, GetMessage((duration-1), DealStages.End .. " by duration"))
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1),direction, indicator, signal, ChartIcons.Cross, chart_permission, GetMessage((duration-1), DealStages.End .. " by duration"))
 
             -- set signal off
             Signals[signal.Name][direction][indicator.Name].Candle = 0
@@ -1093,7 +854,7 @@ end
 ----------------------------------------------------------------------------
 -- Signal Fast Cross Slow Up/Down
 ----------------------------------------------------------------------------
-function Signal2Cross(index, direction, values1, values2, dev, diff)
+function SignalCross(index, direction, values1, values2, dev, diff)
     if (CheckDataExist(index, 2, values1) and CheckDataExist(index, 2, values2)) then
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
@@ -1111,8 +872,9 @@ end
 
 ----------------------------------------------------------------------------
 -- Signal Uturn with 3 candles model 1 - fast uturn3 with shifts and slow uturn3
+--todo fasts relate slows
 ----------------------------------------------------------------------------
-function Signal2Uturn31(index, direction, values1, values2, dev, diff)
+function SignalUturn31(index, direction, values1, values2, dev, diff)
     if (CheckDataExist(index, 5, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
@@ -1127,8 +889,9 @@ end
 
 ----------------------------------------------------------------------------
 -- Signal Uturn with 3 candles model 2 - fast  uturn3 and slow flat or move 
+--todo fasts relate slows
 ----------------------------------------------------------------------------
-function Signal2Uturn32(index, direction, values1, values2, dev, diff)
+function SignalUturn32(index, direction, values1, values2, dev, diff)
     if (CheckDataExist(index, 3, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
@@ -1144,7 +907,7 @@ end
 ----------------------------------------------------------------------------
 -- Signal Strength model 1 - value1 and value2 at index greater or equal then ones at index-2
 ----------------------------------------------------------------------------
-function Signal2Strength1(index, direction, values1, values2, dev, diff)
+function SignalStrengthOsc(index, direction, values1, values2, dev, diff)
     if (CheckDataExist(index, 3, values1) and CheckDataExist(index, 3, values2)) then
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
@@ -1156,7 +919,7 @@ end
 ----------------------------------------------------------------------------
 -- Signal Stregth model 2 - priceclose at index greater then 2/3 range of candles at index-1 or index-2
 ----------------------------------------------------------------------------
-function Signal2Strength2(index, direction, prices, value, dev, diff)
+function SignalStrengthPrice(index, direction, prices, value, dev, diff)
     if (CheckDataExist(index, 3, prices.Closes) and CheckDataExist(index, 3,  prices.Highs) and CheckDataExist(index, 3,  prices.Lows)) then
         local dev = dev or Signals.MinDeviation
         local diff = diff or Signals.MinDifference
@@ -1377,10 +1140,10 @@ end
 function GetChartLabelYPos(index, direction, indicator)
     local y
     local sign = (direction == Directions.Long) and -1 or 1
-    local price = (direction == Directions.Long) and "Lows" or "Highs"
-
+    
     -- y pos for price chart
     if (indicator.Name == Prices.Name) then
+        local price = (direction == Directions.Long) and "Lows" or "Highs"
         y = Prices[price][index] + sign * Prices.Step * SecInfo.min_price_step
 
     -- y pos for stoch/rsi chart
@@ -1466,8 +1229,8 @@ end
 --
 ----------------------------------------------------------------------------
 function PrintDebugSummary(index)
-    local rule = "---------------------------------------------------"
-    local fmt = "%-10s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
+    local rule = "-------------------------------------------------------"
+    local fmt = "%-14s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
     local t = T(index)
     
     PrintDebugMessage("Number of candles", index, "Last time", t.year, t.month, t.day, t.hour, t.min)
@@ -1487,9 +1250,9 @@ function PrintDebugSummary(index)
     
     PrintDebugMessage(string.format(fmt, Signals.Uturn32.Name, Directions.Long, Signals.Uturn32[Directions.Long][Prices.Name].Count, Signals.Uturn32[Directions.Long][Stochs.Name].Count, Signals.Uturn32[Directions.Long][RSIs.Name].Count, Directions.Short, Signals.Uturn32[Directions.Short][Prices.Name].Count, Signals.Uturn32[Directions.Short][Stochs.Name].Count, Signals.Uturn32[Directions.Short][RSIs.Name].Count))
     
-    PrintDebugMessage(string.format(fmt, Signals.Strength1.Name, Directions.Long, "-", Signals.Strength1[Directions.Long][Stochs.Name].Count, Signals.Strength1[Directions.Long][RSIs.Name].Count, Directions.Short, "-", Signals.Strength1[Directions.Short][Stochs.Name].Count, Signals.Strength1[Directions.Short][RSIs.Name].Count))
+    PrintDebugMessage(string.format(fmt, Signals.StrengthOsc.Name, Directions.Long, "-", Signals.StrengthOsc[Directions.Long][Stochs.Name].Count, Signals.StrengthOsc[Directions.Long][RSIs.Name].Count, Directions.Short, "-", Signals.StrengthOsc[Directions.Short][Stochs.Name].Count, Signals.StrengthOsc[Directions.Short][RSIs.Name].Count))
 
-    PrintDebugMessage(string.format(fmt, Signals.Strength2.Name, Directions.Long, Signals.Strength2[Directions.Long][Prices.Name].Count, "-", "-", Directions.Short, Signals.Strength2[Directions.Short][Prices.Name].Count, "-", "-"))
+    PrintDebugMessage(string.format(fmt, Signals.StrengthPrice.Name, Directions.Long, Signals.StrengthPrice[Directions.Long][Prices.Name].Count, "-", "-", Directions.Short, Signals.StrengthPrice[Directions.Short][Prices.Name].Count, "-", "-"))
     
     PrintDebugMessage(string.format("%-s", rule))
 end
