@@ -1023,29 +1023,34 @@ end
 --==========================================================================
 ----------------------------------------------------------------------------
 ----------------------------------------------------------------------------
-function Queue()
-	local sum = 0
-	local queue = {}
+function InitQueue(from, to)
+    return Queue(to - from + 1)
+end
+
+function Queue(size)
+	local Sum = 0
+	local Queues = {}
+    local Size = size
 
 	return function (index)
 		if (index == 1) then
-			queue = {}
-			sum = 0
+			Queues = {}
+			Sum = 0
 		end
 
 		if CandleExist(index) then
-            -- insert close price to end of queue and update sum of closes
-			table.insert(queue, C(index))
-			sum = sum + queue[#queue]
+            -- insert close price to end of Queues and update Sum of closes
+			table.insert(Queues, C(index))
+			Sum = Sum + Queues[#Queues]
 	
-            -- if queuegrowth up max size
-			if (#queue == Parameters.Period) then
-				local average = sum / Parameters.Period
-                -- remove earlest price from sum
-				sum = sum - queue[1]
-                --remove earlest price from queue
-				table.remove(queue, 1)
-                -- return average of sum
+            -- if Queues growth up max size
+			if (#Queues == Size) then
+				local average = Sum / Size
+                -- remove earlest price from Sum
+				Sum = Sum - Queues[1]
+                --remove earlest price from Queues
+				table.remove(Queues, 1)
+                -- return average of Sum
 				return average
 			end
 		end
