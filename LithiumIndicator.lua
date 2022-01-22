@@ -24,6 +24,9 @@
 --// create func CheckElementarySignal
 --// separate enter forn uturn31 and uturn32
 --// turn off signal for duration
+--// made signal turn off by opposite signal on
+--// separate signal start and stop by opposite signal/duration
+--//states: CheckState...
 
 --todo check signals in realtime
 --todo remake all error handling to exceptions in functional programming
@@ -33,13 +36,9 @@
 --todo 1st leg zigzag with divergence
 --todo 2 signals with 2nd leg zigzag near lvl50
 --todo functions Place for Stoch Uturn3
---todo made signal turn off by opposite signal on
---todo separate signal start and stop by opposite signal/duration
 --todo seoarate enters for combination price uturn31/32 and stoch uturn31/32 and rsi uturn31/32
---todo states: CheckState...
---todo icon property signal/state
---todo make structure for enter and dependent signals and strenghts
 --todo make continue icon for previous candle to avoid double chart icon
+--todo rsi uturn with spring/relate
 
 --todo loging to CSV
 --todo transaction
@@ -47,6 +46,9 @@
 --todo position menegement
 --todo risk menegement
 
+--? make structure for enter and dependent signals and strenghts
+--? icon property signal/state
+--? make full support for states, strenghths, enters, including Signals etc arrays
 --? make functions Uturn, Spring for RSI Uturn3
 --? make code for CheckComplexSignals
 --? move long/short checking signals to diferent branch
@@ -58,7 +60,6 @@
 --* if function make something - return number maked things, or 0 if nothing todo, or nil if error
 --* if function return something - if success return string or number or boolean or if error/todo nothing return nil
 --* rememebr about strength critery in prciecross/osccross signals - now there have most strength criter where different sides of cross have different not equal values
-
 --* events -> signals -> states -> enters
 --* events/conditions is elementary signals like fast oscilator cross up slow oscilator, price cross up ma  and all there are in period 2-3 candles
 --* several events and conditions consist signal like uturn, spring, cross, cross50 etc
@@ -83,13 +84,13 @@ function Init()
 
     -- chart params and indicators it consist
     -- price data arrays and params
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.State + ChartPermissions.Strength } -- FEK_LITHIUMPrice
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Signal } -- FEK_LITHIUMPrice
 
     -- stochastic data arrays and params
-    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Strength } -- FEK_LITHIUMStoch
+    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.Strength} -- FEK_LITHIUMStoch
     
     -- RSI data arrays and params
-    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Dev = 0, Step = 5, Permission = ChartPermissions.Strength } -- FEK_LITHIUMRSI
+    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Dev = 0, Step = 5, Permission = ChartPermissions.Strength} -- FEK_LITHIUMRSI
 
     -- price channel data arrays and params
     PCs = { Name = "PC", Tops = {}, Bottoms = {}, Centres = {}, Period = 20 }
@@ -766,6 +767,7 @@ function CheckState(index, direction, indicator, signal, chart_icon, chart_permi
 end
 
 ----------------------------------------------------------------------------
+----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal, chart_icon, chart_permission)
     local values1, values2, signal_function
 
@@ -825,7 +827,7 @@ function CheckSignal(index, direction, indicator, signal, chart_icon, chart_perm
 
     -- check signal start
     if (signal_function((index-1), direction, values1, values2)) then
-        --PrintDebugMessage(indicator.Name, signal.Name, direction, (index-1), DealStages.Start)
+        PrintDebugMessage(indicator.Name, signal.Name, direction, (index-1), DealStages.Start)
 
         -- set signal
         SetSignal((index-1), direction, indicator, signal)
@@ -841,14 +843,14 @@ function CheckSignal(index, direction, indicator, signal, chart_icon, chart_perm
 
         -- check continuation signal
         if (duration <= Signals.MaxDuration) then
-            --PrintDebugMessage(indicator.Name, signal.Name, direction, index, duration, DealStages.Continue)
+            PrintDebugMessage(indicator.Name, signal.Name, direction, index, duration, DealStages.Continue)
 
             -- set chart label
             ChartLabels[Prices.Name][index] = SetChartLabel(index, direction, indicator, signal, ChartIcons.Minus, chart_permission, GetMessage(duration, DealStages.Continue))
 
         -- signal terminates by end of duration
         elseif (duration > Signals.MaxDuration) then
-            --PrintDebugMessage(indicator.Name, signal.Name, direction, (index-1), (duration-1), DealStages.End)
+            PrintDebugMessage(indicator.Name, signal.Name, direction, (index-1), (duration-1), DealStages.End)
 
             -- set chart label
             ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1),direction, indicator, signal, ChartIcons.Cross, chart_permission, GetMessage((duration-1), DealStages.End .. " by duration"))
@@ -1020,6 +1022,38 @@ end
 --#region UTILITIES
 --==========================================================================
 ----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+function Queue()
+	local sum = 0
+	local queue = {}
+
+	return function (index)
+		if (index == 1) then
+			queue = {}
+			sum = 0
+		end
+
+		if CandleExist(index) then
+            -- insert close price to end of queue and update sum of closes
+			table.insert(queue, C(index))
+			sum = sum + queue[#queue]
+	
+            -- if queuegrowth up max size
+			if (#queue == Parameters.Period) then
+				local average = sum / Parameters.Period
+                -- remove earlest price from sum
+				sum = sum - queue[1]
+                --remove earlest price from queue
+				table.remove(queue, 1)
+                -- return average of sum
+				return average
+			end
+		end
+		return nil
+	end
+end
+
+----------------------------------------------------------------------------
 -- function Reverse() return reverse of direction
 ----------------------------------------------------------------------------
 function Reverse(direction)
@@ -1112,7 +1146,7 @@ end
 -- function CheckChartPermission() Returns the truth if signal permission is alowed by permissions of chart
 ----------------------------------------------------------------------------
 function CheckChartPermission(indicator, signal_permission)
-    return (((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0))  or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
+    return (((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.Strength) and ((indicator.Permission & ChartPermissions.Strength) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0)) or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
 end
 ----------------------------------------------------------------------------
 -- function GetMessage(...) Returns messages separated by the symbol as one string
