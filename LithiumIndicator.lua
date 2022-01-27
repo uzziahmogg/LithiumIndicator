@@ -49,6 +49,7 @@
 --todo position menegement
 --todo risk menegement
 
+--? may be remove stoch uturns because we need impulse onlu from price and rsi
 --? make structure for enter and dependent signals and strenghts
 --? icon property signal/state
 --? make full support for states, strenghths, enters, including Signals etc arrays
@@ -87,7 +88,7 @@ function Init()
 
     -- chart params and indicators 
     -- price data arrays and params
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Enter +  ChartPermissions.State } -- FEK_LITHIUMPrice
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Dev = 0, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
 
     -- stochastic data arrays and params
     Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Dev = 0, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
@@ -129,12 +130,8 @@ function Init()
     -- stages of deals for chart labels text only
     DealStages = { Start = "Start", Continue = "Continue", End = "End" }
 
-    -- indicator functions
-    StochSlow = Stoch("Slow")
-    StochFast = Stoch("Fast")
-    RSISlow = RSI("Slow")
-    RSIFast = RSI("Fast")
-    PC = PriceChannel()
+    -- logging level as in lualogging module
+    DebugLevel = { Debug = 1 --[[ fine-grained informational events that are most useful to debug an application ]], Info = 2 --[[ informational messages that highlight the progress of the application at coarse-grained level ]],  Warn = 4 --[[ potentially harmful situations ]], Error = 8 --[[ error events that might still allow the application to continue running ]], Fatal = 16 --[[ very severe error events that would presumably lead the application to abort ]], Off = 32 --[[ will stop all log messages ]] }
 
     -- signals names, counts, start cansles
     Signals = { Cross = { Name = "Cross", [Directions.Long] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Stochs.Name] = { Count = 0, Candle = 0 }, [RSIs.Name] = { Count = 0, Candle = 0 }}},
@@ -156,6 +153,13 @@ function Init()
     Enter = { Name = "Enter", [Directions.Long] = { [Prices.Name] = { Count = 0, Candle = 0 }}, [Directions.Short] = { [Prices.Name] = { Count = 0, Candle = 0 }}}, 
     
     MaxDuration = 2, MaxDifference = 10, MinDifference = 0, MinDeviation = 0 }
+
+    -- indicator functions
+    StochSlow = Stoch("Slow")
+    StochFast = Stoch("Fast")
+    RSISlow = RSI("Slow")
+    RSIFast = RSI("Fast")
+    PC = PriceChannel()
 
     return #Settings.line
 end
@@ -359,7 +363,7 @@ function OnCalculate(index)
             -- enter long terminates by end of duration
             elseif (duration > Signals.MaxDuration) then
                 -- set chart label
-                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
+                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
 
                 -- set enter short signal off
                 Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
@@ -385,7 +389,7 @@ function OnCalculate(index)
             -- enter long terminates by end of duration
             elseif (duration > Signals.MaxDuration) then
                 -- set chart label
-                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices.Name, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
+                ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
 
                 -- set enter short signal off
                 Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
@@ -821,8 +825,6 @@ function CheckSignal(index, direction, indicator, signal)
         chart_permission = ChartPermissions.Strength
         chart_icon = ChartIcons.Plus
             signal_function = SignalSteamer
-    -- elseif (signal.Name == Signals.Enter.Name ) then 
-    --     signal_function = SignalEnter
     end
 
     -- check signal start
@@ -846,7 +848,7 @@ function CheckSignal(index, direction, indicator, signal)
             PrintDebugMessage((index-1), indicator.Name, signal.Name, direction, GetMessage(DealStages.End, duration))
 
             -- set chart label
-            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1),direction, indicator, signal, ChartIcons.Cross, chart_permission, GetMessage((duration-1), DealStages.End .. " by duration"))
+            ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, indicator, signal, ChartIcons.Cross, chart_permission, GetMessage((duration-1), DealStages.End .. " by duration"))
 
             -- set signal off
             Signals[signal.Name][direction][indicator.Name].Candle = 0
@@ -1107,9 +1109,6 @@ end
 -- function CheckChartPermission() Returns the truth if signal permission is alowed by permissions of chart
 ----------------------------------------------------------------------------
 function CheckChartPermission(indicator, signal_permission)
-    PrintDebugMessage("CheckChartPermission1", indicator.Name, signal_permission)
-    PrintDebugMessage("CheckChartPermission2",(((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.Strength) and ((indicator.Permission & ChartPermissions.Strength) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0)) or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0))))
-
     return (((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.Strength) and ((indicator.Permission & ChartPermissions.Strength) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0)) or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
 end
 
@@ -1266,9 +1265,11 @@ function PrintDebugSummary(index)
 
     local rule = "-------------------------------------------------------"
     local fmt = "%-14s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
-    local t = T(index)
-    
-    PrintDebugMessage("Number of candles", index, "Last time", t.year, t.month, t.day, t.hour, t.min)
+    local t1 = T(1)
+    local t2 = T(index)
+
+
+    PrintDebugMessage("Number of candles", index, "First", t1.year, t1.month, t1.day, t1.hour, t1.min, "Last", t2.year, t2.month, t2.day, t2.hour, t2.min)
 
     -- print header
     PrintDebugMessage(string.format("%-s", rule))    
