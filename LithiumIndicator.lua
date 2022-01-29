@@ -14,7 +14,7 @@
 --// move TrendOff to Stoch
 --// recode priceuturn3
 --// check DataExist for functions
---// recode SetInitValues and PrintDebugSummary to cycles over all pairs
+--// recode SetInitValues and PrintSummaryResults to cycles over all pairs
 --// shift uturn slow and fast lines
 --// remove SochCross from Signals -> remove relation in uturn3
 --// remove delta in uturn3
@@ -42,6 +42,9 @@
 --todo indicators with queue
 --todo set initial values with set arrays with fixed structure with counts only low level of nesting and init to zero via cycles and recursions and then add names at curtain levels
 --todo CheckEnter via complex description of enter. dependent signals and sequentaly checking elementary signals via cycles and recursions
+--todo convert states to conditions value relate level
+--todo to make the assignment of initial prunes and withdrawal of intermediate and ending values for the arrays of signal counters through the cycles through the elements of arrays and recursion through the nested levels of the meter arrays.For this, it is necessary to make arrays only from the combats of a whole type.String elements insert into the highest level in the array and in this array make a pointer to an external array in which only entire meters.
+
 
 --todo loging to CSV
 --todo transaction
@@ -284,7 +287,7 @@ function OnCalculate(index)
         CheckSignal(index, Directions.Long, RSIs, Signals.StrengthOsc)
         CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
 
-        --PrintDebugIndex(index)
+        PrintIntermediateResults(index)
         -------------------------------------------------------------------------
         -- Check Signal Enter
         -------------------------------------------------------------------------
@@ -401,7 +404,7 @@ function OnCalculate(index)
     end
 
     -- debuglog    
-    PrintDebugSummary(index)
+    PrintSummaryResults(index)
 
     -- return PCs.Tops[index], PCs.Centres[index], PCs.Bottoms[index]
     return Stochs.Slows[index], Stochs.Fasts[index]
@@ -1258,7 +1261,7 @@ end
 ----------------------------------------------------------------------------
 --
 ----------------------------------------------------------------------------
-function PrintDebugSummary(index)
+function PrintSummaryResults(index)
     if (index ~= Size()) then
         return
     end
@@ -1307,49 +1310,81 @@ function PrintDebugSummary(index)
     PrintDebugMessage(string.format("%-s", rule))
 end
 
-function PrintDebugIndex(index)
-    local rule = "-------------------------------------------------------"
+----------------------------------------------------------------------------
+--
+----------------------------------------------------------------------------
+function GetSignalFlag(signal)
+    return tostring((signal > 0) and 1 or 0)
+end
+
+function PrintIntermediateResults(index)
+    local msg
     local fmt = "%-14s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
     local t = T(index)
     
-    PrintDebugMessage("Index", index, "Time", t.year, t.month, t.day, t.hour, t.min)
-
     -- print header
-    PrintDebugMessage(string.format("%-s", rule))    
-    PrintDebugMessage(string.format(fmt, "Signal", "Dir", Prices.Name,  Stochs.Name, RSIs.Name, "Dir", Prices.Name,  Stochs.Name, RSIs.Name))
-    PrintDebugMessage(string.format("%-s", rule))
+    if (index == 1) then
+        PrintDebugMessage("Index" .. "," .. "Year" .. "," .. "Month" .. "," .. "Day" .. "," .. "Hour" .. "," .. "Min" .. "," .. Directions.Long .. "," .. Signals.Cross50.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Cross.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Uturn31.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Uturn32.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name.. "," .. Signals.TrendOff.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name.. "," .. Signals.Steamer.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.StrengthOsc.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.StrengthPrice.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Directions.Short .. "," .. Signals.Cross50.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Cross.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Uturn31.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.Uturn32.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name.. "," .. Signals.TrendOff.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name.. "," .. Signals.Steamer.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.StrengthOsc.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name .. "," .. Signals.StrengthPrice.Name .. "," .. Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name)
+    end
 
+    msg = tostring(index) .. "," .. tostring(t.year) .. "," .. tostring(t.month) .. "," .. tostring(t.day) .. "," .. tostring(t.hour) .. "," .. tostring(t.min)
+
+    -- Directions.Long
     -- print Cross50
-    PrintDebugMessage(string.format(fmt, Signals.Cross50.Name, Directions.Long, Signals.Cross50[Directions.Long][Prices.Name].Candle, Signals.Cross50[Directions.Long][Stochs.Name].Candle, Signals.Cross50[Directions.Long][RSIs.Name].Candle, Directions.Short, Signals.Cross50[Directions.Short][Prices.Name].Candle, Signals.Cross50[Directions.Short][Stochs.Name].Candle, Signals.Cross50[Directions.Short][RSIs.Name].Candle))
-    
+    msg = msg .. "," .. Directions.Long .. "," .. Signals.Cross50.Name .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][RSIs.Name].Candle)
+
     -- print Cross
-    PrintDebugMessage(string.format(fmt, Signals.Cross.Name, Directions.Long, "-", Signals.Cross[Directions.Long][Stochs.Name].Candle, Signals.Cross[Directions.Long][RSIs.Name].Candle, Directions.Short, "-", Signals.Cross[Directions.Short][Stochs.Name].Candle, Signals.Cross[Directions.Short][RSIs.Name].Candle))
-        
+    msg = msg .. "," .. Signals.Cross.Name .. ",0," .. GetSignalFlag(Signals.Cross[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross[Directions.Long][RSIs.Name].Candle)
+
     -- print Uturn31
-    PrintDebugMessage(string.format("%-s", rule))  
-    PrintDebugMessage(string.format(fmt, Signals.Uturn31.Name, Directions.Long, Signals.Uturn31[Directions.Long][Prices.Name].Candle, Signals.Uturn31[Directions.Long][Stochs.Name].Candle, Signals.Uturn31[Directions.Long][RSIs.Name].Candle, Directions.Short, Signals.Uturn31[Directions.Short][Prices.Name].Candle, Signals.Uturn31[Directions.Short][Stochs.Name].Candle, Signals.Uturn31[Directions.Short][RSIs.Name].Candle))
-    
+    msg = msg .. "," .. Signals.Uturn31.Name .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Long][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Long][RSIs.Name].Candle)
+
     -- print Utrun32
-    PrintDebugMessage(string.format(fmt, Signals.Uturn32.Name, Directions.Long, Signals.Uturn32[Directions.Long][Prices.Name].Candle, Signals.Uturn32[Directions.Long][Stochs.Name].Candle, Signals.Uturn32[Directions.Long][RSIs.Name].Candle, Directions.Short, Signals.Uturn32[Directions.Short][Prices.Name].Candle, Signals.Uturn32[Directions.Short][Stochs.Name].Candle, Signals.Uturn32[Directions.Short][RSIs.Name].Candle))
+    msg = msg .. "," .. Signals.Uturn32.Name .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Long][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Long][RSIs.Name].Candle)
         
     -- print TrendOff
-    PrintDebugMessage(string.format(fmt, Signals.TrendOff.Name, Directions.Long, "-", Signals.TrendOff[Directions.Long][Stochs.Name].Candle, "-", Directions.Short, "-", Signals.TrendOff[Directions.Short][Stochs.Name].Candle, "-"))
+    msg = msg .. "," .. Signals.TrendOff.Name .. ",0," .. GetSignalFlag(Signals.TrendOff[Directions.Long][Stochs.Name].Candle) .. ",0"
     
     -- print Steamer
-    PrintDebugMessage(string.format(fmt, Signals.Steamer.Name, Directions.Long, "-", Signals.Steamer[Directions.Long][Stochs.Name].Candle, "-", Directions.Short, "-", Signals.Steamer[Directions.Short][Stochs.Name].Candle, "-"))
+    msg = msg .. "," .. Signals.Steamer.Name .. ",0," .. GetSignalFlag(Signals.Steamer[Directions.Long][Stochs.Name].Candle) .. ",0"
     
     -- priint StrengthOsc
-    PrintDebugMessage(string.format("%-s", rule))  
-    PrintDebugMessage(string.format(fmt, Signals.StrengthOsc.Name, Directions.Long, "-", Signals.StrengthOsc[Directions.Long][Stochs.Name].Candle, Signals.StrengthOsc[Directions.Long][RSIs.Name].Candle, Directions.Short, "-", Signals.StrengthOsc[Directions.Short][Stochs.Name].Candle, Signals.StrengthOsc[Directions.Short][RSIs.Name].Candle))
+    msg = msg .. "," .. Signals.StrengthOsc.Name .. ",0," .. GetSignalFlag(Signals.StrengthOsc[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.StrengthOsc[Directions.Long][RSIs.Name].Candle)
 
     -- print StrengthPrice
-    PrintDebugMessage(string.format(fmt, Signals.StrengthPrice.Name, Directions.Long, Signals.StrengthPrice[Directions.Long][Prices.Name].Candle, "-", "-", Directions.Short, Signals.StrengthPrice[Directions.Short][Prices.Name].Candle, "-", "-"))
+    msg = msg .. "," .. Signals.StrengthPrice.Name .. "," .. GetSignalFlag(Signals.StrengthPrice[Directions.Long][Prices.Name].Candle) .. ",0,0"
+
+    -- print Enter
+    msg = msg .. "," .. Signals.Error.Name .. "," .. GetSignalFlag(Signals.Error[Directions.Long][Prices.Name].Candle) .. ",0,0"
+
+    -- Directions.Short
+    -- print Cross50
+    msg = msg .. "," .. Directions.Short .. "," .. Signals.Cross50.Name .. "," .. GetSignalFlag(Signals.Cross50[Directions.Short][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Short][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Short][RSIs.Name].Candle)
+
+    -- print Cross
+    msg = msg .. "," .. Signals.Cross.Name .. ",0," .. GetSignalFlag(Signals.Cross[Directions.Short][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross[Directions.Short][RSIs.Name].Candle)
+
+    -- print Uturn31
+    msg = msg .. "," .. Signals.Uturn31.Name .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Short][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Short][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn31[Directions.Short][RSIs.Name].Candle)
+
+    -- print Utrun32
+    msg = msg .. "," .. Signals.Uturn32.Name .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Short][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Short][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Uturn32[Directions.Short][RSIs.Name].Candle)
+        
+    -- print TrendOff
+    msg = msg .. "," .. Signals.TrendOff.Name .. ",0," .. GetSignalFlag(Signals.TrendOff[Directions.Short][Stochs.Name].Candle) .. ",0"
+    
+    -- print Steamer
+    msg = msg .. "," .. Signals.Steamer.Name .. ",0," .. GetSignalFlag(Signals.Steamer[Directions.Short][Stochs.Name].Candle) .. ",0"
+    
+    -- priint StrengthOsc
+    msg = msg .. "," .. Signals.StrengthOsc.Name .. ",0," .. GetSignalFlag(Signals.StrengthOsc[Directions.Short][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.StrengthOsc[Directions.Short][RSIs.Name].Candle)
+
+    -- print StrengthPrice
+    msg = msg .. "," .. Signals.StrengthPrice.Name .. "," .. GetSignalFlag(Signals.StrengthPrice[Directions.Short][Prices.Name].Candle) .. ",0,0"
 
     -- print enter
-    PrintDebugMessage(string.format(fmt, Signals.Enter.Name, Directions.Long, Signals.Enter[Directions.Long][Prices.Name].Candle, "-", "-", Directions.Short, Signals.Enter[Directions.Short][Prices.Name].Candle, "-", "-"))
-    
-    -- print footer
-    PrintDebugMessage(string.format("%-s", rule))
+    msg = msg .. "," .. Signals.Error.Name .. "," .. GetSignalFlag(Signals.Error[Directions.Short][Prices.Name].Candle) .. ",0,0"
+
 end
 
 --#endregion
