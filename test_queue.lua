@@ -1,55 +1,61 @@
 -------------------------------------------------------------------------------
--- Constructor
+-- class IndexWindows - saves part of array _from index with _size
 -------------------------------------------------------------------------------
-function IndexWindowConstructor(_from, _size)
+function IndexWindows(_from, _size)
+	-- class values
+	-- Indexes - inner array of indexes, Values - inner array of values
 	local Windows = { From = _from, Size = _size, Indexes = {}, Values = {} }
 
+	-- class methods
+	-- get item value with array index
+	function _GetItem(_self, _index)
+		if ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1))) then
+			local idx = _index - _self.From + 1
+			return _self.Indexes[idx], _self.Values[idx]
+		end
+		return nil
+	end
+
+	-- class values
+	-- metamethods for function overloading
+	setmetatable(Windows, { __index = { GetItem = _GetItem } })
+
+	-- class methods
+	-- class constructor clojure
 	return function()
 		return Windows
 	end
 end
 
 -------------------------------------------------------------------------------
--- Add item - index and value to IndexWindow with checking hit inside IndexWindow
+-- Add item - index and value to IndexWindows with checking hit inside IndexWindows
 -- _index is global candle index
 -------------------------------------------------------------------------------
-function IndexWindowAddItem(_windows, _index, _value)
+function IndexWindowsAddItem(_windows, _index, _value)
 	if (_index == 1) then
 		_windows.Indexes = {}
 		_windows.Values = {}
 	end
 
-	-- append close price to end of IndexWindow
-	if (--[[CandleExist(index) and]] (_index >= _windows.From) and (_index <= (_windows.From + _windows.Size))) then
+	-- append close price to end of IndexWindows
+	if (--[[CandleExist(index) and]] (_index >= _windows.From) and (_index <= (_windows.From + _windows.Size - 1))) then
 		table.insert(_windows.Indexes, _index - _windows.From + 1, _index)
 		table.insert(_windows.Values, _index - _windows.From + 1, _value)
+		return true
+	end
 
-		-- remove first items of IndexWindow if IndexWindow growth up max Size
+			-- remove first items of IndexWindow if IndexWindow growth up max Size
 		--[[if ((#_windows.Indexes > _windows.Size) and (#_windows.Values > _windows.Size)) then
 			table.remove(_windows.Indexes, 1)
 			table.remove(_windows.Values, 1)
 		end]]
 
-		return true
-	end
-
 	return false
 end
 
--------------------------------------------------------------------------------
--- Get item - value by index in window not in array
--- _index is global candle index
--------------------------------------------------------------------------------
-function IndexWindowGetItem(_windows, _index)
-	if ((_index >= _windows.From) and (_index <= (_windows.From + _windows.Size))) then
-		return _windows.Values[_index - _windows.From + 1]
-	end
-	return nil
-end
-
--- constructor
-x = IndexWindowConstructor(11, 33)()
-z = IndexWindowConstructor(27, 44)()
+-- create objects
+x = IndexWindows(11, 33)()
+z = IndexWindows(27, 44)()
 
 print("---------------")
 print("x: " .. tostring(x) .. "\tz: " .. tostring(z))
@@ -60,11 +66,23 @@ print("x.Values: " .. tostring(x.Values) .. "\tz.Values: " .. tostring(z.Values)
 print("---------------")
 
 for i = 1, 50 do
-    IndexWindowAddItem(x, i, i/2)
-	IndexWindowAddItem(z, i, i*2)
+    IndexWindowsAddItem(x, i, i/2)
+	IndexWindowsAddItem(z, i, i*2)
+end
+
+--~ for i = 1, 50 do
+--~     print('[' .. i .. ']: ' .. '\tx[' .. tostring(x.Indexes[i]).. "]=" .. tostring(x.Values[i]) .. '\tz[' .. tostring(z.Indexes[i]).. "]=" .. tostring(z.Values[i]))
+--~ end
+
+for i = 1, 50 do
+	local xi, xv = x:GetItem(i + x.From - 1)
+	local zi, zv = z:GetItem(i + z.From - 1)
+    print('[' .. i .. ']:\tx[' .. tostring(xi) .. "]=" .. tostring(xv) .. '\tz[' .. tostring(zi) .. "]=" .. tostring(zv))
 end
 
 for i = 1, 50 do
-    print('[' .. i .. ']: ' .. '\tx[' .. tostring(x.Indexes[i]).. "]=" .. tostring(x.Values[i]) .. '\tz[' .. tostring(z.Indexes[i]).. "]=" .. tostring(z.Values[i]))
+	local xi, xv = _GetItem(x, i + x.From - 1)
+	local zi, zv = _GetItem(z, i + z.From - 1)
+    print('[' .. i .. ']:\tx[' .. tostring(xi) .. "]=" .. tostring(xv) .. '\tz[' .. tostring(zi) .. "]=" .. tostring(zv))
 end
 
