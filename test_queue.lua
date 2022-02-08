@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 function IndexWindows(_from, _size)
     -- class values
-	-------------------------------------------------------------------
+    -------------------------------------------------------------------
     -- Indexes - inner array of indexes, Values - inner array of values
     local Windows = { From = _from, Size = _size, Indexes = {}, Values = {} }
 
@@ -49,6 +49,7 @@ function IndexWindows(_from, _size)
         if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
             table.remove(_self.Indexes, 1)
             table.remove(_self.Values, 1)
+            _self.From = _self.From - 1
         end
 
         return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
@@ -65,8 +66,6 @@ function IndexWindows(_from, _size)
     -- class constructor clojure
     return function()
         return Windows
-    end
-end
 
 -------------------------------------------------------------------------------
 -- create objects
