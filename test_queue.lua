@@ -1,11 +1,11 @@
 -------------------------------------------------------------------------------
 -- class IndexWindows - saves part of array _from index with _size
 -------------------------------------------------------------------------------
-function IndexWindows(_from, _size)
+function IndexWindows(_size)
     -- class values
     -------------------------------------------------------------------
     -- Indexes - inner array of indexes, Values - inner array of values
-    local Windows = { From = _from, Size = _size, Indexes = {}, Values = {} }
+   local Windows = { From = (Size() - _size + 1 > 0) and (Size() - _size + 1) or 1, Size = _size, Indexes = {}, Values = {} }
 
     -- class methods
     ---------------------------------------
@@ -30,22 +30,24 @@ function IndexWindows(_from, _size)
     -- add item - store index and value to IndexWindows with checking borders
     -- _index is global candle index
     function _AddItem(_self, _index, _value)
+       -- check index hit inside index window
         if (not _CheckIndex(_self, _index)) then
             return nil
         end
 
+        -- if start of index then reinit Indexes and Values arrays
         if (_index == 1) then
             _self.Indexes = {}
             _self.Values = {}
         end
 
-        -- append close price to end of IndexWindows
-        if (--[[CandleExist(index) and]] (_index >= _self.From) and (_index <= (_self.From + _self.Size - 1))) then
+        -- append value to end of IndexWindows array
+        if (--[[CandleExist(index) and]] (_index >= _self.From)) then
             table.insert(_self.Indexes, _index - _self.From + 1, _index)
             table.insert(_self.Values, _index - _self.From + 1, _value)
         end
 
-        -- remove first items of IndexWindow if IndexWindow growth up max Size
+        -- remove first items of IndexWindow array if IndexWindow growth up max Size
         if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
             table.remove(_self.Indexes, 1)
             table.remove(_self.Values, 1)
@@ -56,8 +58,8 @@ function IndexWindows(_from, _size)
     end
 
     -- class values
-    ---------------------------------------
-    -- metamethods for function overloading
+    -------------------------------------------
+    -- set metamethods for function overloading
     _metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem } }
     setmetatable(Windows, _metatable)
 
@@ -67,6 +69,7 @@ function IndexWindows(_from, _size)
     return function()
         return Windows
 
+-- test class
 -------------------------------------------------------------------------------
 -- create objects
 x = IndexWindows(11, 33)()
