@@ -106,8 +106,10 @@ function Init()
     Directions = { Long = "L", Short = "S" }
 
     -- chart labels arrays and default params
-    ChartLabels = { [Prices.Name] = {}, [Stochs.Name] = {}, [RSIs.Name] = {},
-        Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
+    ToCandle = Size()
+    CandleWindow = 100
+    FromCandle = NumberCandles - 100
+    ChartLabels = { [Prices.Name] = Queue(FromCandle, ToCandle), [Stochs.Name] = Queue(FromCandle, ToCandle), [RSIs.Name] = Queue(FromCandle, ToCandle), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
     ChartLabelsWindow = { From = 5500, To = 5816 }
 
@@ -1122,6 +1124,7 @@ end
 ----------------------------------------------------------------------------
 function GetMessage(...)
     local args = { n = select("#",...), ... }
+
     -- check number messages more then zero
     if (args.n > 0) then
         local count
@@ -1194,14 +1197,47 @@ end
 ----------------------------------------------------------------------------
 function GetChartIcon(direction, icon)
     icon = icon or ChartIcons.Triangle
-
     return ( ChartLabels.Params.IconPath  .. icon .. "_" .. direction .. ".jpg")
 end
+
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+function Queue(from, to)
+    From = from
+    To = to
+    Queues = { Indexes = {}, Values = {} }
+    Size = (to - from + 1)
+
+    return function (index, value)
+        if (index == 1) then
+            Queues = { Indexes = {}, Values = {} }
+        end
+
+        if (CandleExist(index) and (index >= From)) then
+            -- insert close price to end of Queues, index of Queues from 1 to Size
+            table.insert(Queues.Indexes, index)
+            table.insert(Queues.Values, value)
+
+            if ((#Queues.Indexes > Size) and (#Queues.Values > Size)) then
+                --remove earlest price from Queues
+                table.remove(Queues.Indexes, 1)
+                table.remove(Queues.Values, 1)
+            end
+        end
+        return Queues
+    end
+end
+
+
+
 
 ----------------------------------------------------------------------------
 -- function SetChartLabel() set chart label
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
+    if (index) then
+
+    end
     -- check signal level and chart levels
     if CheckChartPermission(indicator, signal_permission) then
         -- delete label duplicates
@@ -1407,80 +1443,98 @@ end
 ----------------------------------------------------------------------------
 --
 -- table.val_to_str
---
---[[ function table.val_to_str(v)
+--[[
+function table.val_to_str(v)
+   -- if v is string
     if (type(v) == "string")  then
+        -- replace \n to \\n
         v = string.gsub(v, "\n", "\\n")
+        -- if string have " and not have ' return string wraped in '
         if string.match(string.gsub(v, "[^'\"]", ""), '^"+$') then
             return "'" .. v .. "'"
         end
+        -- replace " to \" return result string wraped in "
         return '"' .. string.gsub(v, '"', '\\"') .. '"'
     end
+   -- if v is table try it convert to string default return string consist pointer to table
     return (type(v) == "table") and table.tostring(v) or tostring(v)
-end --]]
+end
 
 --
 -- table.key_to_str
 --
---[[ function table.key_to_str(k)
+function table.key_to_str(k)
+   -- if k is string and start with _letter then _letter digit return k
     if ((type(k) =="string") and string.match(k, "^[_%a][_%a%d]*$")) then
         return k
     end
+    -- return k converted to string with conversion " and wrapped in ' or " and wraped in []
     return "[" .. table.val_to_str(k) .. "]"
-end ]]
+end
 
 --
 -- table.tostring
 --
---[[ function table.tostring(tbl)
+function table.tostring(tbl)
+    -- if tbl isnt table return tbl with conversion " and wrapped in ' or " and wraped in []
     if (type(tbl) ~= 'table') then
         return table.val_to_str(tbl)
     end
 
+    -- insert value converted to string with integer index to table result
     local result, done = {}, {}
     for k, v in ipairs(tbl) do
         table.insert(result, table.val_to_str(v))
         done[k] = true
     end
 
+    -- insert pairs key=value converted to strings with noninteger index to result table
     for k, v in pairs(tbl) do
         if not done[k] then
             table.insert(result, table.key_to_str(k) .. "=" .. table.val_to_str(v))
         end
     end
+
+    -- return string is concated result table
     return "{" .. table.concat(result, ",") .. "}"
-end ]]
+end
 
 --
--- table.tostring
+-- table.load
 --
---[[ function table.load(fname)
+function table.load(fname)
+   -- open file to read
     local f, err = io.open(fname, "r")
     if (f == nil) then
         return {}
     end
 
+    -- read table from file and return function returning table
     local fn, err = loadstring("return " .. f:read("*a"))
     f:close()
 
+    -- call readed function under protected mode
     if (type(fn) == "function") then
-        local succ, res = pcall(fn)
+       local succ, res = pcall(fn)
+       -- return readed table
         if (succ and type(res) == "table") then
             return res
         end
     end
     return {}
-end ]]
+end
 
 --
 -- table.save
 --
---[[ function table.save(fname, tbl)
-    local f, err = io.open(fname, "w")
+function table.save(fname, tbl)
+   -- open file to wriet
+   local f, err = io.open(fname, "w")
+   -- write table converted to string to file
     if (f ~= nil) then
         f:write(table.tostring(tbl))
         f:close()
     end
-end ]]
---#endregion
+end
+--]]#endregion
 --[[ EOF ]]--
