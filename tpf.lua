@@ -21,11 +21,13 @@ function table_save(tag, file, tbl)
 
    file:write(charE .. tag .. "{" .. charE)
 
+   -- cycle over integer indexes in tbl
    for idx, t in ipairs(tables) do
-      file:write("-- Table: [" .. idx .. "]" .. charE)
-      file:write("{" .. charE)
+      file:write(charS .. "Table: {" .. idx .. "}" .. charE .. "{" .. charE)
+      -- processed integer indexed items
       local thandled = {}
 
+      -- cycle over integer indexes in inner table
       for i, v in ipairs(t) do
          thandled[i] = true
 
@@ -35,7 +37,6 @@ function table_save(tag, file, tbl)
                table.insert(tables, v)
                lookup[v] = #tables
             end
-
             file:write(charS .. "{" .. lookup[v] .. "}," .. charE)
 
          elseif (stype == "string") then
@@ -46,24 +47,24 @@ function table_save(tag, file, tbl)
          end
       end
 
-      for i, v in pairs(t) do
-         if (not thandled[i]) then
+      -- cycle over noninteger indexes in inner table
+      for k, v in pairs(t) do
+         if (not thandled[k]) then
             local str = ""
 
-            local stype = type(i)
+            local stype = type(k)
             if (stype == "table") then
-               if (not lookup[i]) then
-                  table.insert(tables, i)
-                  lookup[i] = #tables
+               if (not lookup[k]) then
+                  table.insert(tables, k)
+                  lookup[k] = #tables
                end
-
-               str = charS .. "[{" .. lookup[i] .. "}]="
+               str = charS .. "[{" .. lookup[k] .. "}]="
 
             elseif (stype == "string") then
-               str = charS .. "[" .. exportstring(i) .. "]="
+               str = charS .. "[" .. exportstring(k) .. "]="
 
             elseif (stype == "number") then
-               str = charS .. "[" .. tostring(i) .. "]="
+               str = charS .. "[" .. tostring(k) .. "]="
             end
 
             if (str ~= "") then
@@ -74,7 +75,6 @@ function table_save(tag, file, tbl)
                      table.insert(tables, v)
                      lookup[v] = #tables
                   end
-
                   file:write(str .. "{" .. lookup[v] .. "}," .. charE)
 
                elseif (stype == "string") then
