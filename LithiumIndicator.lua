@@ -91,13 +91,13 @@ function Init()
 
     -- chart params and indicators
     -- price data arrays and params
-    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, --[[ Dev = 0, ]] Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
+    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
 
     -- stochastic data arrays and params
-    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, --[[ Dev = 0, ]] Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
+    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
 
     -- RSI data arrays and params
-    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, --[[ Dev = 0, ]] Step = 5, Permission = ChartPermissions.State} -- FEK_LITHIUMRSI
+    RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Step = 5, Permission = ChartPermissions.State} -- FEK_LITHIUMRSI
 
     -- price channel data arrays and params
     PCs = { Name = "PC", Tops = {}, Bottoms = {}, Centres = {}, Period = 20 }
@@ -106,12 +106,8 @@ function Init()
     Directions = { Long = "L", Short = "S" }
 
     -- chart labels arrays and default params
-    ToCandle = Size()
-    CandleWindow = 100
-    FromCandle = NumberCandles - 100
-    ChartLabels = { [Prices.Name] = Queue(FromCandle, ToCandle), [Stochs.Name] = Queue(FromCandle, ToCandle), [RSIs.Name] = Queue(FromCandle, ToCandle), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
-
-    ChartLabelsWindow = { From = 5500, To = 5816 }
+    IndexWindowsSize = 100
+    ChartLabels = { [Prices.Name] = IndexWindows(IndexWindowsSize)(), [Stochs.Name] =  IndexWindows(IndexWindowsSize)(), [RSIs.Name] = IndexWindows(IndexWindowsSize)(), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
     -- script path
     ScriptPath = getScriptPath()
@@ -1197,55 +1193,21 @@ end
 ----------------------------------------------------------------------------
 function GetChartIcon(direction, icon)
     icon = icon or ChartIcons.Triangle
-    return ( ChartLabels.Params.IconPath  .. icon .. "_" .. direction .. ".jpg")
+    return (ChartLabels.Params.IconPath  .. icon .. "_" .. direction .. ".jpg")
 end
-
-----------------------------------------------------------------------------
-----------------------------------------------------------------------------
-function Queue(from, to)
-    From = from
-    To = to
-    Queues = { Indexes = {}, Values = {} }
-    Size = (to - from + 1)
-
-    return function (index, value)
-        if (index == 1) then
-            Queues = { Indexes = {}, Values = {} }
-        end
-
-        if (CandleExist(index) and (index >= From)) then
-            -- insert close price to end of Queues, index of Queues from 1 to Size
-            table.insert(Queues.Indexes, index)
-            table.insert(Queues.Values, value)
-
-            if ((#Queues.Indexes > Size) and (#Queues.Values > Size)) then
-                --remove earlest price from Queues
-                table.remove(Queues.Indexes, 1)
-                table.remove(Queues.Values, 1)
-            end
-        end
-        return Queues
-    end
-end
-
-
-
 
 ----------------------------------------------------------------------------
 -- function SetChartLabel() set chart label
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
-    if (index) then
-
-    end
     -- check signal level and chart levels
     if CheckChartPermission(indicator, signal_permission) then
         -- delete label duplicates
-        local chart_tag = GetChartTag(indicator.Name)
+       local chart_tag = GetChartTag(indicator.Name)
+       local value, index = ChartLabels[indicator.Name]:GetValue(index)
 
-        if (ChartLabels[indicator.Name][index] ~= nil) then
-            text = ChartLabels[indicator.Name][index]
-            if (DelLabel(chart_tag, ChartLabels[indicator.Name][index]) == true) then
+       if ((value ~= nil) and (index ~= nil)) then
+            if (DelLabel(chart_tag, value]) == true) then
                 ChartLabels[indicator.Name][index] = nil
             end
         end
@@ -1438,12 +1400,94 @@ end
 
 --#endregion
 
+-------------------------------------------------------------------------------
+--#region class IndexWindows - saves part of global array _from index with _size
+-------------------------------------------------------------------------------
+function IndexWindows(_size)
+    -- local class methods used inside class
+    -----------------------------------------
+    -- check index hit inside window border
+    -- _index is global candle index
+    local function _CheckIndex(_self, _index)
+        return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
+    end
+
+    -- class values
+    -----------------------------------
+    -- Indexes - inner array of indexes
+    -- Values - inner array of values
+    -- From - starting global index
+    -- Size - size of IndexWindow
+    local Windows = { From = (Size() - _size + 1 > 0) and (Size() - _size + 1) or 1,
+                    Size = _size,
+                    Indexes = {},
+                    Values = {},
+                    _metatable = {} }
+
+    -- class methods
+    ----------------------------------
+    -- get item value with array index
+    -- _index is global candle index
+    local function _GetItem(_self, _index)
+        if (_CheckIndex(_self, _index)) then
+            -- _idx index in IndexWindows
+            -- Indexes[_idx] == _index!
+            local _idx = _index - _self.From + 1
+            return _self.Indexes[_idx], _self.Values[_idx]
+        end
+        return nil
+    end
+
+    -------------------------------------------------------------------------
+    -- add item - store index and value to IndexWindows with checking borders
+    -- _index is global candle index
+    local function _AddItem(_self, _index, _value)
+        -- check index hit inside index window
+        if (not _CheckIndex(_self, _index)) then
+            return nil
+        end
+
+        -- if start of index then reinit Indexes and Values arrays
+        if (_index == 1) then
+            _self.Indexes = {}
+            _self.Values = {}
+        end
+
+        -- append value to end of IndexWindows array
+        if (--[[CandleExist(index) and]] (_index >= _self.From)) then
+            table.insert(_self.Indexes, _index - _self.From + 1, _index)
+            table.insert(_self.Values, _index - _self.From + 1, _value)
+        end
+
+        -- remove first items of IndexWindow array if IndexWindow growth up max Size
+        if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+            table.remove(_self.Indexes, 1)
+            table.remove(_self.Values, 1)
+            _self.From = _self.From - 1
+        end
+
+        return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
+    end
+
+    -- class constructor
+    --------------------
+    -- return clojure
+    return function()
+        -- set metamethods for function overloading and using class object sintax sugar
+        Windows._metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem } }
+        setmetatable(Windows, Windows._metatable)
+
+        return Windows
+    end
+end
+#endregion
+
 ----------------------------------------------------------------------------
 --#region additional table functions
 ----------------------------------------------------------------------------
 --
 -- table.val_to_str
---[[
+--
 function table.val_to_str(v)
    -- if v is string
     if (type(v) == "string")  then
@@ -1510,7 +1554,14 @@ function table.load(fname)
     end
 
     -- read table from file and return function returning table
-    local fn, err = loadstring("return " .. f:read("*a"))
+	local _loadfunc
+	if (string.match(_VERSION, "(%d.%d)") == "5.1") then
+		_loadfunc = loadstring
+	else
+		_loadfunc = load
+	end
+
+    local fn, err = _loadfunc("return " .. f:read("*a"))
     f:close()
 
     -- call readed function under protected mode
@@ -1536,5 +1587,5 @@ function table.save(fname, tbl)
         f:close()
     end
 end
---]]#endregion
+#endregion
 --[[ EOF ]]--
