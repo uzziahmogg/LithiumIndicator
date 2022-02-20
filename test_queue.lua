@@ -2,31 +2,31 @@
 -- class IndexWindows - saves part of global array _from index with _size
 -------------------------------------------------------------------------------
 function IndexWindows(_size)
-	-- local class methods used inside class
+    -- local class methods used inside class
     -----------------------------------------
     -- check index hit inside window border
-	-- _index is global candle index
+    -- _index is global candle index
     local function _CheckIndex(_self, _index)
         return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
     end
 
-	-- get size of global array
-	-- must be replaced with qlua Size()!
-	local function _Size()
-		return 100
-	end
+    -- get size of global array
+    -- must be replaced with qlua Size()!
+    local function _Size()
+    return 100
+end
 
     -- class values
     -----------------------------------
     -- Indexes - inner array of indexes
-	-- Values - inner array of values
-	-- From - starting global index
-	-- Size - size of IndexWindow
+    -- Values - inner array of values
+    -- From - starting global index
+    -- Size - size of IndexWindow
     local Windows = { From = (_Size() - _size + 1 > 0) and (_Size() - _size + 1) or 1,
-					Size = _size,
-					Indexes = {},
-					Values = {},
-					_metatable = {} }
+                      Size = _size,
+                      Indexes = {},
+                      Values = {},
+                      _metatable = {} }
 
     -- class methods
     ----------------------------------
@@ -34,8 +34,8 @@ function IndexWindows(_size)
     -- _index is global candle index
     function _GetItem(_self, _index)
         if (_CheckIndex(_self, _index)) then
-			-- _idx index in IndexWindows
-			-- Indexes[_idx] == _index!
+           -- _idx index in IndexWindows
+           -- Indexes[_idx] == _index!
             local _idx = _index - _self.From + 1
             return _self.Indexes[_idx], _self.Values[_idx]
         end
@@ -46,7 +46,7 @@ function IndexWindows(_size)
     -- add item - store index and value to IndexWindows with checking borders
     -- _index is global candle index
     function _AddItem(_self, _index, _value)
-		-- check index hit inside index window
+       -- check index hit inside index window
         if (not _CheckIndex(_self, _index)) then
             return nil
         end
@@ -77,12 +77,12 @@ function IndexWindows(_size)
     --------------------
     -- return clojure
     return function()
-		-- set metamethods for function overloading and using class object sintax sugar
-	    Windows._metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem } }
-		setmetatable(Windows, Windows._metatable)
+       -- set metamethods for function overloading and using class object sintax sugar
+       Windows._metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem } }
+       setmetatable(Windows, Windows._metatable)
 
         return Windows
-	end
+    end
 end
 
 -- test class
@@ -110,5 +110,3 @@ for i = 1, 100 do
 end
 
 -- EOF
-
-

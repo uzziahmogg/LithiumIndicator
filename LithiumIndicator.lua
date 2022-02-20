@@ -414,7 +414,7 @@ function OnCalculate(index)
 end
 
 --==========================================================================
---#region INDICATOR Price Channel
+--#region INDICATOR PRICE CHANNEL
 --==========================================================================
 ----------------------------------------------------------------------------
 -- Price Channel
@@ -458,13 +458,13 @@ function PriceChannel()
         return nil, nil
     end
 end
---#endregion
+--#endregion PRICE CHANNEL
 
 --==========================================================================
---#region INDICATOR STOCH
+--#region INDICATOR STOCHASTIC
 --==========================================================================
 ----------------------------------------------------------------------------
--- function Stochastic Oscillator ("SO")
+-- Stochastic Oscillator ("SO")
 ----------------------------------------------------------------------------
 function Stoch(mode)
     local Settings = { period_k = Stochs[mode].PeriodK, shift = Stochs[mode].Shift, period_d = Stochs[mode].PeriodD }
@@ -528,7 +528,7 @@ function Stoch(mode)
 end
 
 ----------------------------------------------------------------------------
--- function EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
+-- EMAi = (EMAi-1*(n-1)+2*Pi) / (n+1)
 ----------------------------------------------------------------------------
 function EMA(Settings)
     local Ema_prev = 0
@@ -567,7 +567,7 @@ function EMA(Settings)
 end
 
 ----------------------------------------------------------------------------
--- function SMA = sums(Pi) / n
+-- SMA = sums(Pi) / n
 ----------------------------------------------------------------------------
 function SMA(Settings)
     local Sums = {}
@@ -601,13 +601,13 @@ function SMA(Settings)
         return nil
     end
 end
---#endregion
+--#endregion STOCHASTIC
 
 --==========================================================================
 --#region INDICATOR RSI
 --==========================================================================
 ----------------------------------------------------------------------------
--- function RSI calculate indicator RSI for durrent candle
+-- RSI calculate indicator RSI for durrent candle
 ----------------------------------------------------------------------------
 function RSI(mode)
     local Settings = { period = RSIs[mode] }
@@ -667,7 +667,7 @@ function RSI(mode)
 end
 
 ----------------------------------------------------------------------------
---	function MMA = (MMAi-1 * (n - 1) + Pi) / n
+-- MMA = (MMAi-1 * (n - 1) + Pi) / n
 ----------------------------------------------------------------------------
 function MMA(Settings)
     local Smas = {}
@@ -714,11 +714,14 @@ function MMA(Settings)
         return nil
     end
 end
---#endregion
+--#endregion RSI
 
 --==========================================================================
 --#region SIGNALS
 --==========================================================================
+----------------------------------------------------------------------------
+-- CheckState
+----------------------------------------------------------------------------
 function CheckState(index, direction, indicator, signal)
     local values1, values2, signal_function, chart_icon
 
@@ -764,6 +767,7 @@ function CheckState(index, direction, indicator, signal)
 end
 
 ----------------------------------------------------------------------------
+-- CheckSignal
 ----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal)
     local values1, values2, signal_function, chart_icon, chart_permission
@@ -964,10 +968,10 @@ function SignalStrengthPrice(index, direction, prices, value, dev, diff)
         end
     end
 end
---#endregion
+--#endregion SIGNALS
 
 --==========================================================================
---#region Events
+--#region EVENTS
 --==========================================================================
 ----------------------------------------------------------------------------
 -- Event Value1 cross Value2 up and down
@@ -1014,13 +1018,13 @@ end
 function CheckFlat(value1, value2, diff)
     return (math.abs(GetDelta(value1, value2)) <= diff)
 end
---#endregion
+--#endregion EVENTS
 
 --==========================================================================
 --#region UTILITIES
 --==========================================================================
 ----------------------------------------------------------------------------
--- function Reverse() return reverse of direction
+-- Reverse() return reverse of direction
 ----------------------------------------------------------------------------
 function Reverse(direction)
     if (direction == Directions.Long) then
@@ -1031,7 +1035,7 @@ function Reverse(direction)
 end
 
 ----------------------------------------------------------------------------
--- function GetDelta() return abs difference between values
+-- GetDelta() return abs difference between values
 ----------------------------------------------------------------------------
 function GetDelta(value1, value2)
     if ((value1 == nil) or (value2 == nil)) then
@@ -1044,14 +1048,14 @@ function GetDelta(value1, value2)
 end
 
 ----------------------------------------------------------------------------
--- function Squeeze() return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
+-- Squeeze() return number from 0 (if index start from 1) to period and then again from 0 (index == period) pointer in cycylic buffer
 ----------------------------------------------------------------------------
 function CyclicPointer(index, period)
     return math.fmod(index - 1, period + 1)
 end
 
 ----------------------------------------------------------------------------
--- function RoundScale() return value with requred numbers after digital point
+-- RoundScale() return value with requred numbers after digital point
 ----------------------------------------------------------------------------
 function RoundScale(value, scale)
     if ((value == nil) or (scale == nil)) then
@@ -1069,14 +1073,14 @@ function RoundScale(value, scale)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartTag() return chart tag from Robot name and Indicator name
+-- GetChartTag() return chart tag from Robot name and Indicator name
 ----------------------------------------------------------------------------
 function GetChartTag(indicator_name)
     return (Settings.Name .. indicator_name)
 end
 
 ----------------------------------------------------------------------------
--- function SetSignal() set signal variables and state
+-- SetSignal() set signal variables and state
 ----------------------------------------------------------------------------
 function SetSignal(index, direction, indicator, signal)
     -- set signal up/down off
@@ -1088,7 +1092,7 @@ function SetSignal(index, direction, indicator, signal)
 end
 
 --------------------------------------------------------------------------
--- function CheckDataExist() return true if number values from index back exist
+-- CheckDataExist() return true if number values from index back exist
 ----------------------------------------------------------------------------
 function CheckDataExist(index, number, value)
     -- if index under required number return false
@@ -1109,14 +1113,14 @@ function CheckDataExist(index, number, value)
 end
 
 ----------------------------------------------------------------------------
--- function CheckChartPermission() Returns the truth if signal permission is alowed by permissions of chart
+-- CheckChartPermission() Returns the truth if signal permission is alowed by permissions of chart
 ----------------------------------------------------------------------------
 function CheckChartPermission(indicator, signal_permission)
     return (((signal_permission == ChartPermissions.Signal) and ((indicator.Permission & ChartPermissions.Signal) > 0)) or ((signal_permission == ChartPermissions.Strength) and ((indicator.Permission & ChartPermissions.Strength) > 0)) or ((signal_permission == ChartPermissions.State) and ((indicator.Permission & ChartPermissions.State) > 0)) or ((signal_permission == ChartPermissions.Enter) and ((indicator.Permission & ChartPermissions.Enter) > 0)))
 end
 
 ----------------------------------------------------------------------------
--- function GetMessage(...) Returns messages separated by the symbol as one string
+-- GetMessage(...) Returns messages separated by the symbol as one string
 ----------------------------------------------------------------------------
 function GetMessage(...)
     local args = { n = select("#",...), ... }
@@ -1141,7 +1145,7 @@ function GetMessage(...)
 end
 
 ----------------------------------------------------------------------------
--- function PrintDebugMessage(message1, message2, ...) print messages as one string separated by symbol in message window and debug console
+-- PrintDebugMessage(message1, message2, ...) print messages as one string separated by symbol in message window and debug console
 ----------------------------------------------------------------------------
 function PrintDebugMessage(...)
     local smessage = GetMessage(...)
@@ -1161,14 +1165,14 @@ function PrintDebugMessage(...)
 end
 
 -----------------------------------------------------------------------------
--- function GetChartLabelXPos() returns x position for chart label
+-- GetChartLabelXPos() returns x position for chart label
 -----------------------------------------------------------------------------
 function GetChartLabelXPos(t)
     return tostring(10000 * t.year + 100 * t.month + t.day), tostring(10000 * t.hour + 100 * t.min + t.sec)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartLabelYPos() returns y position for chart label
+-- GetChartLabelYPos() returns y position for chart label
 --todo make cyclic variable for several levels of y position
 ----------------------------------------------------------------------------
 function GetChartLabelYPos(index, direction, indicator)
@@ -1189,7 +1193,7 @@ function GetChartLabelYPos(index, direction, indicator)
 end
 
 ----------------------------------------------------------------------------
--- function GetChartIcon() returns icon path for chart label
+-- GetChartIcon() returns icon path for chart label
 ----------------------------------------------------------------------------
 function GetChartIcon(direction, icon)
     icon = icon or ChartIcons.Triangle
@@ -1197,7 +1201,7 @@ function GetChartIcon(direction, icon)
 end
 
 ----------------------------------------------------------------------------
--- function SetChartLabel() set chart label
+-- SetChartLabel() set chart label
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
     -- check signal level and chart levels
@@ -1242,7 +1246,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 end
 
 ----------------------------------------------------------------------------
--- function SetInitialCounts() init Signals Candles and Counts
+-- SetInitialCounts() init Signals Candles and Counts
 ----------------------------------------------------------------------------
 function SetInitialValues(t)
     local key, value
@@ -1260,9 +1264,13 @@ function SetInitialValues(t)
         Nesting = Nesting - 1
     end
 end
+--#endregion UTILITIES
 
+--==========================================================================
+--#region PRINTS
+--==========================================================================
 ----------------------------------------------------------------------------
---
+-- PrintSummaryResult
 ----------------------------------------------------------------------------
 function PrintSummaryResults(index)
     if (index ~= Size()) then
@@ -1273,7 +1281,6 @@ function PrintSummaryResults(index)
     local fmt = "%-14s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
     local t1 = T(1)
     local t2 = T(index)
-
 
     PrintDebugMessage("Number of candles", index, "First", t1.year, t1.month, t1.day, t1.hour, t1.min, "Last", t2.year, t2.month, t2.day, t2.hour, t2.min)
 
@@ -1314,7 +1321,7 @@ function PrintSummaryResults(index)
 end
 
 ----------------------------------------------------------------------------
---
+-- GetSignalFlag & PrintIntermediateResults
 ----------------------------------------------------------------------------
 function GetSignalFlag(signal)
     return tostring((signal > 0) and 1 or 0)
@@ -1325,8 +1332,6 @@ function PrintIntermediateResults(index)
     local t = T(index)
     local oscs = Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name
     local signals = Signals.Cross50.Name .. ",,," .. Signals.Cross.Name .. ",,," .. Signals.Uturn31.Name .. ",,," .. Signals.Uturn32.Name .. ",,," .. Signals.TrendOff.Name .. ",,," .. Signals.Steamer.Name .. ",,," .. Signals.StrengthOsc.Name .. ",,," .. Signals.StrengthPrice.Name .. ",,," .. Signals.Enter.Name  .. ",,,"
-
-
 
     -- print header
     if (index == 1) then
@@ -1397,53 +1402,65 @@ function PrintIntermediateResults(index)
 
     PrintDebugMessage(msg)
 end
+--#endregion PRINTS
 
---#endregion
-
--------------------------------------------------------------------------------
---#region class IndexWindows - saves part of global array _from index with _size
--------------------------------------------------------------------------------
+--==========================================================================
+--#region CLASSES
+--==========================================================================
+----------------------------------------------------------------------------
+-- class IndexWindows - saves part of global array _from index with _size
+----------------------------------------------------------------------------
 function IndexWindows(_size)
-    -- local class methods used inside class
-    -----------------------------------------
-    -- check index hit inside window border
-    -- _index is global candle index
-    local function _CheckIndex(_self, _index)
-        return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
-    end
-
     -- class values
-    -----------------------------------
+   -----------------------------------
+   local _from = Size() - _size + 1
     -- Indexes - inner array of indexes
     -- Values - inner array of values
     -- From - starting global index
     -- Size - size of IndexWindow
-    local Windows = { From = (Size() - _size + 1 > 0) and (Size() - _size + 1) or 1,
+   local _Windows = { From = ((_from > 0) and _from or 1),
                     Size = _size,
                     Indexes = {},
                     Values = {},
                     _metatable = {} }
 
-    -- class methods
-    ----------------------------------
+   -- class methods
+   -- _index is global candle index on chart, _idx is local index in IndexWindows: Indexes[_idx] == _index
+    --------------------------------------
+    -- check index hit inside IndexWindows
+    local function _CheckIndex(_self, _index)
+       return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
+    end
+
+    -- get local idx by global _index
+    local function _GetIdxByIndex_(_self, _index)
+       local _from = _index - _self.From + 1
+       return ((_from > 0) and _from or 1)
+    end
+
+    -- remove first item from IndexWindows
+    local function _DelItem(_self, _index)
+       if _CheckIndex(_self, _index) then
+          table.remove(_self.Indexes, 1)
+          table.remove(_self.Values, 1)
+          _self.From = _self.From + 1
+       end
+    end
+
     -- get item value with array index
-    -- _index is global candle index
     local function _GetItem(_self, _index)
-        if (_CheckIndex(_self, _index)) then
-            -- _idx index in IndexWindows
-            -- Indexes[_idx] == _index!
-            local _idx = _index - _self.From + 1
-            return _self.Indexes[_idx], _self.Values[_idx]
+       -- return index and value in index hit inside IndexWindows
+        if _CheckIndex(_self, _index) then
+           local _idx = _GetIdxByIndex_(_self, _index)
+           return _self.Indexes[_idx], _self.Values[_idx]
         end
         return nil
     end
 
-    -------------------------------------------------------------------------
     -- add item - store index and value to IndexWindows with checking borders
-    -- _index is global candle index
     local function _AddItem(_self, _index, _value)
-        -- check index hit inside index window
-        if (not _CheckIndex(_self, _index)) then
+       -- check _index hit inside IndexWindows
+       if ((not (_index >= _self.From)) or (not CandleExist(_index))) then
             return nil
         end
 
@@ -1454,16 +1471,12 @@ function IndexWindows(_size)
         end
 
         -- append value to end of IndexWindows array
-        if (--[[CandleExist(index) and]] (_index >= _self.From)) then
-            table.insert(_self.Indexes, _index - _self.From + 1, _index)
-            table.insert(_self.Values, _index - _self.From + 1, _value)
-        end
+        table.insert(_self.Indexes, _index - _self.From + 1, _index)
+        table.insert(_self.Values, _index - _self.From + 1, _value)
 
         -- remove first items of IndexWindow array if IndexWindow growth up max Size
         if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-            table.remove(_self.Indexes, 1)
-            table.remove(_self.Values, 1)
-            _self.From = _self.From - 1
+           _DelItem(_self, 1)
         end
 
         return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
@@ -1480,14 +1493,14 @@ function IndexWindows(_size)
         return Windows
     end
 end
-#endregion
+--#region CLASSES
 
+--==========================================================================
+--#region ADDITIONAL TABLE FUNCTIONS
+--==========================================================================
 ----------------------------------------------------------------------------
---#region additional table functions
-----------------------------------------------------------------------------
---
 -- table.val_to_str
---
+----------------------------------------------------------------------------
 function table.val_to_str(v)
    -- if v is string
     if (type(v) == "string")  then
@@ -1504,9 +1517,9 @@ function table.val_to_str(v)
     return (type(v) == "table") and table.tostring(v) or tostring(v)
 end
 
---
+----------------------------------------------------------------------------
 -- table.key_to_str
---
+----------------------------------------------------------------------------
 function table.key_to_str(k)
    -- if k is string and start with _letter then _letter digit return k
     if ((type(k) =="string") and string.match(k, "^[_%a][_%a%d]*$")) then
@@ -1516,9 +1529,9 @@ function table.key_to_str(k)
     return "[" .. table.val_to_str(k) .. "]"
 end
 
---
+----------------------------------------------------------------------------
 -- table.tostring
---
+----------------------------------------------------------------------------
 function table.tostring(tbl)
     -- if tbl isnt table return tbl with conversion " and wrapped in ' or " and wraped in []
     if (type(tbl) ~= 'table') then
@@ -1543,9 +1556,9 @@ function table.tostring(tbl)
     return "{" .. table.concat(result, ",") .. "}"
 end
 
---
+----------------------------------------------------------------------------
 -- table.load
---
+----------------------------------------------------------------------------
 function table.load(fname)
    -- open file to read
     local f, err = io.open(fname, "r")
@@ -1554,12 +1567,12 @@ function table.load(fname)
     end
 
     -- read table from file and return function returning table
-	local _loadfunc
-	if (string.match(_VERSION, "(%d.%d)") == "5.1") then
-		_loadfunc = loadstring
-	else
-		_loadfunc = load
-	end
+    local _loadfunc
+    if (string.match(_VERSION, "(%d.%d)") == "5.1") then
+       _loadfunc = loadstring
+    else
+       _loadfunc = load
+    end
 
     local fn, err = _loadfunc("return " .. f:read("*a"))
     f:close()
@@ -1575,9 +1588,9 @@ function table.load(fname)
     return {}
 end
 
---
+----------------------------------------------------------------------------
 -- table.save
---
+----------------------------------------------------------------------------
 function table.save(fname, tbl)
    -- open file to wriet
    local f, err = io.open(fname, "w")
@@ -1587,5 +1600,5 @@ function table.save(fname, tbl)
         f:close()
     end
 end
-#endregion
+--#endregion TABLE FUNCTIONS
 --[[ EOF ]]--
