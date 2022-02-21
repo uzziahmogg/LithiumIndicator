@@ -1206,14 +1206,16 @@ end
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
     -- check signal level and chart levels
     if CheckChartPermission(indicator, signal_permission) then
-        -- delete label duplicates
-       local chart_tag = GetChartTag(indicator.Name)
-       local value, index = ChartLabels[indicator.Name]:GetValue(index)
+        local chart_tag = GetChartTag(indicator.Name)
+        local idx, value = ChartLabels[indicator.Name]:GetItem(index)
 
-       if ((value ~= nil) and (index ~= nil)) then
-            if (DelLabel(chart_tag, value]) == true) then
-                ChartLabels[indicator.Name][index] = nil
-            end
+        -- delete label duplicates
+        if (idx ~= nil) then
+           if ((value ~= nil) and (DelLabel(chart_tag, value) == true)) then
+                ChartLabels[indicator.Name]:EraseValue(index)
+           end
+        else
+           ChartLabels[indicator.Name]:AddItem(index, true)
         end
 
         -- set label icon
@@ -1237,11 +1239,12 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
         ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
 
         -- set chart label and return id
-        return AddLabel(chart_tag, ChartLabels.Params)
+        ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
+        return ChartLabels[indicator.Name]:GetValue(index)
 
     -- nothing todo
     else
-        return ChartLabels[indicator.Name][index]
+       return ChartLabels[indicator.Name]:GetValue(index)
     end
 end
 
@@ -1412,55 +1415,66 @@ end
 ----------------------------------------------------------------------------
 function IndexWindows(_size)
     -- class values
-   -----------------------------------
-   local _from = Size() - _size + 1
-    -- Indexes - inner array of indexes
-    -- Values - inner array of values
-    -- From - starting global index
-    -- Size - size of IndexWindow
-   local _Windows = { From = ((_from > 0) and _from or 1),
-                    Size = _size,
-                    Indexes = {},
-                    Values = {},
-                    _metatable = {} }
+    -----------------------------------
+    local _from = Size() - _size + 1
+    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
+    local _Windows = { From = ((_from > 0) and _from or 1), Size = _size, Indexes = {}, Values = {} }
 
-   -- class methods
-   -- _index is global candle index on chart, _idx is local index in IndexWindows: Indexes[_idx] == _index
+    -- class methods
+    -- _index is global candle index on chart, _idx is local index in IndexWindows: Indexes[_idx] == _index
     --------------------------------------
     -- check index hit inside IndexWindows
     local function _CheckIndex(_self, _index)
-       return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
+        return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
     end
 
     -- get local idx by global _index
-    local function _GetIdxByIndex_(_self, _index)
-       local _from = _index - _self.From + 1
-       return ((_from > 0) and _from or 1)
+    local function _GetIdxByIndex(_self, _index)
+        local _from = _index - _self.From + 1
+        return ((_from > 0) and _from or 1)
     end
 
     -- remove first item from IndexWindows
     local function _DelItem(_self, _index)
-       if _CheckIndex(_self, _index) then
-          table.remove(_self.Indexes, 1)
-          table.remove(_self.Values, 1)
-          _self.From = _self.From + 1
-       end
+        if _CheckIndex(_self, _index) then
+            table.remove(_self.Indexes, 1)
+            table.remove(_self.Values, 1)
+            _self.From = _self.From + 1
+        end
     end
 
-    -- get item value with array index
-    local function _GetItem(_self, _index)
-       -- return index and value in index hit inside IndexWindows
+    -- set item value with index
+    local function _SetValue(_self, _index, _value)
         if _CheckIndex(_self, _index) then
-           local _idx = _GetIdxByIndex_(_self, _index)
-           return _self.Indexes[_idx], _self.Values[_idx]
+            local _idx = _GetIdxByIndex(_self, _index)
+            _self.Values[_idx] = _value
+        end
+    end
+
+    local function _EraseValue(_self, _index)
+        _SetValue(_self, _index, nil)
+    end
+
+    -- get item value with index
+    local function _GetItem(_self, _index)
+        -- return index and value in index hit inside IndexWindows
+        if _CheckIndex(_self, _index) then
+            local _idx = _GetIdxByIndex(_self, _index)
+            return _self.Indexes[_idx], _self.Values[_idx]
         end
         return nil
     end
 
+    -- get item value with index
+    local function _GetValue(_self, _index)
+        local _, _value = _GetItem(_self, _index)
+        return _value
+    end
+
     -- add item - store index and value to IndexWindows with checking borders
     local function _AddItem(_self, _index, _value)
-       -- check _index hit inside IndexWindows
-       if ((not (_index >= _self.From)) or (not CandleExist(_index))) then
+        -- check _index hit inside IndexWindows
+        if ((not (_index >= _self.From)) or (not CandleExist(_index))) then
             return nil
         end
 
@@ -1476,7 +1490,7 @@ function IndexWindows(_size)
 
         -- remove first items of IndexWindow array if IndexWindow growth up max Size
         if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-           _DelItem(_self, 1)
+            _DelItem(_self, 1)
         end
 
         return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
@@ -1487,10 +1501,10 @@ function IndexWindows(_size)
     -- return clojure
     return function()
         -- set metamethods for function overloading and using class object sintax sugar
-        Windows._metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem } }
-        setmetatable(Windows, Windows._metatable)
+        local _metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, EraseValue = _EraseValue } }
+        setmetatable(_Windows, _metatable)
 
-        return Windows
+        return _Windows
     end
 end
 --#region CLASSES
