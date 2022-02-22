@@ -1211,9 +1211,9 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
         -- delete label duplicates
         if (idx ~= nil) then
-           if ((value ~= nil) and (DelLabel(chart_tag, value) == true)) then
+            if ((value ~= nil) and (DelLabel(chart_tag, value) == true)) then
                 ChartLabels[indicator.Name]:EraseValue(index)
-           end
+            end
         else
            ChartLabels[indicator.Name]:AddItem(index, true)
         end
@@ -1416,31 +1416,57 @@ end
 function IndexWindows(_size)
     -- class values
     -----------------------------------
-    local _from = Size() - _size + 1
+    local _from = Size() - _size
+
     -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
-    local _Windows = { From = ((_from > 0) and _from or 1), Size = _size, Indexes = {}, Values = {} }
+   local _Windows = { From = ((_from > 0) and _from or 1), Size = _size, Indexes = {}, Values = {} }
 
     -- class methods
-    -- _index is global candle index on chart, _idx is local index in IndexWindows: Indexes[_idx] == _index
-    --------------------------------------
+    -- _index is global candle index on chart,
+    -- _idx is local index in IndexWindows: Indexes[_idx] == _index
+    ---------------------------------------------------------------
+    -- get from index
+    local function _GetFreshFrom(_self)
+       local _from = Size() - _self.Size
+       return ((_from > 0) and _from or 1)
+    end
+
     -- check index hit inside IndexWindows
     local function _CheckIndex(_self, _index)
-        return ((_index >= _self.From) and (_index <= (_self.From + _self.Size - 1)))
+       return ((_index >= _self.From) and (_index < (_self.From + _self.Size)))
     end
 
     -- get local idx by global _index
     local function _GetIdxByIndex(_self, _index)
-        local _from = _index - _self.From + 1
-        return ((_from > 0) and _from or 1)
+        local _idx = _index - _self.From + 1
+        return ((_idx > 0) and _idx or nil)
     end
 
-    -- remove first item from IndexWindows
-    local function _DelItem(_self, _index)
-        if _CheckIndex(_self, _index) then
-            table.remove(_self.Indexes, 1)
-            table.remove(_self.Values, 1)
-            _self.From = _self.From + 1
-        end
+    -- get global _index by local idx
+    local function _GetIndexByIdx(_self, _idx)
+        return (_idx + _self.From - 1)
+    end
+
+    -- remove item from IndexWindows
+    local function _DelItem(_self, _idx)
+        if _CheckIndex(_self, _GetIndexByIdx(_self, _idx)) then
+            table.remove(_self.Indexes, _idx)
+            table.remove(_self.Values, _idx)
+            if (_idx == 1) then
+               _self.From = _GetFreshFrom(_self)
+            end
+            return true
+         end
+         return nil
+    end
+
+    -- get item value with index
+    local function _GetItem(_self, _index)
+       if _CheckIndex(_self, _index) then
+          local _idx = _GetIdxByIndex(_self, _index)
+          return _self.Indexes[_idx], _self.Values[_idx]
+       end
+       return nil
     end
 
     -- set item value with index
@@ -1448,21 +1474,13 @@ function IndexWindows(_size)
         if _CheckIndex(_self, _index) then
             local _idx = _GetIdxByIndex(_self, _index)
             _self.Values[_idx] = _value
+            return true
         end
+        return nil
     end
 
     local function _EraseValue(_self, _index)
-        _SetValue(_self, _index, nil)
-    end
-
-    -- get item value with index
-    local function _GetItem(_self, _index)
-        -- return index and value in index hit inside IndexWindows
-        if _CheckIndex(_self, _index) then
-            local _idx = _GetIdxByIndex(_self, _index)
-            return _self.Indexes[_idx], _self.Values[_idx]
-        end
-        return nil
+        return _SetValue(_self, _index, nil)
     end
 
     -- get item value with index
@@ -1473,27 +1491,25 @@ function IndexWindows(_size)
 
     -- add item - store index and value to IndexWindows with checking borders
     local function _AddItem(_self, _index, _value)
-        -- check _index hit inside IndexWindows
-        if ((not (_index >= _self.From)) or (not CandleExist(_index))) then
-            return nil
+        if ((_index >= _self.From) and CandleExist(_index)) then
+            -- if start of index then reinit Indexes and Values arrays
+            if (_index == 1) then
+                _self.Indexes = {}
+                _self.Values = {}
+            end
+
+            -- append value to end of IndexWindows array
+            table.insert(_self.Indexes, _index - _self.From + 1, _index)
+            table.insert(_self.Values, _index - _self.From + 1, _value)
+
+            -- remove first items of IndexWindow array if IndexWindow growth up max Size
+            if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+                _DelItem(_self, 1)
+            end
+
+            return true
         end
-
-        -- if start of index then reinit Indexes and Values arrays
-        if (_index == 1) then
-            _self.Indexes = {}
-            _self.Values = {}
-        end
-
-        -- append value to end of IndexWindows array
-        table.insert(_self.Indexes, _index - _self.From + 1, _index)
-        table.insert(_self.Values, _index - _self.From + 1, _value)
-
-        -- remove first items of IndexWindow array if IndexWindow growth up max Size
-        if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-            _DelItem(_self, 1)
-        end
-
-        return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
+        return nil
     end
 
     -- class constructor
