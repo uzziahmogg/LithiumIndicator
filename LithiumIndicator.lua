@@ -109,6 +109,10 @@ function Init()
    IndexWindowsSize = 100
    ChartLabels = { [Prices.Name] = IndexWindows(IndexWindowsSize)(), [Stochs.Name] =  IndexWindows(IndexWindowsSize)(), [RSIs.Name] = IndexWindows(IndexWindowsSize)(), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
+   PrintDebugMessage("Init1", ChartLabels[Prices.Name].From, ChartLabels[Prices.Name].Size, ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
+   PrintDebugMessage("Init2", ChartLabels[Stochs.Name].From, ChartLabels[Stochs.Name].Size, ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
+   PrintDebugMessage("Init3", ChartLabels[RSIs.Name].From, ChartLabels[RSIs.Name].Size, ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values)
+
    -- script path
    ScriptPath = getScriptPath()
 
@@ -181,6 +185,8 @@ function OnCalculate(index)
       SetInitialValues(Signals)
 
       ProcessedIndex = 0
+
+      Pass = Pass + 1
    end
 
    --#region set prices and indicators for current candle
@@ -1209,6 +1215,9 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
       local chart_tag = GetChartTag(indicator.Name)
       local idx, value = ChartLabels[indicator.Name]:GetItem(index)
 
+      PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name, Pass)
+      PrintDebugMessage("SetChartLabel2", idx, value)
+
       -- check record with index and check_label_id in IndexWindows
       if (idx ~= nil) then
          -- record with index exist -  delete label duplicate
@@ -1218,6 +1227,8 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
       else
          ChartLabels[indicator.Name]:AddItem(index, true)
       end
+
+      PrintDebugMessage("SetChartLabel3", ChartLabels[indicator.Name]:GetItem(index))
 
       -- set label icon
       ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
@@ -1241,6 +1252,8 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
       -- set chart label and return id
       ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
+      PrintDebugMessage("SetChartLabel4", ChartLabels[indicator.Name]:GetItem(index))
+      PrintDebugMessage("SetChartLabel5", ChartLabels[indicator.Name]:GetValue(index))
       return ChartLabels[indicator.Name]:GetValue(index)
 
       -- nothing todo
@@ -1417,10 +1430,10 @@ end
 function IndexWindows(_size)
    -- class values
    -----------------------------------
-   local _from = Size() - _size
+   local _From = Size() - _size
 
    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
-   local _Windows = { From = ((_from > 0) and _from or 1), Size = _size, Indexes = {}, Values = {} }
+   local _Windows = { From = ((_From > 0) and _From or 1), Size = _size, Indexes = {}, Values = {} }
 
    -- class methods
    -- _index is global candle index on chart,
@@ -1428,9 +1441,10 @@ function IndexWindows(_size)
    ---------------------------------------------------------------
    -- check index hit inside IndexWindows
    local function _CheckIndex(_self, _index)
-      return ((_index >= _self.From) and (_index < Size()))
+      return ((_index >= _self.From) and (_index < _self.From + _self.Size))
    end
 
+   -- check idx hit inside IndexWindows
    local function _CheckIdx(_self, _idx)
       return ((_idx >= 1) and (_idx <= #_self.Indexes))
    end
@@ -1450,7 +1464,7 @@ function IndexWindows(_size)
 
    -- get index by idx
    local function _GetIndexByIdx(_self, _idx)
-      if (_CheckIdx(_self, _idx) then
+      if (_CheckIdx(_self, _idx)) then
          return _self.Indexes[_idx]
       else
          return  nil
@@ -1459,8 +1473,10 @@ function IndexWindows(_size)
 
    -- get item value with index
    local function _GetItem(_self, _index)
+      PrintDebugMessage("GetItem1", _self, _index)
       local idx = _GetIdxByIndex(_self, _index)
       if (idx ~= nil) then
+         PrintDebugMessage("GetItem2", _self, _index, idx, _self.Values[idx])
          return idx, _self.Values[idx]
       else
          return nil
@@ -1518,8 +1534,10 @@ function IndexWindows(_size)
    -- return clojure
    return function()
       -- set metamethods for function overloading and using class object sintax sugar
-      local _metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue } }
-      setmetatable(_Windows, _metatable)
+      local _Metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue } }
+      setmetatable(_Windows, _Metatable)
+
+      PrintDebugMessage("IndexWindows", _Windows.From, _Windows.Size, _Windows.Indexes, _Windows.Values)
 
       return _Windows
    end
