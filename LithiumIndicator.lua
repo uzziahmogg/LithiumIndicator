@@ -91,7 +91,7 @@ function Init()
 
    -- chart params and indicators
    -- price data arrays and params
-   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
+   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.Strength } -- FEK_LITHIUMPrice
 
    -- stochastic data arrays and params
    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
@@ -109,9 +109,9 @@ function Init()
    IndexWindowsSize = 100
    ChartLabels = { [Prices.Name] = IndexWindows(IndexWindowsSize)(), [Stochs.Name] =  IndexWindows(IndexWindowsSize)(), [RSIs.Name] = IndexWindows(IndexWindowsSize)(), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
-   PrintDebugMessage("Init1", ChartLabels[Prices.Name].From, ChartLabels[Prices.Name].Size, ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
-   PrintDebugMessage("Init2", ChartLabels[Stochs.Name].From, ChartLabels[Stochs.Name].Size, ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
-   PrintDebugMessage("Init3", ChartLabels[RSIs.Name].From, ChartLabels[RSIs.Name].Size, ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values)
+   PrintDebugMessage("Init1", ChartLabels[Prices.Name])
+   PrintDebugMessage("Init2", ChartLabels[Stochs.Name])
+   PrintDebugMessage("Init3", ChartLabels[RSIs.Name])
 
    -- script path
    ScriptPath = getScriptPath()
@@ -216,10 +216,10 @@ function OnCalculate(index)
    --#endregion
 
    -- debuglog
-   --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
+   --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then]]
       local t = T(index)
       PrintDebugMessage("===", index, t.month, t.day, t.hour, t.min, "===")
-      end ]]
+      --[[end ]]
 
    if (ProcessedIndex ~= index) then
       -------------------------------------------------------------------------
@@ -729,6 +729,8 @@ end
 -- CheckState
 ----------------------------------------------------------------------------
 function CheckState(index, direction, indicator, signal)
+   PrintDebugMessage("CheckState", index, direction, indicator.Name, signal.Name)
+
    local values1, values2, signal_function, chart_icon
 
    -- set indicators
@@ -776,6 +778,8 @@ end
 -- CheckSignal
 ----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal)
+   PrintDebugMessage("CheckSignal", index, direction, indicator.Name, signal.Name)
+
    local values1, values2, signal_function, chart_icon, chart_permission
 
    -- set indicators
@@ -1216,19 +1220,21 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
       local idx, value = ChartLabels[indicator.Name]:GetItem(index)
 
       PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name, Pass)
-      PrintDebugMessage("SetChartLabel2", idx, value)
+      PrintDebugMessage("SetChartLabel2", tostring(idx), tostring(value))
 
       -- check record with index and check_label_id in IndexWindows
       if (idx ~= nil) then
+         PrintDebugMessage("SetChartLabel21", idx)
          -- record with index exist -  delete label duplicate
          if ((value ~= nil) and (DelLabel(chart_tag, value) == true)) then
-            ChartLabels[indicator.Name]:SetValue(index, true)
+            PrintDebugMessage("SetChartLabel22", ChartLabels[indicator.Name]:SetValue(index, true))
          end
       else
-         ChartLabels[indicator.Name]:AddItem(index, true)
+
+         PrintDebugMessage("SetChartLabel23", ChartLabels[indicator.Name]:AddItem(index, true))
       end
 
-      PrintDebugMessage("SetChartLabel3", ChartLabels[indicator.Name]:GetItem(index))
+      PrintDebugMessage("SetChartLabel3", tostring(ChartLabels[indicator.Name]:GetItem(index)))
 
       -- set label icon
       ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
@@ -1252,8 +1258,10 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
       -- set chart label and return id
       ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
-      PrintDebugMessage("SetChartLabel4", ChartLabels[indicator.Name]:GetItem(index))
-      PrintDebugMessage("SetChartLabel5", ChartLabels[indicator.Name]:GetValue(index))
+
+      PrintDebugMessage("SetChartLabel4", tostring(ChartLabels[indicator.Name]:GetItem(index)))
+      PrintDebugMessage("SetChartLabel5", tostring(ChartLabels[indicator.Name]:GetValue(index)))
+
       return ChartLabels[indicator.Name]:GetValue(index)
 
       -- nothing todo
@@ -1473,10 +1481,10 @@ function IndexWindows(_size)
 
    -- get item value with index
    local function _GetItem(_self, _index)
-      PrintDebugMessage("GetItem1", _self, _index)
       local idx = _GetIdxByIndex(_self, _index)
+      PrintDebugMessage("GetItem1", _self, _index, tostring(idx))
       if (idx ~= nil) then
-         PrintDebugMessage("GetItem2", _self, _index, idx, _self.Values[idx])
+         PrintDebugMessage("GetItem2", _self, _index, idx, _self.Indexes[idx], _self.Values[idx])
          return idx, _self.Values[idx]
       else
          return nil
@@ -1536,8 +1544,6 @@ function IndexWindows(_size)
       -- set metamethods for function overloading and using class object sintax sugar
       local _Metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue } }
       setmetatable(_Windows, _Metatable)
-
-      PrintDebugMessage("IndexWindows", _Windows.From, _Windows.Size, _Windows.Indexes, _Windows.Values)
 
       return _Windows
    end
