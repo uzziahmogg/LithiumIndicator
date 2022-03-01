@@ -1224,17 +1224,21 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
       -- check record with index and check_label_id in IndexWindows
       if (idx ~= nil) then
-         PrintDebugMessage("SetChartLabel21", idx)
+         PrintDebugMessage("SetChartLabel3", tostring(idx))
          -- record with index exist -  delete label duplicate
-         if ((value ~= nil) and (DelLabel(chart_tag, value) == true)) then
-            PrintDebugMessage("SetChartLabel22", ChartLabels[indicator.Name]:SetValue(index, true))
+         local res_del = DelLabel(chart_tag, value)
+         PrintDebugMessage("SetChartLabel4", tostring(value), tostring(res_del))
+         if ((value ~= nil) and (res_del == true)) then
+               local res_set = ChartLabels[indicator.Name]:SetValue(index, true)
+            PrintDebugMessage("SetChartLabel5", tostring(res_set))
          end
       else
-
-         PrintDebugMessage("SetChartLabel23", ChartLabels[indicator.Name]:AddItem(index, true))
+         local res_add = ChartLabels[indicator.Name]:AddItem(index, true)
+         PrintDebugMessage("SetChartLabel6", tostring(res_add))
       end
 
-      PrintDebugMessage("SetChartLabel3", tostring(ChartLabels[indicator.Name]:GetItem(index)))
+      local res_get1 = ChartLabels[indicator.Name]:GetItem(index)
+      PrintDebugMessage("SetChartLabel7", tostring(res_get1))
 
       -- set label icon
       ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
@@ -1257,10 +1261,14 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
       ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
 
       -- set chart label and return id
-      ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
+      local chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
+      ChartLabels[indicator.Name]:SetValue(index, chart_label_id)
 
-      PrintDebugMessage("SetChartLabel4", tostring(ChartLabels[indicator.Name]:GetItem(index)))
-      PrintDebugMessage("SetChartLabel5", tostring(ChartLabels[indicator.Name]:GetValue(index)))
+      PrintDebugMessage("SetChartLabel8", tostring(chart_label_id))
+      local res_get2 = ChartLabels[indicator.Name]:GetItem(index)
+      PrintDebugMessage("SetChartLabel9", tostring(res_get2))
+      local res_get3 = ChartLabels[indicator.Name]:GetValue(index)
+      PrintDebugMessage("SetChartLabel10", tostring(res_get3))
 
       return ChartLabels[indicator.Name]:GetValue(index)
 
@@ -1482,9 +1490,9 @@ function IndexWindows(_size)
    -- get item value with index
    local function _GetItem(_self, _index)
       local idx = _GetIdxByIndex(_self, _index)
-      PrintDebugMessage("GetItem1", _self, _index, tostring(idx))
+      PrintDebugMessage("_GetItem1", _self, _index, tostring(idx))
       if (idx ~= nil) then
-         PrintDebugMessage("GetItem2", _self, _index, idx, _self.Indexes[idx], _self.Values[idx])
+         PrintDebugMessage("_GetItem2", _self, _index, tostring(idx), tostring(_self.Indexes[idx]), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       else
          return nil
@@ -1522,14 +1530,17 @@ function IndexWindows(_size)
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
+      PrintDebugMessage("_AddItem1", _self, _index, _self.From, _value, tostring(CandleExist(_index)))
       if ((_index >= _self.From) and CandleExist(_index)) then
           -- append value to end of IndexWindows array
-         table.insert(_self.Indexes, _index)
-         table.insert(_self.Values, _value)
-
+         local a = table.insert(_self.Indexes, _index)
+         local b = table.insert(_self.Values, _value)
+         PrintDebugMessage("_AddItem2", tostring(a), tostring(b))
+         PrintDebugMessage("_AddItem3", #_self.Indexes, #_self.Values, _self.Size)
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-            _DelItem(_self, 1)
+            local c = _DelItem(_self, 1)
+            PrintDebugMessage("_AddItem4", tostring(c), #_self.Indexes, #_self.Values)
          end
 
          return true
