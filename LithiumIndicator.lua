@@ -218,7 +218,7 @@ function OnCalculate(index)
    -- debuglog
    --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then]]
       local t = T(index)
-      PrintDebugMessage("===", index, t.month, t.day, t.hour, t.min, "===")
+      PrintDebugMessage("===", index, Pass, t.month, t.day, t.hour, t.min, "===")
       --[[end ]]
 
    if (ProcessedIndex ~= index) then
@@ -1219,7 +1219,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
       local chart_tag = GetChartTag(indicator.Name)
       local idx, value = ChartLabels[indicator.Name]:GetItem(index)
 
-      PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name, Pass)
+      PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name)
       PrintDebugMessage("SetChartLabel2", tostring(idx), tostring(value))
 
       -- check record with index and check_label_id in IndexWindows
@@ -1507,9 +1507,11 @@ function IndexWindows(_size)
 
    -- set item value with index
    local function _SetValue(_self, _index, _value)
+      PrintDebugMessage("_SetValue1", tostring(_self), tostring(_index), tostring(_value))
       if _CheckIndex(_self, _index) then
          local idx = _GetIdxByIndex(_self, _index)
          _self.Values[idx] = _value
+         PrintDebugMessage("_SetValue2", tostring(_self:GetValue(_index)))
          return true
       end
       return nil
@@ -1530,13 +1532,17 @@ function IndexWindows(_size)
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
+
       PrintDebugMessage("_AddItem1", _self, _index, _self.From, _value, tostring(CandleExist(_index)))
+
       if ((_index >= _self.From) and CandleExist(_index)) then
           -- append value to end of IndexWindows array
          local a = table.insert(_self.Indexes, _index)
          local b = table.insert(_self.Values, _value)
+
          PrintDebugMessage("_AddItem2", tostring(a), tostring(b))
          PrintDebugMessage("_AddItem3", #_self.Indexes, #_self.Values, _self.Size)
+
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
             local c = _DelItem(_self, 1)
@@ -1545,7 +1551,7 @@ function IndexWindows(_size)
 
          return true
       end
-      return nil
+      return
    end
 
    -- class constructor
