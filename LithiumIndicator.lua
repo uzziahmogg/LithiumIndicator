@@ -1444,28 +1444,38 @@ end
 -- class IndexWindows - saves part of global array _from index with _size
 ----------------------------------------------------------------------------
 function IndexWindows(_size)
+   --
    -- class values
-   -----------------------------------
+   ------------------------------
    local _From = Size() - _size
 
+   --
    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
+   --
    local _Windows = { From = ((_From > 0) and _From or 1), Size = _size, Indexes = {}, Values = {} }
 
+   --
    -- class methods
    -- _index is global candle index on chart,
    -- _idx is local index in IndexWindows: Indexes[_idx] == _index
    ---------------------------------------------------------------
+   --
    -- check index hit inside IndexWindows
+   --
    local function _CheckIndex(_self, _index)
       return ((_index >= _self.From) and (_index < _self.From + _self.Size))
    end
 
+   --
    -- check idx hit inside IndexWindows
+   --
    local function _CheckIdx(_self, _idx)
-      return ((_idx >= 1) and (_idx <= #_self.Indexes))
+      return ((_idx >= 1) and (_idx <= _self.Size))
    end
 
+   --
    -- get idx by index
+   --
    local function _GetIdxByIndex(_self, _index)
       if _CheckIndex(_self, _index) then
          local idx
@@ -1478,7 +1488,9 @@ function IndexWindows(_size)
       return nil
    end
 
+   --
    -- get index by idx
+   --
    local function _GetIndexByIdx(_self, _idx)
       if (_CheckIdx(_self, _idx)) then
          return _self.Indexes[_idx]
@@ -1487,7 +1499,9 @@ function IndexWindows(_size)
       end
    end
 
+   --
    -- get item value with index
+   --
    local function _GetItem(_self, _index)
       local idx = _GetIdxByIndex(_self, _index)
       PrintDebugMessage("_GetItem1", _self, _index, tostring(idx))
@@ -1499,13 +1513,17 @@ function IndexWindows(_size)
       end
    end
 
+   --
    -- get item value with index
+   --
    local function _GetValue(_self, _index)
       local _, value = _GetItem(_self, _index)
       return value
    end
 
+   --
    -- set item value with index
+   --
    local function _SetValue(_self, _index, _value)
       PrintDebugMessage("_SetValue1", tostring(_self), tostring(_index), tostring(_value))
       if _CheckIndex(_self, _index) then
@@ -1517,7 +1535,9 @@ function IndexWindows(_size)
       return nil
    end
 
+   --
    -- remove item from IndexWindows
+   --
    local function _DelItem(_self, _idx)
       if _CheckIndex(_self, _GetIndexByIdx(_self, _idx)) then
          table.remove(_self.Indexes, _idx)
@@ -1530,7 +1550,9 @@ function IndexWindows(_size)
       return nil
    end
 
+   --
    -- add item - store index and value to IndexWindows with checking borders
+   --
    local function _AddItem(_self, _index, _value)
 
       PrintDebugMessage("_AddItem1", _self, _index, _self.From, _value, tostring(CandleExist(_index)))
@@ -1545,8 +1567,10 @@ function IndexWindows(_size)
 
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+            _self.From = _self.Indexes[1]
             local c = _DelItem(_self, 1)
-            PrintDebugMessage("_AddItem4", tostring(c), #_self.Indexes, #_self.Values)
+
+            PrintDebugMessage("_AddItem4", tostring(_self.From), tostring(c), #_self.Indexes, #_self.Values)
          end
 
          return true
@@ -1554,12 +1578,15 @@ function IndexWindows(_size)
       return
    end
 
+   --
    -- class constructor
    --------------------
+   --
    -- return clojure
+   --
    return function()
       -- set metamethods for function overloading and using class object sintax sugar
-      local _Metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue } }
+      local _Metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue, CheckIndex = _CheckIndex } }
       setmetatable(_Windows, _Metatable)
 
       return _Windows
