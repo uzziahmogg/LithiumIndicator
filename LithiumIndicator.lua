@@ -109,10 +109,6 @@ function Init()
    IndexWindowsSize = 100
    ChartLabels = { [Prices.Name] = IndexWindows(IndexWindowsSize)(), [Stochs.Name] =  IndexWindows(IndexWindowsSize)(), [RSIs.Name] = IndexWindows(IndexWindowsSize)(), Params = { TRANSPARENCY = 0, TRANSPARENT_BACKGROUND = 1, FONT_FACE_NAME = "Arial", FONT_HEIGHT = 8 }}
 
-   PrintDebugMessage("Init1", ChartLabels[Prices.Name])
-   PrintDebugMessage("Init2", ChartLabels[Stochs.Name])
-   PrintDebugMessage("Init3", ChartLabels[RSIs.Name])
-
    -- script path
    ScriptPath = getScriptPath()
 
@@ -216,10 +212,10 @@ function OnCalculate(index)
    --#endregion
 
    -- debuglog
-   --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then]]
+   --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
       local t = T(index)
       PrintDebugMessage("===", index, Pass, t.month, t.day, t.hour, t.min, "===")
-      --[[end ]]
+      end ]]
 
    if (ProcessedIndex ~= index) then
       -------------------------------------------------------------------------
@@ -295,7 +291,7 @@ function OnCalculate(index)
       CheckSignal(index, Directions.Long, RSIs, Signals.StrengthOsc)
       CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
 
-      -- PrintIntermediateResults(index)
+      PrintIntermediateResults(index)
       -------------------------------------------------------------------------
       -- Check Signal Enter
       -------------------------------------------------------------------------
@@ -729,7 +725,7 @@ end
 -- CheckState
 ----------------------------------------------------------------------------
 function CheckState(index, direction, indicator, signal)
-   PrintDebugMessage("CheckState", index, direction, indicator.Name, signal.Name)
+   --PrintDebugMessage("CheckState", index, direction, indicator.Name, signal.Name)
 
    local values1, values2, signal_function, chart_icon
 
@@ -778,7 +774,7 @@ end
 -- CheckSignal
 ----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal)
-   PrintDebugMessage("CheckSignal", index, direction, indicator.Name, signal.Name)
+   --PrintDebugMessage("CheckSignal", index, direction, indicator.Name, signal.Name)
 
    local values1, values2, signal_function, chart_icon, chart_permission
 
@@ -1215,66 +1211,45 @@ end
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
    -- check signal level and chart levels
-   if CheckChartPermission(indicator, signal_permission) then
-      local chart_tag = GetChartTag(indicator.Name)
-      local idx, value = ChartLabels[indicator.Name]:GetItem(index)
+   if ChartLabels[indicator.Name]:CheckIndex(index) then
+      if CheckChartPermission(indicator, signal_permission) then
+         local chart_tag = GetChartTag(indicator.Name)
+         local idx, chart_label_id = ChartLabels[indicator.Name]:GetItem(index)
 
-      PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name)
-      PrintDebugMessage("SetChartLabel2", tostring(idx), tostring(value))
-
-      -- check record with index and check_label_id in IndexWindows
-      if (idx ~= nil) then
-         PrintDebugMessage("SetChartLabel3", tostring(idx))
-         -- record with index exist -  delete label duplicate
-         local res_del = DelLabel(chart_tag, value)
-         PrintDebugMessage("SetChartLabel4", tostring(value), tostring(res_del))
-         if ((value ~= nil) and (res_del == true)) then
-               local res_set = ChartLabels[indicator.Name]:SetValue(index, true)
-            PrintDebugMessage("SetChartLabel5", tostring(res_set))
+         -- check record with index and check_label_id in IndexWindows
+         --!
+         if (idx ~= nil) then
+            -- record with index exist -  delete label duplicate
+            if ((chart_label_id ~= nil) and (DelLabel(chart_tag, chart_label_id) == true)) then
+               ChartLabels[indicator.Name]:SetValue(index, true)
+            end
+         else
+            ChartLabels[indicator.Name]:AddItem(index, true)
          end
-      else
-         local res_add = ChartLabels[indicator.Name]:AddItem(index, true)
-         PrintDebugMessage("SetChartLabel6", tostring(res_add))
+
+         -- set label icon
+         ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
+         -- set label position
+         ChartLabels.Params.DATE, ChartLabels.Params.TIME = GetChartLabelXPos(T(index))
+         ChartLabels.Params.YVALUE = GetChartLabelYPos(index, direction, indicator)
+         -- set chart alingment from direction
+         if (direction == Directions.Long) then
+            ChartLabels.Params.ALIGNMENT = "BOTTOM"
+         elseif (direction == Directions.Short) then
+            ChartLabels.Params.ALIGNMENT = "TOP"
+         end
+         -- set text
+         ChartLabels.Params.TEXT = GetMessage(direction, indicator.Name, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, index)
+         ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
+
+         -- set chart label and return id
+         ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
       end
-
-      local res_get1 = ChartLabels[indicator.Name]:GetItem(index)
-      PrintDebugMessage("SetChartLabel7", tostring(res_get1))
-
-      -- set label icon
-      ChartLabels.Params.IMAGE_PATH = GetChartIcon(direction, icon)
-
-      -- set label position
-      ChartLabels.Params.DATE, ChartLabels.Params.TIME = GetChartLabelXPos(T(index))
-
-      ChartLabels.Params.YVALUE = GetChartLabelYPos(index, direction, indicator)
-
-      -- set chart alingment from direction
-      if (direction == Directions.Long) then
-         ChartLabels.Params.ALIGNMENT = "BOTTOM"
-      elseif (direction == Directions.Short) then
-         ChartLabels.Params.ALIGNMENT = "TOP"
-      end
-
-      -- set text
-      ChartLabels.Params.TEXT = GetMessage(direction, indicator.Name, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, index)
-
-      ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
-
-      -- set chart label and return id
-      local chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
-      ChartLabels[indicator.Name]:SetValue(index, chart_label_id)
-
-      PrintDebugMessage("SetChartLabel8", tostring(chart_label_id))
-      local res_get2 = ChartLabels[indicator.Name]:GetItem(index)
-      PrintDebugMessage("SetChartLabel9", tostring(res_get2))
-      local res_get3 = ChartLabels[indicator.Name]:GetValue(index)
-      PrintDebugMessage("SetChartLabel10", tostring(res_get3))
-
       return ChartLabels[indicator.Name]:GetValue(index)
 
-      -- nothing todo
+   -- nothing todo
    else
-      return ChartLabels[indicator.Name]:GetValue(index)
+      return nil
    end
 end
 
@@ -1444,39 +1419,29 @@ end
 -- class IndexWindows - saves part of global array _from index with _size
 ----------------------------------------------------------------------------
 function IndexWindows(_size)
-   --
    -- class values
    ------------------------------
    local _From = Size() - _size
 
-   --
    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
-   --
    local _Windows = { From = ((_From > 0) and _From or 1), Size = _size, Indexes = {}, Values = {} }
 
-   --
    -- class methods
    -- _index is global candle index on chart,
    -- _idx is local index in IndexWindows: Indexes[_idx] == _index
    ---------------------------------------------------------------
-   --
-   -- check index hit inside IndexWindows
-   --
+   -- check index hit inside IndexWindows 
    local function _CheckIndex(_self, _index)
       return ((_index >= _self.From) and (_index < _self.From + _self.Size))
    end
 
-   --
    -- check idx hit inside IndexWindows
-   --
    local function _CheckIdx(_self, _idx)
       return ((_idx >= 1) and (_idx <= _self.Size))
    end
 
-   --
    -- get idx by index
-   --
-   local function _GetIdxByIndex(_self, _index)
+   local function _GetIdx(_self, _index)
       if _CheckIndex(_self, _index) then
          local idx
          for idx = 1, #_self.Indexes do
@@ -1488,10 +1453,8 @@ function IndexWindows(_size)
       return nil
    end
 
-   --
    -- get index by idx
-   --
-   local function _GetIndexByIdx(_self, _idx)
+   local function _GetIndex(_self, _idx)
       if (_CheckIdx(_self, _idx)) then
          return _self.Indexes[_idx]
       else
@@ -1499,47 +1462,34 @@ function IndexWindows(_size)
       end
    end
 
-   --
    -- get item value with index
-   --
    local function _GetItem(_self, _index)
-      local idx = _GetIdxByIndex(_self, _index)
-      PrintDebugMessage("_GetItem1", _self, _index, tostring(idx))
+      local idx = _GetIdx(_self, _index)
       if (idx ~= nil) then
-         PrintDebugMessage("_GetItem2", _self, _index, tostring(idx), tostring(_self.Indexes[idx]), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       else
          return nil
       end
    end
 
-   --
    -- get item value with index
-   --
    local function _GetValue(_self, _index)
       local _, value = _GetItem(_self, _index)
       return value
    end
 
-   --
    -- set item value with index
-   --
    local function _SetValue(_self, _index, _value)
-      PrintDebugMessage("_SetValue1", tostring(_self), tostring(_index), tostring(_value))
       if _CheckIndex(_self, _index) then
-         local idx = _GetIdxByIndex(_self, _index)
-         _self.Values[idx] = _value
-         PrintDebugMessage("_SetValue2", tostring(_self:GetValue(_index)))
+         _self.Values[_GetIdx(_self, _index)] = _value
          return true
       end
-      return nil
+      return false
    end
 
-   --
    -- remove item from IndexWindows
-   --
    local function _DelItem(_self, _idx)
-      if _CheckIndex(_self, _GetIndexByIdx(_self, _idx)) then
+      if _CheckIndex(_self, _GetIndex(_self, _idx)) then
          table.remove(_self.Indexes, _idx)
          table.remove(_self.Values, _idx)
          if (_idx == 1) then
@@ -1547,48 +1497,30 @@ function IndexWindows(_size)
          end
          return true
       end
-      return nil
+      return false
    end
 
-   --
    -- add item - store index and value to IndexWindows with checking borders
-   --
    local function _AddItem(_self, _index, _value)
-
-      PrintDebugMessage("_AddItem1", _self, _index, _self.From, _value, tostring(CandleExist(_index)))
-
       if ((_index >= _self.From) and CandleExist(_index)) then
           -- append value to end of IndexWindows array
          local a = table.insert(_self.Indexes, _index)
          local b = table.insert(_self.Values, _value)
-
-         PrintDebugMessage("_AddItem2", tostring(a), tostring(b))
-         PrintDebugMessage("_AddItem3", #_self.Indexes, #_self.Values, _self.Size)
-
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-            _self.From = _self.Indexes[1]
-            local c = _DelItem(_self, 1)
-
-            PrintDebugMessage("_AddItem4", tostring(_self.From), tostring(c), #_self.Indexes, #_self.Values)
+            _DelItem(_self, 1)
          end
-
          return true
       end
-      return
+      return false
    end
 
-   --
    -- class constructor
    --------------------
-   --
    -- return clojure
-   --
    return function()
       -- set metamethods for function overloading and using class object sintax sugar
-      local _Metatable = { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue, CheckIndex = _CheckIndex } }
-      setmetatable(_Windows, _Metatable)
-
+      setmetatable(_Windows, { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue, CheckIndex = _CheckIndex }})
       return _Windows
    end
 end
