@@ -66,6 +66,9 @@
 
 --* if function make something - return number maked things, or 0 if nothing todo, or nil if error
 --* if function return something - if success return string or number or boolean or if error/todo nothing return nil
+--* or if func make smthg - return true if ok or return false if notok
+--* if func return number boolen string including number maked things include zero if maked nothing - return thng or nil if return nthng
+
 --* rememebr about strength critery in prciecross/osccross signals - now there have most strength criter where different sides of cross have different not equal values
 --* events -> signals -> states -> enters
 --* events/conditions is elementary signals like fast oscilator cross up slow oscilator, price cross up ma  and all there are in period 2-3 candles
@@ -292,10 +295,11 @@ function OnCalculate(index)
       CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
 
       PrintIntermediateResults(index)
+
       -------------------------------------------------------------------------
       -- Check Signal Enter
       -------------------------------------------------------------------------
-      -- check signals long
+      -- check enter signals long on
       if ((Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle == 0) and
          -- states
          (Signals[Signals.Cross50.Name][Directions.Long][Prices.Name].Candle > 0) and
@@ -321,9 +325,9 @@ function OnCalculate(index)
 
          -- set chart label
          ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
-      end -- long
+      end -- enter signals long on
 
-      -- check signals short
+      -- check enter signals short on
       if ((Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle == 0) and
          -- states
          (Signals[Signals.Cross50.Name][Directions.Short][Prices.Name].Candle > 0) and
@@ -349,9 +353,9 @@ function OnCalculate(index)
 
          -- set chart label
          ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
-      end -- short
+      end -- enter signals short on
 
-      -- check enter long
+      -- check enter signals long off
       if (Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle > 0) then
          -- set enter duration
          local duration = index - Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle
@@ -360,24 +364,20 @@ function OnCalculate(index)
          if (duration <= Signals.MaxDuration) then
             -- enter long terminates by end one of state signals
             if ((Signals[Signals.Cross50.Name][Directions.Long][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle == 0) and (Signals[Signals.Cross50.Name][Directions.Long][RSIs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle == 0)) then
-               -- set chart label
-               -- ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by offsignal"))
 
                -- set enter long off
                Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
             end
 
-            -- enter long terminates by end of duration
+         -- enter long terminates by end of duration
          elseif (duration > Signals.MaxDuration) then
-            -- set chart label
-            -- ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
 
             -- set enter short signal off
             Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
          end
-      end -- long
+      end -- enter signals long off
 
-      -- check enter short
+      -- check enter signals short off
       if (Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle > 0) then
          -- set duration
          local duration = index - Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle
@@ -386,21 +386,17 @@ function OnCalculate(index)
          if (duration <= Signals.MaxDuration) then
             -- enter long terminates by end one of state signals
             if ((Signals[Signals.Cross50.Name][Directions.Short][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle == 0) and (Signals[Signals.Cross50.Name][Directions.Short][RSIs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle == 0)) then
-               -- set chart label
-               -- ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by offsignal"))
 
                -- set enter long off
                Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
             end
 
-            -- enter long terminates by end of duration
+         -- enter long terminates by end of duration
          elseif (duration > Signals.MaxDuration) then
-            -- set chart label
-            -- ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigCross, ChartPermissions.Enter, GetMessage(duration, DealStages.End .. " by duration"))
 
             -- set enter short signal off
             Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
-         end -- short
+         end -- enter signals short off
       end
       --#endregion
 
@@ -722,7 +718,7 @@ end
 --#region SIGNALS
 --==========================================================================
 ----------------------------------------------------------------------------
--- CheckState
+-- CheckState - check on states Cross, Cross50 and not check states off
 ----------------------------------------------------------------------------
 function CheckState(index, direction, indicator, signal)
    --PrintDebugMessage("CheckState", index, direction, indicator.Name, signal.Name)
@@ -760,8 +756,6 @@ function CheckState(index, direction, indicator, signal)
 
    -- check signal start
    if (signal_function((index-1), direction, values1, values2)) then
-      -- PrintDebugMessage((index-1), indicator.Name, signal.Name, direction, DealStages.Start)
-
       -- set signal
       SetSignal((index-1), direction, indicator, signal)
 
@@ -771,11 +765,9 @@ function CheckState(index, direction, indicator, signal)
 end
 
 ----------------------------------------------------------------------------
--- CheckSignal
+-- CheckSignal - check on signals: Uturn31, Uturn32, TrendOff, strength: StrengthOsc, StrengthPrice, Steamer and check off they 
 ----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal)
-   --PrintDebugMessage("CheckSignal", index, direction, indicator.Name, signal.Name)
-
    local values1, values2, signal_function, chart_icon, chart_permission
 
    -- set indicators
@@ -840,33 +832,27 @@ function CheckSignal(index, direction, indicator, signal)
       signal_function = SignalSteamer
    end
 
-   -- check signal start
+   -- check signal on
    if (signal_function((index-1), direction, values1, values2)) then
-      -- PrintDebugMessage((index-1), indicator.Name, signal.Name, direction, DealStages.Start)
-
       -- set signal
       SetSignal((index-1), direction, indicator, signal)
 
       -- set chart label
       ChartLabels[indicator.Name][index-1] = SetChartLabel((index-1), direction, indicator, signal, chart_icon, chart_permission)
-   end
+   end -- signal on
 
-   -- check signal existence/end
+   -- check signal off
    if (Signals[signal.Name][direction][indicator.Name].Candle > 0) then
       -- set signal duration
       local duration = index - Signals[signal.Name][direction][indicator.Name].Candle
 
       -- signal terminates by end of duration
       if (duration > Signals.MaxDuration) then
-         -- PrintDebugMessage((index-1), indicator.Name, signal.Name, direction, GetMessage(DealStages.End, duration))
-
-         -- set chart label
-         -- ChartLabels[indicator.Name][index-1] = SetChartLabel((index-1), direction, indicator, signal, ChartIcons.Cross, chart_permission, GetMessage((duration-1), DealStages.End .. " by duration"))
 
          -- set signal off
          Signals[signal.Name][direction][indicator.Name].Candle = 0
       end
-   end -- signal existence
+   end -- signal off
 end
 
 ----------------------------------------------------------------------------
@@ -887,9 +873,9 @@ function SignalSteamer(index, direction, value1, value2, dev, diff)
          -- delta beetwen osc fast and slow osc less then diff last 1 candle
          CheckFlat(value1[index], value2[index], diff))
 
-      -- not enough data
+   -- not enough data
    else
-      return false
+      return nil
    end
 end
 
@@ -906,9 +892,9 @@ function SignalCross(index, direction, values1, values2, dev, diff)
          -- cross fast osc over/under slow osc
          EventCross(index, direction, values1, values2, dev))
 
-      -- not enough data
+   -- not enough data
    else
-      return false
+      return nil
    end
 end
 
@@ -923,9 +909,9 @@ function SignalUturn31(index, direction, values1, values2, dev, diff)
 
       return ((EventUturn3(index, direction, values1, dev) or EventUturn3((index-1), direction, values1, dev) or EventUturn3((index-2), direction, values1, dev)) and EventUturn3(index, direction, values2, dev))
 
-      -- not enough data
+   -- not enough data
    else
-      return false
+      return nil
    end
 end
 
@@ -940,9 +926,9 @@ function SignalUturn32(index, direction, values1, values2, dev, diff)
 
       return (EventUturn3(index, direction, values1, dev) and EventMove(index, direction, values2, dev) and not EventMove((index-1), Reverse(direction), values2, dev))
 
-      -- not enough data
+   -- not enough data
    else
-      return false
+      return nil
    end
 end
 
@@ -955,11 +941,15 @@ function SignalStrengthOsc(index, direction, values1, values2, dev, diff)
       local diff = diff or Signals.MinDifference
 
       return ((CheckRelate(direction, values1[index], values1[index-2], dev) or CheckFlat(values1[index], values1[index-2], diff)) and (CheckRelate(direction, values2[index], values2[index-2], dev) or CheckFlat(values2[index], values2[index-2], diff)))
+
+   -- not enough data
+   else
+      return nil
    end
 end
 
 ----------------------------------------------------------------------------
--- Signal Stregth model 2 - priceclose at index greater then 2/3 range of candles at index-1 or index-2
+-- Signal Strength model 2 - priceclose at index greater then 2/3 range of candles at index-1 or index-2
 ----------------------------------------------------------------------------
 function SignalStrengthPrice(index, direction, prices, value, dev, diff)
    if (CheckDataExist(index, 3, prices.Closes) and CheckDataExist(index, 3,  prices.Highs) and CheckDataExist(index, 3,  prices.Lows)) then
@@ -972,6 +962,10 @@ function SignalStrengthPrice(index, direction, prices, value, dev, diff)
       elseif (direction == Directions.Short) then
          return (((prices.Highs[index-2] - 2.0 / 3.0 * (prices.Highs[index-2] - prices.Lows[index-2])) > prices.Closes[index] + dev) or ((prices.Highs[index-1] - 2.0 / 3.0 * (prices.Highs[index-1] - prices.Lows[index-1])) > prices.Closes[index] + dev))
       end
+
+   -- not enough data
+   else
+      return nil
    end
 end
 --#endregion SIGNALS
@@ -1050,7 +1044,6 @@ function GetDelta(value1, value2)
 
    -- return math.abs(value1 - value2)
    return (value1 - value2)
-
 end
 
 ----------------------------------------------------------------------------
@@ -1144,8 +1137,9 @@ function GetMessage(...)
       end
 
       return table.concat(tmessage, "|"), args.n
+   
+   -- nothing todo
    else
-      -- nothing todo
       return nil
    end
 end
@@ -1164,9 +1158,10 @@ function PrintDebugMessage(...)
       -- return number of messages
       local args = { n = select("#",...), ... }
       return args.n
+
+   -- nothing todo
    else
-      -- nothing todo
-      return 0
+      return nil
    end
 end
 
@@ -1216,13 +1211,10 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          local chart_tag = GetChartTag(indicator.Name)
          local idx, chart_label_id = ChartLabels[indicator.Name]:GetItem(index)
 
-         -- check record with index and check_label_id in IndexWindows
-         --!
-         if (idx ~= nil) then
-            -- record with index exist -  delete label duplicate
-            if ((chart_label_id ~= nil) and (DelLabel(chart_tag, chart_label_id) == true)) then
-               ChartLabels[indicator.Name]:SetValue(index, true)
-            end
+         -- record with index and check_label_id in IndexWindows exist -  delete label duplicate
+         if ((idx ~= nil) and (chart_label_id ~= nil)) then
+               DelLabel(chart_tag, chart_label_id)
+         -- record not exist - add new item to IndexWindows
          else
             ChartLabels[indicator.Name]:AddItem(index, true)
          end
@@ -1282,7 +1274,7 @@ end
 ----------------------------------------------------------------------------
 function PrintSummaryResults(index)
    if (index ~= Size()) then
-      return
+      return false
    end
 
    local rule = "-------------------------------------------------------"
@@ -1326,16 +1318,18 @@ function PrintSummaryResults(index)
 
    -- print footer
    PrintDebugMessage(string.format("%-s", rule))
+
+   return true
 end
 
 ----------------------------------------------------------------------------
 -- GetSignalFlag & PrintIntermediateResults
 ----------------------------------------------------------------------------
-function GetSignalFlag(signal)
-   return tostring((signal > 0) and 1 or 0)
-end
-
 function PrintIntermediateResults(index)
+   local function GetSignalFlag(signal)
+      return tostring((signal > 0) and 1 or 0)
+   end
+
    local msg
    local t = T(index)
    local oscs = Prices.Name .. "," .. Stochs.Name .. "," .. RSIs.Name
@@ -1350,12 +1344,12 @@ function PrintIntermediateResults(index)
       PrintDebugMessage("Index,Year,Month,Day,Hour,Min," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs .. "," .. oscs)
    end
 
+   -- construct message text
    msg = tostring(index) .. "," .. tostring(t.year) .. "," .. tostring(t.month) .. "," .. tostring(t.day) .. "," .. tostring(t.hour) .. "," .. tostring(t.min)
 
    -- Directions.Long
    -- print Cross50
    msg = msg .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][Prices.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross50[Directions.Long][RSIs.Name].Candle)
-
    -- print Cross
    msg = msg .. ",0," .. GetSignalFlag(Signals.Cross[Directions.Long][Stochs.Name].Candle) .. "," .. GetSignalFlag(Signals.Cross[Directions.Long][RSIs.Name].Candle)
 
@@ -1430,7 +1424,7 @@ function IndexWindows(_size)
    -- _index is global candle index on chart,
    -- _idx is local index in IndexWindows: Indexes[_idx] == _index
    ---------------------------------------------------------------
-   -- check index hit inside IndexWindows 
+   -- check index hit inside IndexWindows
    local function _CheckIndex(_self, _index)
       return ((_index >= _self.From) and (_index < _self.From + _self.Size))
    end
@@ -1503,7 +1497,7 @@ function IndexWindows(_size)
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
       if ((_index >= _self.From) and CandleExist(_index)) then
-          -- append value to end of IndexWindows array
+         -- append value to end of IndexWindows array
          local a = table.insert(_self.Indexes, _index)
          local b = table.insert(_self.Values, _value)
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
