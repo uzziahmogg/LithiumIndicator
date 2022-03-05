@@ -26,7 +26,7 @@
 --// turn off signal for duration
 --// made signal turn off by opposite signal on
 --// separate signal start and stop by opposite signal/duration
---//states: CheckState...
+--//states: CheckStateOn...
 
 --todo check signals in realtime
 --todo remake all error handling to exceptions in functional programming
@@ -80,13 +80,13 @@
 
 --===========================================================================
 -----------------------------------------------------------------------------
---#region Settings
+--#region SETTINGS
 -----------------------------------------------------------------------------
 Settings = { Name = "FEK_LITHIUM", line = {{ Name = "Top", Type = TYPE_LINE, Color = RGB(221, 44, 44) }, { Name = "Centre", Type = TYPE_LINE,	Color = RGB(0, 206, 0) },  { Name = "Bottom", Type = TYPE_LINE, Color = RGB(0, 162, 232) }}}
---#endregion
+--#endregion SETTINGS
 
 -----------------------------------------------------------------------------
---#region Init
+--#region INIT
 -----------------------------------------------------------------------------
 function Init()
    -- permissions to show labels on charts
@@ -169,7 +169,7 @@ function Init()
 
    return #Settings.line
 end
---#endregion
+--#endregion INIT
 
 -----------------------------------------------------------------------------
 -- function OnCalculate
@@ -188,7 +188,7 @@ function OnCalculate(index)
       Pass = Pass + 1
    end
 
-   --#region set prices and indicators for current candle
+   --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
    -- calculate current prices
    Prices.Opens[index] = O(index)
    Prices.Closes[index] = C(index)
@@ -212,7 +212,7 @@ function OnCalculate(index)
    PCs.Tops[index] = RoundScale(PCs.Tops[index], SecInfo.scale)
    PCs.Bottoms[index] = RoundScale(PCs.Bottoms[index], SecInfo.scale)
    PCs.Centres[index] = (PCs.Tops[index] ~= nil) and (PCs.Bottoms[index] ~= nil) and RoundScale((PCs.Bottoms[index] + (PCs.Tops[index] - PCs.Bottoms[index]) / 2), SecInfo.scale) or nil
-   --#endregion
+   --#endregion SET PRICES AND INDICATORS FOR CURRENT CANDLE
 
    -- debuglog
    --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
@@ -220,33 +220,37 @@ function OnCalculate(index)
       PrintDebugMessage("===", index, Pass, t.month, t.day, t.hour, t.min, "===")
       end ]]
 
+   -------------------------------------------------------------------------
+   -- CHECK SIGNALS STATES ENTERS
+   -------------------------------------------------------------------------
    if (ProcessedIndex ~= index) then
-      -------------------------------------------------------------------------
-      -- Check State Signals
-      -------------------------------------------------------------------------
+      --
+      --#region CHECK STATES
+      -- 
       -- check signal price cross ma
-      CheckState(index, Directions.Long, Prices, Signals.Cross50)
-      CheckState(index, Directions.Short, Prices, Signals.Cross50)
+      CheckStateOn(index, Directions.Long, Prices, Signals.Cross50)
+      CheckStateOn(index, Directions.Short, Prices, Signals.Cross50)
 
       -- check signal stoch fast cross slow
-      CheckState(index, Directions.Long, Stochs, Signals.Cross)
-      CheckState(index, Directions.Short, Stochs, Signals.Cross)
+      CheckStateOn(index, Directions.Long, Stochs, Signals.Cross)
+      CheckStateOn(index, Directions.Short, Stochs, Signals.Cross)
 
       -- check signal stoch slow cross lvl50
-      CheckState(index, Directions.Long, Stochs, Signals.Cross50)
-      CheckState(index, Directions.Short, Stochs, Signals.Cross50)
+      CheckStateOn(index, Directions.Long, Stochs, Signals.Cross50)
+      CheckStateOn(index, Directions.Short, Stochs, Signals.Cross50)
 
       -- check signal rsi fast cross slow
-      CheckState(index, Directions.Long, RSIs, Signals.Cross)
-      CheckState(index, Directions.Short, RSIs, Signals.Cross)
+      CheckStateOn(index, Directions.Long, RSIs, Signals.Cross)
+      CheckStateOn(index, Directions.Short, RSIs, Signals.Cross)
 
       -- check signal rsi slow cross lvl50
-      CheckState(index, Directions.Long, RSIs, Signals.Cross50)
-      CheckState(index, Directions.Short, RSIs, Signals.Cross50)
+      CheckStateOn(index, Directions.Long, RSIs, Signals.Cross50)
+      CheckStateOn(index, Directions.Short, RSIs, Signals.Cross50)
+      --#endregion CHECK STATES
 
-      -------------------------------------------------------------------------
-      -- Check Enter Signals
-      -------------------------------------------------------------------------
+      --
+      --#region CHECK SIGNALS
+      --
       -- check price signal uturn31
       CheckSignal(index, Directions.Long, Prices, Signals.Uturn31)
       CheckSignal(index, Directions.Short, Prices, Signals.Uturn31)
@@ -274,10 +278,11 @@ function OnCalculate(index)
       -- check signal rsi uturn32
       CheckSignal(index, Directions.Long, RSIs, Signals.Uturn32)
       CheckSignal(index, Directions.Short, RSIs, Signals.Uturn32)
+      --#endregion CHECK SIGNALS
 
-      -------------------------------------------------------------------------
-      -- Check Strength Signals
-      -------------------------------------------------------------------------
+      --
+      --#region CHECK STRENGTH 
+      --
       -- check signal price strengthprice
       CheckSignal(index, Directions.Long, Prices, Signals.StrengthPrice)
       CheckSignal(index, Directions.Short, Prices, Signals.StrengthPrice)
@@ -293,118 +298,24 @@ function OnCalculate(index)
       -- check signal rsi strengthosc
       CheckSignal(index, Directions.Long, RSIs, Signals.StrengthOsc)
       CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
+      --#endregion CHECK STRENGTH 
 
       PrintIntermediateResults(index)
 
-      -------------------------------------------------------------------------
-      -- Check Signal Enter
-      -------------------------------------------------------------------------
-      -- check enter signals long on
-      if ((Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle == 0) and
-         -- states
-         (Signals[Signals.Cross50.Name][Directions.Long][Prices.Name].Candle > 0) and
-         (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle > 0) and
-         (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle > 0) and
-         (Signals[Signals.Cross50.Name][Directions.Long][RSIs.Name].Candle > 0) and
-         (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle > 0)--[[  and
-            -- signals
-            (Signals[Signals.Uturn31.Name][Directions.Long][Prices.Name].Candle > 0) and
-            (Signals[Signals.Uturn32.Name][Directions.Long][Prices.Name].Candle > 0) and
-            (Signals[Signals.Uturn31.Name][Directions.Long][Stochs.Name].Candle > 0) and
-            (Signals[Signals.Uturn32.Name][Directions.Long][Stochs.Name].Candle > 0) and
-            (Signals[Signals.Uturn31.Name][Directions.Long][RSIs.Name].Candle > 0) and
-            (Signals[Signals.Uurn32.Name][Directions.Long][RSIs.Name].Candle > 0) and
-            -- strength
-            (Signals[Signals.StrengthPrice.Name][Directions.Long][Prices.Name].Candle > 0) and
-            (Signals[Signals.Steamer.Name][Directions.Long][Stochs.Name].Candle > 0) and
-            (Signals[Signals.StrengthOsc.Name][Directions.Long][Stochs.Name].Candle > 0) and
-            (Signals[Signals.StrengthOsc.Name][Directions.Long][RSIs.Name].Candle > 0) ]]
-      ) then
-         -- set enter long signal on
-         SetSignal((index-1), Directions.Long, Prices, Signals.Enter)
-
-         -- set chart label
-         ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Long, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
-      end -- enter signals long on
-
-      -- check enter signals short on
-      if ((Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle == 0) and
-         -- states
-         (Signals[Signals.Cross50.Name][Directions.Short][Prices.Name].Candle > 0) and
-         (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle > 0) and
-         (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle > 0) and
-         (Signals[Signals.Cross50.Name][Directions.Short][RSIs.Name].Candle > 0) and
-         (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle > 0) --[[ and
-            -- signals
-            (Signals[Signals.Uturn31.Name][Directions.Short][Prices.Name].Candle > 0) and
-            (Signals[Signals.Uturn32.Name][Directions.Short][Prices.Name].Candle > 0) and
-            (Signals[Signals.Uturn31.Name][Directions.Short][Stochs.Name].Candle > 0) and
-            (Signals[Signals.Uturn32.Name][Directions.Short][Stochs.Name].Candle > 0) and
-            (Signals[Signals.Uturn31.Name][Directions.Short][RSIs.Name].Candle > 0) and
-            (Signals[Signals.Uurn32.Name][Directions.Short][RSIs.Name].Candle > 0) and
-            -- strength
-            (Signals[Signals.StrengthPrice.Name][Directions.Short][Prices.Name].Candle > 0) and
-            (Signals[Signals.Steamer.Name][Directions.Short][Stochs.Name].Candle > 0) and
-            (Signals[Signals.StrengthOsc.Name][Directions.Short][Stochs.Name].Candle > 0) and
-            (Signals[Signals.StrengthOsc.Name][Directions.Short][RSIs.Name].Candle > 0) ]]
-      ) then
-         -- set enter short signal on
-         SetSignal((index-1), Directions.Short, Prices, Signals.Enter)
-
-         -- set chart label
-         ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), Directions.Short, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
-      end -- enter signals short on
-
-      -- check enter signals long off
-      if (Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle > 0) then
-         -- set enter duration
-         local duration = index - Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle
-
-         -- check continuation enter long
-         if (duration <= Signals.MaxDuration) then
-            -- enter long terminates by end one of state signals
-            if ((Signals[Signals.Cross50.Name][Directions.Long][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Long][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Long][Stochs.Name].Candle == 0) and (Signals[Signals.Cross50.Name][Directions.Long][RSIs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Long][RSIs.Name].Candle == 0)) then
-
-               -- set enter long off
-               Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
-            end
-
-         -- enter long terminates by end of duration
-         elseif (duration > Signals.MaxDuration) then
-
-            -- set enter short signal off
-            Signals[Signals.Enter.Name][Directions.Long][Prices.Name].Candle = 0
-         end
-      end -- enter signals long off
-
-      -- check enter signals short off
-      if (Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle > 0) then
-         -- set duration
-         local duration = index - Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle
-
-         -- check continuation enter long
-         if (duration <= Signals.MaxDuration) then
-            -- enter long terminates by end one of state signals
-            if ((Signals[Signals.Cross50.Name][Directions.Short][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][Directions.Short][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][Directions.Short][Stochs.Name].Candle == 0) and (Signals[Signals.Cross50.Name][Directions.Short][RSIs.Name].Candle == 0) and (Signals[Signals.Cross.Name][Directions.Short][RSIs.Name].Candle == 0)) then
-
-               -- set enter long off
-               Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
-            end
-
-         -- enter long terminates by end of duration
-         elseif (duration > Signals.MaxDuration) then
-
-            -- set enter short signal off
-            Signals[Signals.Enter.Name][Directions.Short][Prices.Name].Candle = 0
-         end -- enter signals short off
-      end
-      --#endregion
+      --
+      --#region CHECK ENTERS 
+      --
+      -- check enter impulse
+      CheckEnterOn(index, Directions.Long)
+      CheckEnterOn(index, Directions.Short)
+      --#endregion CHECK ENTERS 
 
       ProcessedIndex = index
-   end
+   end -- ProcessedIndex ~= index
 
-   -- debuglog
-   PrintSummaryResults(index)
+   if (index ~= Size()) then
+      PrintSummaryResults()
+   end
 
    -- return PCs.Tops[index], PCs.Centres[index], PCs.Bottoms[index]
    return Stochs.Slows[index], Stochs.Fasts[index]
@@ -718,10 +629,10 @@ end
 --#region SIGNALS
 --==========================================================================
 ----------------------------------------------------------------------------
--- CheckState - check on states Cross, Cross50 and not check states off
+-- CheckStateOn - check on states Cross, Cross50 and not check states off
 ----------------------------------------------------------------------------
-function CheckState(index, direction, indicator, signal)
-   --PrintDebugMessage("CheckState", index, direction, indicator.Name, signal.Name)
+function CheckStateOn(index, direction, indicator, signal)
+   --PrintDebugMessage("CheckStateOn", index, direction, indicator.Name, signal.Name)
 
    local values1, values2, signal_function, chart_icon
 
@@ -855,6 +766,52 @@ function CheckSignal(index, direction, indicator, signal)
    end -- signal off
 end
 
+----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+function CheckEnterOn(index, direction)
+   local dev = dev or Signals.MinDeviation
+   local diff = diff or Signals.MaxDifference
+
+   -- check enter signals on
+   if ((Signals[Signals.Enter.Name][direction][Prices.Name].Candle == 0) and
+   -- states
+   (Signals[Signals.Cross50.Name][direction][Prices.Name].Candle > 0) and
+   (Signals[Signals.Cross50.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.Cross.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.Cross50.Name][direction][RSIs.Name].Candle > 0) and
+   (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0)--[[  and
+      -- signals
+      (Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) and
+      (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0) and
+      (Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) and
+      (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0) and
+      (Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) and
+      (Signals[Signals.Uurn32.Name][direction][RSIs.Name].Candle > 0) and
+      -- strength
+      (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
+      (Signals[Signals.Steamer.Name][direction][Stochs.Name].Candle > 0) and
+      (Signals[Signals.StrengthOsc.Name][direction][Stochs.Name].Candle > 0) and
+      (Signals[Signals.StrengthOsc.Name][direction][RSIs.Name].Candle > 0) ]]
+   ) then
+      -- set enter signal on
+      SetSignal((index-1), direction, Prices, Signals.Enter)
+
+      -- set chart label
+      ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
+   end -- enter signals on
+
+   -- check enter signals long off
+   if (Signals[Signals.Enter.Name][direction][Prices.Name].Candle > 0) then
+      -- set enter duration
+      local duration = index - Signals[Signals.Enter.Name][direction][Prices.Name].Candle
+
+      -- check continuation enter and check enter terminates by end one of state signals or check enter terminates by end of duration
+      if ((((duration <= Signals.MaxDuration) and (Signals[Signals.Cross50.Name][direction][Prices.Name].Candle == 0) or (Signals[Signals.Cross50.Name][direction][Stochs.Name].Candle == 0) or (Signals[Signals.Cross.Name][direction][Stochs.Name].Candle == 0)) and ((Signals[Signals.Cross50.Name][direction][RSIs.Name].Candle == 0) or (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle == 0))) or (duration > Signals.MaxDuration)) then
+         -- set enter long off
+         Signals[Signals.Enter.Name][direction][Prices.Name].Candle = 0
+      end
+   end -- enter signals long off
+end
 ----------------------------------------------------------------------------
 -- Signal Steamer - fast and slow move synchro in one direction
 ----------------------------------------------------------------------------
@@ -1273,10 +1230,6 @@ end
 -- PrintSummaryResult
 ----------------------------------------------------------------------------
 function PrintSummaryResults(index)
-   if (index ~= Size()) then
-      return false
-   end
-
    local rule = "-------------------------------------------------------"
    local fmt = "%-14s%-4s%-6s%-6s%-5s%-4s%-6s%-6s%-5s"
    local t1 = T(1)
@@ -1318,8 +1271,6 @@ function PrintSummaryResults(index)
 
    -- print footer
    PrintDebugMessage(string.format("%-s", rule))
-
-   return true
 end
 
 ----------------------------------------------------------------------------
