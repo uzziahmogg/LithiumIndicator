@@ -313,8 +313,8 @@ function OnCalculate(index)
       ProcessedIndex = index
    end -- ProcessedIndex ~= index
 
-   if (index ~= Size()) then
-      PrintSummaryResults()
+   if (index == Size()) then
+      PrintSummaryResults(index)
    end
 
    -- return PCs.Tops[index], PCs.Centres[index], PCs.Bottoms[index]
@@ -1173,7 +1173,10 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
                DelLabel(chart_tag, chart_label_id)
          -- record not exist - add new item to IndexWindows
          else
-            ChartLabels[indicator.Name]:AddItem(index, true)
+            chart_label_id = ChartLabels[indicator.Name]:AddItem(index, true)
+            if  ((chart_label_id ~= nil) and (chart_label_id ~= 0)) then
+               DelLabel(chart_tag, chart_label_id)
+            end
          end
 
          -- set label icon
@@ -1182,19 +1185,16 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          ChartLabels.Params.DATE, ChartLabels.Params.TIME = GetChartLabelXPos(T(index))
          ChartLabels.Params.YVALUE = GetChartLabelYPos(index, direction, indicator)
          -- set chart alingment from direction
-         if (direction == Directions.Long) then
-            ChartLabels.Params.ALIGNMENT = "BOTTOM"
-         elseif (direction == Directions.Short) then
-            ChartLabels.Params.ALIGNMENT = "TOP"
-         end
+         ChartLabels.Params.ALIGNMENT = (direction == Directions.Long) and "BOTTOM" or "TOP"
          -- set text
          ChartLabels.Params.TEXT = GetMessage(direction, indicator.Name, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, index)
          ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.TEXT, Signals[signal.Name][direction][indicator.Name].Candle, text)
 
          -- set chart label and return id
-         ChartLabels[indicator.Name]:SetValue(index, AddLabel(chart_tag, ChartLabels.Params))
+         chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
+         ChartLabels[indicator.Name]:SetItem(index, chart_label_id)
       end
-      return ChartLabels[indicator.Name]:GetValue(index)
+      return chart_label_id
 
    -- nothing todo
    else
@@ -1387,15 +1387,15 @@ function IndexWindows(_size)
 
    -- get idx by index
    local function _GetIdx(_self, _index)
-      if _CheckIndex(_self, _index) then
+      --if _CheckIndex(_self, _index) then
          local idx
          for idx = 1, #_self.Indexes do
             if (_self.Indexes[idx] == _index) then
                return idx
             end
          end
-      end
-      return nil
+     -- end
+      --return nil
    end
 
    -- get index by idx
@@ -1417,32 +1417,27 @@ function IndexWindows(_size)
       end
    end
 
-   -- get item value with index
-   local function _GetValue(_self, _index)
-      local _, value = _GetItem(_self, _index)
-      return value
-   end
-
    -- set item value with index
-   local function _SetValue(_self, _index, _value)
-      if _CheckIndex(_self, _index) then
-         _self.Values[_GetIdx(_self, _index)] = _value
-         return true
-      end
-      return false
+   local function _SetItem(_self, _index, _value)
+      --if _CheckIndex(_self, _index) then
+         local idx = _GetIdx(_self, _index)
+         _self.Values[idx] = _value
+         return idx, _self.Values[idx]
+      --end
+      --return nil
    end
 
    -- remove item from IndexWindows
    local function _DelItem(_self, _idx)
-      if _CheckIndex(_self, _GetIndex(_self, _idx)) then
+      --if _CheckIndex(_self, _GetIndex(_self, _idx)) then
          table.remove(_self.Indexes, _idx)
          table.remove(_self.Values, _idx)
          if (_idx == 1) then
             _self.From = _self.Indexes[1]
          end
          return true
-      end
-      return false
+      --end
+      --return false
    end
 
    -- add item - store index and value to IndexWindows with checking borders
@@ -1452,12 +1447,15 @@ function IndexWindows(_size)
          local a = table.insert(_self.Indexes, _index)
          local b = table.insert(_self.Values, _value)
          -- remove first items of IndexWindow array if IndexWindow growth up max Size
+         local chart_label_id
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+            _, chart_label_id = _GetItem(_self, _GetIndex(_self, 1))
             _DelItem(_self, 1)
+            return chart_label_id
          end
-         return true
+         return 0
       end
-      return false
+      return nil
    end
 
    -- class constructor
@@ -1465,7 +1463,7 @@ function IndexWindows(_size)
    -- return clojure
    return function()
       -- set metamethods for function overloading and using class object sintax sugar
-      setmetatable(_Windows, { __index = { GetItem = _GetItem, AddItem = _AddItem, SetValue = _SetValue, GetValue = _GetValue, CheckIndex = _CheckIndex }})
+      setmetatable(_Windows, { __index = { AddItem = _AddItem, SetItem = _SetItem, GetItem = _GetItem, CheckIndex = _CheckIndex }})
       return _Windows
    end
 end
