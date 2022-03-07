@@ -94,7 +94,7 @@ function Init()
 
    -- chart params and indicators
    -- price data arrays and params
-   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.Strength } -- FEK_LITHIUMPrice
+   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
 
    -- stochastic data arrays and params
    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
@@ -179,13 +179,13 @@ function OnCalculate(index)
    if (index == 1) then
       DataSource = getDataSourceInfo()
       SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
-
+      
       Nesting = 1
-      SetInitialValues(Signals)
-
       ProcessedIndex = 0
-
       Pass = Pass + 1
+
+      SetInitialValues(Signals)
+      PrintSummaryResults(index)
    end
 
    --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
@@ -215,10 +215,10 @@ function OnCalculate(index)
    --#endregion SET PRICES AND INDICATORS FOR CURRENT CANDLE
 
    -- debuglog
-   --[[     if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
-      local t = T(index)
-      PrintDebugMessage("===", index, Pass, t.month, t.day, t.hour, t.min, "===")
-      end ]]
+   --if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
+      --local t = T(index)
+      --message(GetMessage(index, Pass, t.month, t.day, t.hour, t.min))
+   --end
 
    -------------------------------------------------------------------------
    -- CHECK SIGNALS STATES ENTERS
@@ -226,7 +226,7 @@ function OnCalculate(index)
    if (ProcessedIndex ~= index) then
       --
       --#region CHECK STATES
-      -- 
+      --
       -- check signal price cross ma
       CheckStateOn(index, Directions.Long, Prices, Signals.Cross50)
       CheckStateOn(index, Directions.Short, Prices, Signals.Cross50)
@@ -281,7 +281,7 @@ function OnCalculate(index)
       --#endregion CHECK SIGNALS
 
       --
-      --#region CHECK STRENGTH 
+      --#region CHECK STRENGTH
       --
       -- check signal price strengthprice
       CheckSignal(index, Directions.Long, Prices, Signals.StrengthPrice)
@@ -298,17 +298,17 @@ function OnCalculate(index)
       -- check signal rsi strengthosc
       CheckSignal(index, Directions.Long, RSIs, Signals.StrengthOsc)
       CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
-      --#endregion CHECK STRENGTH 
+      --#endregion CHECK STRENGTH
 
       PrintIntermediateResults(index)
 
       --
-      --#region CHECK ENTERS 
+      --#region CHECK ENTERS
       --
       -- check enter impulse
       CheckEnterOn(index, Directions.Long)
       CheckEnterOn(index, Directions.Short)
-      --#endregion CHECK ENTERS 
+      --#endregion CHECK ENTERS
 
       ProcessedIndex = index
    end -- ProcessedIndex ~= index
@@ -676,7 +676,7 @@ function CheckStateOn(index, direction, indicator, signal)
 end
 
 ----------------------------------------------------------------------------
--- CheckSignal - check on signals: Uturn31, Uturn32, TrendOff, strength: StrengthOsc, StrengthPrice, Steamer and check off they 
+-- CheckSignal - check on signals: Uturn31, Uturn32, TrendOff, strength: StrengthOsc, StrengthPrice, Steamer and check off they
 ----------------------------------------------------------------------------
 function CheckSignal(index, direction, indicator, signal)
    local values1, values2, signal_function, chart_icon, chart_permission
@@ -769,9 +769,6 @@ end
 ----------------------------------------------------------------------------
 ----------------------------------------------------------------------------
 function CheckEnterOn(index, direction)
-   local dev = dev or Signals.MinDeviation
-   local diff = diff or Signals.MaxDifference
-
    -- check enter signals on
    if ((Signals[Signals.Enter.Name][direction][Prices.Name].Candle == 0) and
    -- states
@@ -1094,7 +1091,7 @@ function GetMessage(...)
       end
 
       return table.concat(tmessage, "|"), args.n
-   
+
    -- nothing todo
    else
       return nil
@@ -1278,7 +1275,8 @@ end
 ----------------------------------------------------------------------------
 function PrintIntermediateResults(index)
    local function GetSignalFlag(signal)
-      return tostring((signal > 0) and 1 or 0)
+      --return tostring((signal > 0) and 1 or 0)
+      return tostring(signal)
    end
 
    local msg
@@ -1394,7 +1392,7 @@ function IndexWindows(_size)
                return idx
             end
          end
-     -- end
+      -- end
       --return nil
    end
 
