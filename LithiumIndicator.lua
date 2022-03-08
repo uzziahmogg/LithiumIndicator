@@ -185,7 +185,6 @@ function OnCalculate(index)
       Pass = Pass + 1
 
       SetInitialValues(Signals)
-      PrintSummaryResults(index)
    end
 
    --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
@@ -300,15 +299,14 @@ function OnCalculate(index)
       CheckSignal(index, Directions.Short, RSIs, Signals.StrengthOsc)
       --#endregion CHECK STRENGTH
 
-      PrintIntermediateResults(index)
-
       --
       --#region CHECK ENTERS
       --
-      -- check enter impulse
       CheckEnterOn(index, Directions.Long)
       CheckEnterOn(index, Directions.Short)
       --#endregion CHECK ENTERS
+
+      PrintIntermediateResults(index)
 
       ProcessedIndex = index
    end -- ProcessedIndex ~= index
@@ -776,19 +774,19 @@ function CheckEnterOn(index, direction)
    (Signals[Signals.Cross50.Name][direction][Stochs.Name].Candle > 0) and
    (Signals[Signals.Cross.Name][direction][Stochs.Name].Candle > 0) and
    (Signals[Signals.Cross50.Name][direction][RSIs.Name].Candle > 0) and
-   (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0)--[[  and
-      -- signals
-      (Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) and
-      (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0) and
-      (Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) and
-      (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0) and
-      (Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) and
-      (Signals[Signals.Uurn32.Name][direction][RSIs.Name].Candle > 0) and
-      -- strength
-      (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
-      (Signals[Signals.Steamer.Name][direction][Stochs.Name].Candle > 0) and
-      (Signals[Signals.StrengthOsc.Name][direction][Stochs.Name].Candle > 0) and
-      (Signals[Signals.StrengthOsc.Name][direction][RSIs.Name].Candle > 0) ]]
+   (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0) and
+   -- signals
+--[[    (Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) and
+   (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0) and
+   (Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) and
+   (Signals[Signals.Uurn32.Name][direction][RSIs.Name].Candle > 0) and ]]
+   -- strength
+   (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
+   (Signals[Signals.Steamer.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.StrengthOsc.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.StrengthOsc.Name][direction][RSIs.Name].Candle > 0)
    ) then
       -- set enter signal on
       SetSignal((index-1), direction, Prices, Signals.Enter)
@@ -1275,8 +1273,7 @@ end
 ----------------------------------------------------------------------------
 function PrintIntermediateResults(index)
    local function GetSignalFlag(signal)
-      --return tostring((signal > 0) and 1 or 0)
-      return tostring(signal)
+      return tostring((signal > 0) and 1 or 0)
    end
 
    local msg
