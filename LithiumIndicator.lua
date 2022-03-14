@@ -26,7 +26,7 @@
 --// turn off signal for duration
 --// made signal turn off by opposite signal on
 --// separate signal start and stop by opposite signal/duration
---//states: CheckStateOn...
+--//states: CheckStateStrengthOn...
 --// make continue icon for previous candle to avoid double chart icon
 
 --todo check signals in realtime
@@ -92,7 +92,7 @@ function Init()
 
    -- chart params and indicators
    -- price data arrays and params
-   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.State } -- FEK_LITHIUMPrice
+   Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.Signal } -- FEK_LITHIUMPrice
 
    -- stochastic data arrays and params
    Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
@@ -225,20 +225,20 @@ function OnCalculate(index)
       --#region CHECK STATES
       --
       -- check signal price cross ma
-      CheckStateOn(index, Directions.Long, Prices, Signals.Cross50)
-      CheckStateOn(index, Directions.Short, Prices, Signals.Cross50)
+      CheckStateStrengthOn(index, Directions.Long, Prices, Signals.Cross50)
+      CheckStateStrengthOn(index, Directions.Short, Prices, Signals.Cross50)
 
       -- check signal stoch fast cross slow
-      CheckStateOn(index, Directions.Long, Stochs, Signals.Cross)
-      CheckStateOn(index, Directions.Short, Stochs, Signals.Cross)
+      CheckStateStrengthOn(index, Directions.Long, Stochs, Signals.Cross)
+      CheckStateStrengthOn(index, Directions.Short, Stochs, Signals.Cross)
 
       -- check signal stoch slow cross lvl50
-      CheckStateOn(index, Directions.Long, Stochs, Signals.Cross50)
-      CheckStateOn(index, Directions.Short, Stochs, Signals.Cross50)
+      CheckStateStrengthOn(index, Directions.Long, Stochs, Signals.Cross50)
+      CheckStateStrengthOn(index, Directions.Short, Stochs, Signals.Cross50)
 
       -- check signal rsi fast cross slow
-      CheckStateOn(index, Directions.Long, RSIs, Signals.Cross)
-      CheckStateOn(index, Directions.Short, RSIs, Signals.Cross)
+      CheckStateStrengthOn(index, Directions.Long, RSIs, Signals.Cross)
+      CheckStateStrengthOn(index, Directions.Short, RSIs, Signals.Cross)
 
       --
       --#region CHECK SIGNALS
@@ -276,20 +276,20 @@ function OnCalculate(index)
       --#region CHECK STRENGTH
       --
       -- check signal price strengthprice
-      CheckStateOn(index, Directions.Long, Prices, Signals.StrengthPrice)
-      CheckStateOn(index, Directions.Short, Prices, Signals.StrengthPrice)
+      CheckStateStrengthOn(index, Directions.Long, Prices, Signals.StrengthPrice)
+      CheckStateStrengthOn(index, Directions.Short, Prices, Signals.StrengthPrice)
 
       -- check signal stoch steamer
-      CheckStateOn(index, Directions.Long, Stochs, Signals.Steamer)
-      CheckStateOn(index, Directions.Short, Stochs, Signals.Steamer)
+      CheckStateStrengthOn(index, Directions.Long, Stochs, Signals.Steamer)
+      CheckStateStrengthOn(index, Directions.Short, Stochs, Signals.Steamer)
 
       -- check signal stoch strengthosc
-      CheckStateOn(index, Directions.Long, Stochs, Signals.StrengthOsc)
-      CheckStateOn(index, Directions.Short, Stochs, Signals.StrengthOsc)
+      CheckStateStrengthOn(index, Directions.Long, Stochs, Signals.StrengthOsc)
+      CheckStateStrengthOn(index, Directions.Short, Stochs, Signals.StrengthOsc)
 
       -- check signal rsi strengthosc
-      CheckStateOn(index, Directions.Long, RSIs, Signals.StrengthOsc)
-      CheckStateOn(index, Directions.Short, RSIs, Signals.StrengthOsc)
+      CheckStateStrengthOn(index, Directions.Long, RSIs, Signals.StrengthOsc)
+      CheckStateStrengthOn(index, Directions.Short, RSIs, Signals.StrengthOsc)
       --#endregion CHECK STRENGTH
 
       --
@@ -620,10 +620,10 @@ end
 --#region SIGNALS
 --==========================================================================
 ----------------------------------------------------------------------------
--- CheckStateOn - check on states Cross, Cross50 and not check states off
+-- CheckStateStrengthOn - check on states Cross, Cross50 and not check states off
 ----------------------------------------------------------------------------
-function CheckStateOn(index, direction, indicator, signal)
-   --PrintDebugMessage("CheckStateOn", index, direction, indicator.Name, signal.Name)
+function CheckStateStrengthOn(index, direction, indicator, signal)
+   --PrintDebugMessage("CheckStateStrengthOn", index, direction, indicator.Name, signal.Name)
 
    local values1, values2, signal_function, chart_icon
    local chart_permission
@@ -758,24 +758,21 @@ function CheckSignal(index, direction, indicator, signal)
 end
 
 ----------------------------------------------------------------------------
+-- CheckEnterOn
 ----------------------------------------------------------------------------
 function CheckEnterOn(index, direction)
    -- check enter signals on
    if ((Signals[Signals.Enter.Name][direction][Prices.Name].Candle == 0) and
    -- states
-   (Signals[Signals.Cross50.Name][direction][Prices.Name].Candle > 0) and
-   (Signals[Signals.Cross50.Name][direction][Stochs.Name].Candle > 0) and
-   (Signals[Signals.Cross.Name][direction][Stochs.Name].Candle > 0) and
-   (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0)
+   ((Signals[Signals.Cross50.Name][direction][Prices.Name].Candle > 0) and
+   (Signals[Signals.Cross50.Name][direction][Stochs.Name].Candle > 0) and (Signals[Signals.Cross.Name][direction][Stochs.Name].Candle > 0) and
+   (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0)) and
    -- signals
---[[   and (Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) and
-   (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0) and
-   (Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) and
-   (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0) and
-   (Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) and
-   (Signals[Signals.Uurn32.Name][direction][RSIs.Name].Candle > 0) and ]]
+   (((Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0)) and
+   ((Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0)) and
+   ((Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][RSIs.Name].Candle > 0))) 
    -- strength
-   --[[ (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
+   --[[ and (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
    (Signals[Signals.Steamer.Name][direction][Stochs.Name].Candle > 0) and
    (Signals[Signals.StrengthOsc.Name][direction][Stochs.Name].Candle > 0) and
    (Signals[Signals.StrengthOsc.Name][direction][RSIs.Name].Candle > 0) ]]
@@ -787,7 +784,7 @@ function CheckEnterOn(index, direction)
       ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
    end -- enter signals on
 
-   -- check enter signals long off
+   -- check enter signals off
    if (Signals[Signals.Enter.Name][direction][Prices.Name].Candle > 0) then
       -- set enter duration
       local duration = index - Signals[Signals.Enter.Name][direction][Prices.Name].Candle
@@ -1174,8 +1171,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          ChartLabels.Params.ALIGNMENT = (direction == Directions.Long) and "BOTTOM" or "TOP"
          -- set text
          ChartLabels.Params.TEXT = ""
-         ChartLabels.Params.HINT = GetMessage(direction, indicator.Name, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, index)
-         ChartLabels.Params.HINT = GetMessage(ChartLabels.Params.HINT, Signals[signal.Name][direction][indicator.Name].Candle, text)
+         ChartLabels.Params.HINT = GetMessage(direction, indicator.Name, signal.Name, Signals[signal.Name][direction][indicator.Name].Count, "\n", Signals[signal.Name][direction][indicator.Name].Candle, text)
 
          -- set chart label and return id
          chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
@@ -1396,10 +1392,10 @@ function IndexWindows(_size)
 
    -- get item value with index
    local function _GetItem(_self, _index)
-      PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
+      --PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
       local idx = _GetIdx(_self, _index)
       if (idx ~= nil) then
-         PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
+         --PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       else
          return nil
@@ -1408,11 +1404,11 @@ function IndexWindows(_size)
 
    -- set item value with index
    local function _SetItem(_self, _index, _value)
-      PrintDebugMessage("SetItem1", tostring(_self), tostring(_index), tostring( _value))
+      --PrintDebugMessage("SetItem1", tostring(_self), tostring(_index), tostring( _value))
       --if _CheckIndex(_self, _index) then
          local idx = _GetIdx(_self, _index)
          _self.Values[idx] = _value
-         PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
+         --PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       --end
       --return nil
@@ -1420,15 +1416,15 @@ function IndexWindows(_size)
 
    -- remove item from IndexWindows
    local function _DelItem(_self, _idx)
-      PrintDebugMessage("DelItem1", tostring(_self), tostring(_idx))
+      --PrintDebugMessage("DelItem1", tostring(_self), tostring(_idx))
       --if _CheckIndex(_self, _GetIndex(_self, _idx)) then
          table.remove(_self.Indexes, _idx)
          table.remove(_self.Values, _idx)
-         PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[1]))
+         --PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[1]))
          if (_idx == 1) then
             _self.From = _self.Indexes[1]
          end
-         PrintDebugMessage("DelItem3", tostring(_self.From), tostring(_self.Indexes[1]))
+         --PrintDebugMessage("DelItem3", tostring(_self.From), tostring(_self.Indexes[1]))
          return true
       --end
       --return false
@@ -1436,7 +1432,7 @@ function IndexWindows(_size)
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
-      PrintDebugMessage("AddItem1", tostring(_self), tostring(_index), tostring(_value))
+      --PrintDebugMessage("AddItem1", tostring(_self), tostring(_index), tostring(_value))
       if ((_index >= _self.From) and CandleExist(_index)) then
          -- append value to end of IndexWindows array
          table.insert(_self.Indexes, _index)
@@ -1445,7 +1441,7 @@ function IndexWindows(_size)
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
             local chart_label_id
             _, chart_label_id = _GetItem(_self, _GetIndex(_self, 1))
-            PrintDebugMessage("AddItem2", tostring(chart_label_id))
+            --PrintDebugMessage("AddItem2", tostring(chart_label_id))
             _DelItem(_self, 1)
             return chart_label_id
          end
