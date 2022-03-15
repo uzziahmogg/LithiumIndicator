@@ -95,10 +95,10 @@ function Init()
    Prices = { Name = "Price", Opens = {}, Closes = {}, Highs = {}, Lows = {}, Step = 5, Permission = ChartPermissions.Enter + ChartPermissions.Signal } -- FEK_LITHIUMPrice
 
    -- stochastic data arrays and params
-   Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State} -- FEK_LITHIUMStoch
+   Stochs = { Name = "Stoch", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, Centre = 50, BottomExtreme = 20 }, Slow = { PeriodK = 10, Shift = 3, PeriodD = 1 }, Fast = { PeriodK = 5, Shift = 2, PeriodD = 1 }, Step = 20, Permission = ChartPermissions.State } -- FEK_LITHIUMStoch
 
    -- RSI data arrays and params
-   RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Step = 5, Permission = ChartPermissions.State} -- FEK_LITHIUMRSI
+   RSIs = { Name = "RSI", Fasts = {}, Slows = {}, HLines = { TopExtreme = 80, TopTrend = 60, Centre = 50, BottomTrend = 40, BottomExtreme = 20 }, Slow = 14, Fast = 9, Step = 5, Permission = ChartPermissions.Signal } -- FEK_LITHIUMRSI
 
    -- price channel data arrays and params
    PCs = { Name = "PC", Tops = {}, Bottoms = {}, Centres = {}, Period = 20 }
@@ -177,7 +177,7 @@ function OnCalculate(index)
    if (index == 1) then
       DataSource = getDataSourceInfo()
       SecInfo = getSecurityInfo(DataSource.class_code, DataSource.sec_code)
-      
+
       Nesting = 1
       ProcessedIndex = 0
       Pass = Pass + 1
@@ -306,7 +306,7 @@ function OnCalculate(index)
 
    if (index == Size()) then
       PrintSummaryResults(index)
-   end 
+   end
 
    -- return PCs.Tops[index], PCs.Centres[index], PCs.Bottoms[index]
    return Stochs.Fasts[index], Stochs.HLines.Centre, Stochs.Slows[index]
@@ -654,7 +654,7 @@ function CheckStateStrengthOn(index, direction, indicator, signal)
       chart_permission = ChartPermissions.State
       chart_icon = ChartIcons.Triangle
       signal_function = SignalCross
-   
+
    -- set strength functions
    elseif (signal.Name == Signals.StrengthOsc.Name) then
       chart_permission = ChartPermissions.Strength
@@ -769,8 +769,8 @@ function CheckEnterOn(index, direction)
    (Signals[Signals.Cross.Name][direction][RSIs.Name].Candle > 0)) and
    -- signals
    (((Signals[Signals.Uturn31.Name][direction][Prices.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][Prices.Name].Candle > 0)) and
-   ((Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0)) and
-   ((Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][RSIs.Name].Candle > 0))) 
+   --((Signals[Signals.Uturn31.Name][direction][Stochs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][Stochs.Name].Candle > 0)) and
+   ((Signals[Signals.Uturn31.Name][direction][RSIs.Name].Candle > 0) or (Signals[Signals.Uturn32.Name][direction][RSIs.Name].Candle > 0)))
    -- strength
    --[[ and (Signals[Signals.StrengthPrice.Name][direction][Prices.Name].Candle > 0) and
    (Signals[Signals.Steamer.Name][direction][Stochs.Name].Candle > 0) and
@@ -865,7 +865,7 @@ function SignalUturn32(index, direction, values1, values2, dev, diff)
       local dev = dev or Signals.MinDeviation
       local diff = diff or Signals.MinDifference
 
-      return (EventUturn3(index, direction, values1, dev) and EventMove(index, direction, values2, dev) and not EventMove((index-1), Reverse(direction), values2, dev))
+      return (EventUturn3(index, direction, values1, dev) and not EventMove(index, Reverse(direction), values2, dev) and not EventMove((index-1), Reverse(direction), values2, dev))
 
    -- not enough data
    else
