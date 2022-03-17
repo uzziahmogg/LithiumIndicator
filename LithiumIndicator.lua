@@ -183,6 +183,10 @@ function OnCalculate(index)
       Pass = Pass + 1
 
       SetInitialValues(Signals)
+
+--[[       PrintDebugMessage("Prices I,V", ChartLabels[Prices.Name], ChartLabels[Prices.Name].From, ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
+      PrintDebugMessage("Stochs I,V", ChartLabels[Stochs.Name], ChartLabels[Stochs.Name].From, ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
+      PrintDebugMessage("RSIs I,V", ChartLabels[RSIs.Name], ChartLabels[RSIs.Name].From,  ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values) ]]
    end
 
    --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
@@ -213,8 +217,8 @@ function OnCalculate(index)
 
    -- debuglog
    --if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
-   local t = T(index)
-   PrintDebugMessage(index, Pass, t.month, t.day, t.hour, t.min)
+--[[    local t = T(index)
+   PrintDebugMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min) ]]
    --end
 
    -------------------------------------------------------------------------
@@ -847,8 +851,8 @@ function SignalUturn31(index, direction, values1, values2, dev, diff)
    if (CheckDataExist(index, 5, values1) and CheckDataExist(index, 3, values2)) then
       local dev = dev or Signals.MinDeviation
       local diff = diff or Signals.MinDifference
---[[ 
-      PrintDebugMessage("SignalUturn31-1", index, direction, values1, values2, dev, diff)
+
+--[[       PrintDebugMessage("SignalUturn31-1", index, direction, values1, values2, dev, diff)
       PrintDebugMessage("SignalUturn31-2", EventUturn3(index, direction, values1, dev), EventUturn3((index-1), direction, values1, dev), EventUturn3((index-2), direction, values1, dev), EventUturn3(index, direction, values2, dev)) ]]
 
       return ((EventUturn3(index, direction, values1, dev) or EventUturn3((index-1), direction, values1, dev) or EventUturn3((index-2), direction, values1, dev)) and EventUturn3(index, direction, values2, dev))
@@ -1398,10 +1402,10 @@ function IndexWindows(_size)
 
    -- get item value with index
    local function _GetItem(_self, _index)
-      PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
+      -- PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
       local idx = _GetIdx(_self, _index)
       if (idx ~= nil) then
-         PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
+         -- PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       else
          return nil
@@ -1410,11 +1414,11 @@ function IndexWindows(_size)
 
    -- set item value with index
    local function _SetItem(_self, _index, _value)
-      PrintDebugMessage("SetItem1", tostring(_self), tostring(_index), tostring( _value))
+      -- PrintDebugMessage("SetItem1", tostring(_self), tostring(_index), tostring( _value))
       --if _CheckIndex(_self, _index) then
          local idx = _GetIdx(_self, _index)
          _self.Values[idx] = _value
-         PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
+         -- PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
          return idx, _self.Values[idx]
       --end
       --return nil
@@ -1422,15 +1426,15 @@ function IndexWindows(_size)
 
    -- remove item from IndexWindows
    local function _DelItem(_self, _idx)
-      PrintDebugMessage("DelItem1", tostring(_self), tostring(_idx))
+      -- PrintDebugMessage("DelItem1", tostring(_self), tostring(_idx))
       --if _CheckIndex(_self, _GetIndex(_self, _idx)) then
          table.remove(_self.Indexes, _idx)
          table.remove(_self.Values, _idx)
-         PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[1]))
+         -- PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[1]))
          if (_idx == 1) then
             _self.From = _self.Indexes[1]
          end
-         PrintDebugMessage("DelItem3", tostring(_self.From), tostring(_self.Indexes[1]))
+         -- PrintDebugMessage("DelItem3", tostring(_self.From), tostring(_self.Indexes[1]))
          return true
       --end
       --return false
@@ -1438,7 +1442,7 @@ function IndexWindows(_size)
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
-      PrintDebugMessage("AddItem1", tostring(_self), tostring(_index), tostring(_value))
+      -- PrintDebugMessage("AddItem1", tostring(_self), tostring(_index), tostring(_value))
       if ((_index >= _self.From) and CandleExist(_index)) then
          -- append value to end of IndexWindows array
          table.insert(_self.Indexes, _index)
@@ -1447,7 +1451,7 @@ function IndexWindows(_size)
          if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
             local chart_label_id
             _, chart_label_id = _GetItem(_self, _GetIndex(_self, 1))
-            PrintDebugMessage("AddItem2", tostring(chart_label_id))
+            -- PrintDebugMessage("AddItem2", tostring(chart_label_id))
             _DelItem(_self, 1)
             return chart_label_id
          end
