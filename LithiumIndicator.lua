@@ -1163,10 +1163,10 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
 
          -- record with index and check_label_id in IndexWindows exist -  delete label duplicate
          if ((idx ~= nil) and (chart_label_id ~= nil)) then
-               DelLabel(chart_tag, chart_label_id)
+            DelLabel(chart_tag, chart_label_id)
          -- record not exist - add new item to IndexWindows
          else
-            chart_label_id = ChartLabels[indicator.Name]:AddItem(index, true)
+            _, chart_label_id = ChartLabels[indicator.Name]:AddItem(index, true)
             if  ((chart_label_id ~= nil) and (chart_label_id ~= 0)) then
                DelLabel(chart_tag, chart_label_id)
             end
@@ -1186,9 +1186,8 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          -- set chart label and return id
          chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
          ChartLabels[indicator.Name]:SetItem(index, chart_label_id)
+         return chart_label_id
       end
-      return chart_label_id
-
    -- nothing todo
    else
       return nil
@@ -1359,7 +1358,7 @@ end
 function IndexWindows(_size)
    -- class values
    ------------------------------
-   local _From = Size() - _size
+   local _From = Size() - 3 * _size
 
    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
    local _Windows = { From = ((_From > 0) and _From or 1), Size = _size, Indexes = {}, Values = {} }
@@ -1370,94 +1369,99 @@ function IndexWindows(_size)
    ---------------------------------------------------------------
    -- check index hit inside IndexWindows
    local function _CheckIndex(_self, _index)
-      return ((_index >= _self.From) and (_index < _self.From + _self.Size))
+      return ((_index >= _self.From) and (_index < _self.Indexes[#_self.Indexes]))
    end
 
    -- check idx hit inside IndexWindows
    local function _CheckIdx(_self, _idx)
-      return ((_idx >= 1) and (_idx <= _self.Size))
+      return ((_idx >= 1) and (_idx <= #_self.Indexes))
    end
 
    -- get idx by index
    local function _GetIdx(_self, _index)
-      --if _CheckIndex(_self, _index) then
-         local idx
-         for idx = 1, #_self.Indexes do
-            if (_self.Indexes[idx] == _index) then
-               return idx
-            end
+      local idx
+      for idx = 1, #_self.Indexes do
+         if (_self.Indexes[idx] == _index) then
+            return idx
          end
-      -- end
-      --return nil
+      end
+      return nil
    end
 
    -- get index by idx
    local function _GetIndex(_self, _idx)
-      if (_CheckIdx(_self, _idx)) then
-         return _self.Indexes[_idx]
-      else
+      if (_CheckIdx(_self, _idx) == nil) then
          return  nil
       end
+      return _self.Indexes[_idx]
    end
 
    -- get item value with index
    local function _GetItem(_self, _index)
       PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
       local idx = _GetIdx(_self, _index)
-      if (idx ~= nil) then
-         PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
-         return idx, _self.Values[idx]
-      else
+      if (idx == nil) then
          return nil
       end
+      PrintDebugMessage("GetItem2", tostring(idx), tostring(_self.Values[idx]))
+      return idx, _self.Values[idx]
    end
 
    -- set item value with index
    local function _SetItem(_self, _index, _value)
       PrintDebugMessage("SetItem1", tostring(_self), tostring(_index), tostring( _value))
-      --if _CheckIndex(_self, _index) then
-         local idx = _GetIdx(_self, _index)
-         _self.Values[idx] = _value
-         PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
-         return idx, _self.Values[idx]
-      --end
-      --return nil
+      local idx = _GetIdx(_self, _index)
+      if (idx == nil) then
+         return nil
+      end
+      _self.Values[idx] = _value
+      PrintDebugMessage("SetItem2", tostring(idx), tostring(_self.Values[idx]))
+      return idx, _self.Values[idx]
    end
 
    -- remove item from IndexWindows
    local function _DelItem(_self, _idx)
-      PrintDebugMessage("DelItem1", tostring(_self), tostring(_idx))
-      --if _CheckIndex(_self, _GetIndex(_self, _idx)) then
-         table.remove(_self.Indexes, _idx)
-         table.remove(_self.Values, _idx)
-         PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[1]))
-         if (_idx == 1) then
-            _self.From = _self.Indexes[1]
-         end
-         PrintDebugMessage("DelItem3", tostring(_self.From), tostring(_self.Indexes[1]))
-         return true
-      --end
-      --return false
+      local _idx = _idx or 1
+      if _CheckIdx(_self, _idx) then
+         return nil
+      end
+      local chart_label_id = _self.Values[_idx]
+      local index = _self.Indexes[_idx]
+      PrintDebugMessage("DelItem1", tostring(_self), tostring(_self.From), tostring(_self.Size), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_idx), tostring(index), tostring(chart_label_id))
+      -- remove item with curtain idx
+      table.remove(_self.Indexes, _idx)
+      table.remove(_self.Values, _idx)
+      -- if remove first item from IndexWindow then relocate candle index from
+      if (_idx == 1) then
+         _self.From = _self.Indexes[1]
+      end
+      PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[_idx]), tostring(_self.Values[_idx]), tostring(#_self.Indexes), tostring(#_self.Values))
+      return index, chart_label_id
    end
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
-      PrintDebugMessage("AddItem1", tostring(_self), tostring(_index), tostring(_value))
-      if ((_index >= _self.From) and CandleExist(_index)) then
-         -- append value to end of IndexWindows array
-         table.insert(_self.Indexes, _index)
-         table.insert(_self.Values, _value)
-         -- remove first items of IndexWindow array if IndexWindow growth up max Size
-         if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
-            local chart_label_id
-            _, chart_label_id = _GetItem(_self, _GetIndex(_self, 1))
-            PrintDebugMessage("AddItem2", tostring(chart_label_id))
-            _DelItem(_self, 1)
-            return chart_label_id
-         end
-         return 0
+      PrintDebugMessage("AddItem1", tostring(_self), tostring(_self.From), tostring(_self.Size), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_index), tostring(_value))
+      if ((_index < _self.From) or not CandleExist(_index)) then
+         return nil
       end
-      return nil
+      -- append value to end of IndexWindows array
+      table.insert(_self.Indexes, _index)
+      table.insert(_self.Values, _value)
+      -- remove first items of IndexWindow array if IndexWindow growth up max Size
+      if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+         local chart_label_id1, chart_label_id2
+         local index = _GetIndex(_self, 1)
+         _, chart_label_id1 = _GetItem(_self, index)
+         PrintDebugMessage("AddItem2", tostring(chart_label_id), tostring(index), tostring(#_self.Indexes), tostring(#_self.Values), _self.Indexes[#_self.Indexes], _self.Values[#_self.Values])
+         _DelItem(_self, 1)
+         index = _GetIndex(_self, 1)
+         _, chart_label_id2 = _GetItem(_self, index)
+         PrintDebugMessage("AddItem3", tostring(chart_label_id), tostring(index), tostring(#_self.Indexes), tostring(#_self.Values), _self.Indexes[#_self.Indexes], _self.Values[#_self.Values])
+         return index, chart_label_id1
+      end
+      -- return _self.Indexes[#_self.Indexes], _self.Values[#_self.Values]
+      return 0
    end
 
    -- class constructor
