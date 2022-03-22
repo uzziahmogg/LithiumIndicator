@@ -184,9 +184,9 @@ function OnCalculate(index)
 
       SetInitialValues(Signals)
 
-      PrintDebugMessage("Prices I,V", ChartLabels[Prices.Name], ChartLabels[Prices.Name].From, ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
-      PrintDebugMessage("Stochs I,V", ChartLabels[Stochs.Name], ChartLabels[Stochs.Name].From, ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
-      PrintDebugMessage("RSIs I,V", ChartLabels[RSIs.Name], ChartLabels[RSIs.Name].From,  ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values) 
+      PrintDebugMessage("Prices I,V", ChartLabels[Prices.Name], ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
+      PrintDebugMessage("Stochs I,V", ChartLabels[Stochs.Name], ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
+      PrintDebugMessage("RSIs I,V", ChartLabels[RSIs.Name], ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values) 
    end
 
    --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
@@ -219,6 +219,7 @@ function OnCalculate(index)
    --if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
    local t = T(index)
    PrintDebugMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min) 
+   message(GetMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min))
    --end
 
    -------------------------------------------------------------------------
@@ -303,7 +304,7 @@ function OnCalculate(index)
       CheckEnterOn(index, Directions.Short)
       --#endregion CHECK ENTERS
 
-      PrintIntermediateResults(index)
+      --PrintIntermediateResults(index)
 
       ProcessedIndex = index
    end -- ProcessedIndex ~= index
@@ -1156,7 +1157,7 @@ end
 ----------------------------------------------------------------------------
 function SetChartLabel(index, direction, indicator, signal, icon, signal_permission, text)
    -- check signal level and chart levels
-   if ChartLabels[indicator.Name]:CheckIndex(index) then
+   if ChartLabels[indicator.Name]:CheckIndexFrom(index) then
       if CheckChartPermission(indicator, signal_permission) then
          local chart_tag = GetChartTag(indicator.Name)
          local idx, chart_label_id = ChartLabels[indicator.Name]:GetItem(index)
@@ -1167,6 +1168,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          -- record not exist - add new item to IndexWindows
          else
             _, chart_label_id = ChartLabels[indicator.Name]:AddItem(index, true)
+            -- del chart label that removed from overflowed IndexWindow
             if  ((chart_label_id ~= nil) and (chart_label_id ~= 0)) then
                DelLabel(chart_tag, chart_label_id)
             end
@@ -1354,22 +1356,37 @@ end
 --==========================================================================
 ----------------------------------------------------------------------------
 -- class IndexWindows - saves part of global array _from index with _size
+--todo check for duplicates CheckIndex
 ----------------------------------------------------------------------------
 function IndexWindows(_size)
    -- class values
    ------------------------------
-   local _From = Size() - 3 * _size
-
    -- Indexes - inner array of indexes, Values - inner array of values, From - starting global index, Size - size of IndexWindow
-   local _Windows = { From = ((_From > 0) and _From or 1), Size = _size, Indexes = {}, Values = {} }
+   local _Windows = { Size = _size, Indexes = {}, Values = {} }
 
    -- class methods
    -- _index is global candle index on chart,
    -- _idx is local index in IndexWindows: Indexes[_idx] == _index
    ---------------------------------------------------------------
+   local function _GetFrom(_self)
+      if (_self.Indexes[1] == nil) then
+         local from = Size() - 3 * _self.Size
+         return ((from > 0) and from or 1)
+      else
+         return _self.Indexes[1]
+      end
+   end
+
+   local function _CheckIndexFrom(_self, _index)
+
+      PrintDebugMessage("_CheckIndexFrom", _self, _index, (_index >= _GetFrom(_self)))
+      return (_index >= _GetFrom(_self))
+   end
+
    -- check index hit inside IndexWindows
    local function _CheckIndex(_self, _index)
-      return ((_index >= _self.From) and (_index < _self.Indexes[#_self.Indexes]))
+      PrintDebugMessage("_CheckIndex", _self, _index, _CheckIndexFrom(_self, _index), (_index <= _self.Indexes[#_self.Indexes]))
+      return (_CheckIndexFrom(_self, _index) and (_index <= _self.Indexes[#_self.Indexes]))
    end
 
    -- check idx hit inside IndexWindows
@@ -1379,6 +1396,9 @@ function IndexWindows(_size)
 
    -- get idx by index
    local function _GetIdx(_self, _index)
+      if (_CheckIndex(_self, _index) == nil) then
+         return  nil
+      end
       local idx
       for idx = 1, #_self.Indexes do
          if (_self.Indexes[idx] == _index) then
@@ -1386,12 +1406,13 @@ function IndexWindows(_size)
          end
       end
       return nil
+      -- return 0
    end
 
    -- get index by idx
    local function _GetIndex(_self, _idx)
       if (_CheckIdx(_self, _idx) == nil) then
-         return  nil
+         return nil
       end
       return _self.Indexes[_idx]
    end
@@ -1427,29 +1448,33 @@ function IndexWindows(_size)
       end
       local chart_label_id = _self.Values[_idx]
       local index = _self.Indexes[_idx]
-      PrintDebugMessage("DelItem1", tostring(_self), tostring(_self.From), tostring(_self.Size), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_idx), tostring(index), tostring(chart_label_id))
+      PrintDebugMessage("DelItem1", tostring(_self), tostring(_GetFrom(_self)), tostring(_GetSize(_self)), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_idx), tostring(index), tostring(chart_label_id))
       -- remove item with curtain idx
       table.remove(_self.Indexes, _idx)
       table.remove(_self.Values, _idx)
-      -- if remove first item from IndexWindow then relocate candle index from
-      if (_idx == 1) then
-         _self.From = _self.Indexes[1]
-      end
-      PrintDebugMessage("DelItem2", tostring(_self.From), tostring(_self.Indexes[_idx]), tostring(_self.Values[_idx]), tostring(#_self.Indexes), tostring(#_self.Values))
+      PrintDebugMessage("DelItem2", tostring(_GetFrom(_self)), tostring(_self.Indexes[_idx]), tostring(_self.Values[_idx]), tostring(#_self.Indexes), tostring(#_self.Values))
       return index, chart_label_id
+   end
+
+
+   local function _GetSize(_self)
+      return ((#_self.Indexes == #_self.Values) and #_self.Indexes or nil)
    end
 
    -- add item - store index and value to IndexWindows with checking borders
    local function _AddItem(_self, _index, _value)
-      PrintDebugMessage("AddItem1", tostring(_self), tostring(_self.From), tostring(_self.Size), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_index), tostring(_value))
-      if ((_index < _self.From) or not CandleExist(_index)) then
+      PrintDebugMessage("AddItem1", tostring(_self), tostring(_GetFrom(_self)), tostring(_GetSize(_self)), tostring(#_self.Indexes), tostring(#_self.Values), tostring(_index), tostring(_value))
+      if (not _CheckIndexFrom(_self, _index) or not CandleExist(_index)) then
          return nil
       end
       -- append value to end of IndexWindows array
       table.insert(_self.Indexes, _index)
       table.insert(_self.Values, _value)
+      if (_GetSize(_self) == 1) then
+         _self.From = _self.Indexes[1] 
+      end
       -- remove first items of IndexWindow array if IndexWindow growth up max Size
-      if ((#_self.Indexes > _self.Size) and (#_self.Values > _self.Size)) then
+      if (_GetSize(_self) > _self.Size) then
          local chart_label_id1, chart_label_id2
          local index = _GetIndex(_self, 1)
          _, chart_label_id1 = _GetItem(_self, index)
@@ -1470,7 +1495,7 @@ function IndexWindows(_size)
    return function()
       --todo make single metatable for all instances
       -- set metamethods for function overloading and using class object sintax sugar
-      setmetatable(_Windows, { __index = { AddItem = _AddItem, SetItem = _SetItem, GetItem = _GetItem, CheckIndex = _CheckIndex }})
+      setmetatable(_Windows, { __index = { AddItem = _AddItem, SetItem = _SetItem, GetItem = _GetItem, CheckIndexFrom = _CheckIndexFrom }})
       return _Windows
    end
 end
