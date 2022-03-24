@@ -185,8 +185,10 @@ function OnCalculate(index)
       SetInitialValues(Signals)
 
       PrintDebugMessage("Prices I,V", ChartLabels[Prices.Name], ChartLabels[Prices.Name].Indexes, ChartLabels[Prices.Name].Values)
+      PrintDebugMessage("=======")
       PrintDebugMessage("Stochs I,V", ChartLabels[Stochs.Name], ChartLabels[Stochs.Name].Indexes, ChartLabels[Stochs.Name].Values)
-      PrintDebugMessage("RSIs I,V", ChartLabels[RSIs.Name], ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values) 
+      PrintDebugMessage("----------")
+      PrintDebugMessage("RSIs I,V", ChartLabels[RSIs.Name], ChartLabels[RSIs.Name].Indexes, ChartLabels[RSIs.Name].Values)
    end
 
    --#region SET PRICES AND INDICATORS FOR CURRENT CANDLE
@@ -218,7 +220,7 @@ function OnCalculate(index)
    -- debuglog
    --if ((index == 5172) or (index == 5171) or (index == 5170) or (index == 5169)) then
    local t = T(index)
-   PrintDebugMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min) 
+   PrintDebugMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min)
    message(GetMessage("I:".. tostring(index), "P:" .. tostring(Pass), "Y:" .. t.year, "M:" .. t.month, "D:" .. t.day, "H:" .. t.hour, "m:" .. t.min))
    --end
 
@@ -300,8 +302,8 @@ function OnCalculate(index)
       --
       --#region CHECK ENTERS
       --
-      CheckEnterOn(index, Directions.Long)
-      CheckEnterOn(index, Directions.Short)
+      CheckEnter(index, Directions.Long)
+      CheckEnter(index, Directions.Short)
       --#endregion CHECK ENTERS
 
       --PrintIntermediateResults(index)
@@ -628,8 +630,6 @@ end
 -- CheckStateStrengthOn - check on states Cross, Cross50 and not check states off
 ----------------------------------------------------------------------------
 function CheckStateStrengthOn(index, direction, indicator, signal)
-   --PrintDebugMessage("CheckStateStrengthOn", index, direction, indicator.Name, signal.Name)
-
    local values1, values2, signal_function, chart_icon
    local chart_permission
 
@@ -680,6 +680,7 @@ function CheckStateStrengthOn(index, direction, indicator, signal)
 
    -- check signal start
    if (signal_function((index-1), direction, values1, values2)) then
+      PrintDebugMessage("CheckStateStrengthOn", index-1, direction, indicator.Name, signal.Name)
       -- set signal
       SetSignal((index-1), direction, indicator, signal)
 
@@ -741,6 +742,8 @@ function CheckSignal(index, direction, indicator, signal)
 
    -- check signal on
    if (signal_function((index-1), direction, values1, values2)) then
+      PrintDebugMessage("CheckSignal", index-1, direction, indicator.Name, signal.Name)
+
       -- set signal
       SetSignal((index-1), direction, indicator, signal)
 
@@ -755,7 +758,6 @@ function CheckSignal(index, direction, indicator, signal)
 
       -- signal terminates by end of duration
       if (duration > Signals.MaxDuration) then
-
          -- set signal off
          Signals[signal.Name][direction][indicator.Name].Candle = 0
       end
@@ -763,10 +765,10 @@ function CheckSignal(index, direction, indicator, signal)
 end
 
 ----------------------------------------------------------------------------
--- CheckEnterOn
+-- CheckEnter 
 ----------------------------------------------------------------------------
-function CheckEnterOn(index, direction)
-   -- check enter signals on
+function CheckEnter(index, direction)
+   -- check enter on
    if ((Signals[Signals.Enter.Name][direction][Prices.Name].Candle == 0) and
    -- states
    ((Signals[Signals.Cross50.Name][direction][Prices.Name].Candle > 0) and
@@ -782,6 +784,8 @@ function CheckEnterOn(index, direction)
    (Signals[Signals.StrengthOsc.Name][direction][Stochs.Name].Candle > 0) and
    (Signals[Signals.StrengthOsc.Name][direction][RSIs.Name].Candle > 0) ]]
    ) then
+      PrintDebugMessage("CheckEnter", index-1, direction)
+
       -- set enter signal on
       SetSignal((index-1), direction, Prices, Signals.Enter)
 
@@ -789,7 +793,7 @@ function CheckEnterOn(index, direction)
       ChartLabels[Prices.Name][index-1] = SetChartLabel((index-1), direction, Prices, Signals.Enter, ChartIcons.BigArrow, ChartPermissions.Enter)
    end -- enter signals on
 
-   -- check enter signals off
+   -- check enter off
    if (Signals[Signals.Enter.Name][direction][Prices.Name].Candle > 0) then
       -- set enter duration
       local duration = index - Signals[Signals.Enter.Name][direction][Prices.Name].Candle
@@ -799,7 +803,7 @@ function CheckEnterOn(index, direction)
          -- set enter long off
          Signals[Signals.Enter.Name][direction][Prices.Name].Candle = 0
       end
-   end -- enter signals long off
+   end -- enter long off
 end
 ----------------------------------------------------------------------------
 -- Signal Steamer - fast and slow move synchro in one direction
@@ -1159,18 +1163,23 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
    -- check signal level and chart levels
    if ChartLabels[indicator.Name]:CheckIndexFrom(index) then
       if CheckChartPermission(indicator, signal_permission) then
+         PrintDebugMessage("SetChartLabel1", index, direction, indicator.Name, signal.Name, icon, signal_permission, text)
          local chart_tag = GetChartTag(indicator.Name)
          local idx, chart_label_id = ChartLabels[indicator.Name]:GetItem(index)
+         PrintDebugMessage("SetChartLabel2", idx, chart_label_id)
 
          -- record with index and check_label_id in IndexWindows exist -  delete label duplicate
          if ((idx ~= nil) and (chart_label_id ~= nil)) then
-            DelLabel(chart_tag, chart_label_id)
+            local res = DelLabel(chart_tag, chart_label_id)
+            PrintDebugMessage("SetChartLabel3", res, chart_label_id)
          -- record not exist - add new item to IndexWindows
          else
             _, chart_label_id = ChartLabels[indicator.Name]:AddItem(index, true)
+            PrintDebugMessage("SetChartLabel4",chart_label_id)
             -- del chart label that removed from overflowed IndexWindow
             if  ((chart_label_id ~= nil) and (chart_label_id ~= 0)) then
-               DelLabel(chart_tag, chart_label_id)
+               local res = DelLabel(chart_tag, chart_label_id)
+               PrintDebugMessage("SetChartLabel5", res, chart_label_id)
             end
          end
 
@@ -1188,6 +1197,7 @@ function SetChartLabel(index, direction, indicator, signal, icon, signal_permiss
          -- set chart label and return id
          chart_label_id = AddLabel(chart_tag, ChartLabels.Params)
          ChartLabels[indicator.Name]:SetItem(index, chart_label_id)
+         PrintDebugMessage("SetChartLabel6", chart_label_id, ChartLabels[indicator.Name]:GetItem(index))
          return chart_label_id
       end
    -- nothing todo
@@ -1378,14 +1388,13 @@ function IndexWindows(_size)
    end
 
    local function _CheckIndexFrom(_self, _index)
-
-      PrintDebugMessage("_CheckIndexFrom", _self, _index, (_index >= _GetFrom(_self)))
+      PrintDebugMessage("_CheckIndexFrom", tostring(_self), tostring(_index), tostring(_GetFrom(_self)), tostring(_index >= _GetFrom(_self)))
       return (_index >= _GetFrom(_self))
    end
 
    -- check index hit inside IndexWindows
    local function _CheckIndex(_self, _index)
-      PrintDebugMessage("_CheckIndex", _self, _index, _CheckIndexFrom(_self, _index), (_index <= _self.Indexes[#_self.Indexes]))
+      PrintDebugMessage("_CheckIndex", tostring(_self), tostring(_index), tostring(_CheckIndexFrom(_self, _index)), tostring(_index <= _self.Indexes[#_self.Indexes]))
       return (_CheckIndexFrom(_self, _index) and (_index <= _self.Indexes[#_self.Indexes]))
    end
 
@@ -1419,7 +1428,7 @@ function IndexWindows(_size)
 
    -- get item value with index
    local function _GetItem(_self, _index)
-      PrintDebugMessage("GetItem1", tostring(_self), tostring(_index))
+      PrintDebugMessage("GetItem1", tostring(_self), tostring(_index), tostring(_GetIdx(_self, _index)))
       local idx = _GetIdx(_self, _index)
       if (idx == nil) then
          return nil
@@ -1471,7 +1480,7 @@ function IndexWindows(_size)
       table.insert(_self.Indexes, _index)
       table.insert(_self.Values, _value)
       if (_GetSize(_self) == 1) then
-         _self.From = _self.Indexes[1] 
+         _self.From = _self.Indexes[1]
       end
       -- remove first items of IndexWindow array if IndexWindow growth up max Size
       if (_GetSize(_self) > _self.Size) then
